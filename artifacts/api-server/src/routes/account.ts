@@ -1,12 +1,12 @@
 import { Router, type IRouter } from "express";
-import { krakenBot } from "../lib/krakenBot";
+import { fetchBalance } from "../lib/krakenBot";
 import { GetAccountBalanceResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 router.get("/account/balance", async (req, res): Promise<void> => {
   try {
-    const balances = await krakenBot.getBalance();
+    const balances = await fetchBalance();
     const result = Object.entries(balances)
       .filter(([, v]) => parseFloat(v) > 0)
       .map(([asset, balance]) => ({ asset, balance }));

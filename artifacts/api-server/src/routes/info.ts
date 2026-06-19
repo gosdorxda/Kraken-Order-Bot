@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { krakenBot } from "../lib/krakenBot";
+import { fetchBalance } from "../lib/krakenBot";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -20,7 +20,7 @@ router.get("/info", async (req, res): Promise<void> => {
 
   const [ipResult, krakenResult] = await Promise.allSettled([
     fetchPublicIp(),
-    krakenBot.getBalance(),
+    fetchBalance(),
   ]);
 
   if (ipResult.status === "fulfilled") {
@@ -40,12 +40,7 @@ router.get("/info", async (req, res): Promise<void> => {
     req.log.warn({ err: krakenError }, "Kraken connection test failed");
   }
 
-  res.json({
-    publicIp,
-    ipError,
-    krakenConnected,
-    krakenError,
-  });
+  res.json({ publicIp, ipError, krakenConnected, krakenError });
 });
 
 export default router;

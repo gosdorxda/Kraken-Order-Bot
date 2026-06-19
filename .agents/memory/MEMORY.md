@@ -1,0 +1,1 @@
+- [Orval Zod index.ts conflict](orval-zod-index-conflict.md) — removing `schemas` from orval zod config prevents duplicate name exports; fix index.ts manually after clean.

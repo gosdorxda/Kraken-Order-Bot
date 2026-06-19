@@ -17,38 +17,119 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * @summary Get current bot status
+ * @summary Get server public IP and Kraken connection status
  */
-export const GetBotStatusResponse = zod.object({
-  "running": zod.boolean(),
-  "pair": zod.string().nullable(),
-  "currentOrderId": zod.string().nullable(),
-  "currentOrderPrice": zod.string().nullable(),
-  "currentOrderVolume": zod.string().nullable(),
-  "topBidPrice": zod.string().nullable(),
-  "topBidOwner": zod.enum(['bot', 'other', 'none']),
-  "cycleCount": zod.number(),
-  "lastAction": zod.string().nullable(),
-  "lastActionAt": zod.string().nullable()
+export const GetServerInfoResponse = zod.object({
+  "publicIp": zod.string().nullable(),
+  "ipError": zod.string().nullable(),
+  "krakenConnected": zod.boolean(),
+  "krakenError": zod.string().nullable()
 })
 
 
 /**
- * @summary Start the bot
+ * @summary List all bot instances
  */
-export const startBotBodyCheckIntervalMsDefault = 3000;
+export const listBotsResponseConfigCheckIntervalMsDefault = 3000;
 
-export const StartBotBody = zod.object({
+export const ListBotsResponseItem = zod.object({
+  "id": zod.string(),
+  "config": zod.object({
   "pair": zod.string(),
   "orderSize": zod.string(),
   "maxBidPrice": zod.string(),
   "tickSize": zod.string(),
-  "checkIntervalMs": zod.number().default(startBotBodyCheckIntervalMsDefault)
+  "checkIntervalMs": zod.number().default(listBotsResponseConfigCheckIntervalMsDefault)
+}),
+  "status": zod.object({
+  "running": zod.boolean(),
+  "currentOrderId": zod.string().nullable(),
+  "currentOrderPrice": zod.string().nullable(),
+  "currentOrderVolume": zod.string().nullable(),
+  "topBidPrice": zod.string().nullable(),
+  "topBidOwner": zod.enum(['bot', 'other', 'none']),
+  "cycleCount": zod.number(),
+  "lastAction": zod.string().nullable(),
+  "lastActionAt": zod.string().nullable()
 })
+})
+export const ListBotsResponse = zod.array(ListBotsResponseItem)
+
+
+/**
+ * @summary Create a new bot instance
+ */
+export const createBotBodyCheckIntervalMsDefault = 3000;
+
+export const CreateBotBody = zod.object({
+  "pair": zod.string(),
+  "orderSize": zod.string(),
+  "maxBidPrice": zod.string(),
+  "tickSize": zod.string(),
+  "checkIntervalMs": zod.number().default(createBotBodyCheckIntervalMsDefault)
+})
+
+
+/**
+ * @summary Get a single bot instance
+ */
+export const GetBotParams = zod.object({
+  "botId": zod.coerce.string()
+})
+
+export const getBotResponseConfigCheckIntervalMsDefault = 3000;
+
+export const GetBotResponse = zod.object({
+  "id": zod.string(),
+  "config": zod.object({
+  "pair": zod.string(),
+  "orderSize": zod.string(),
+  "maxBidPrice": zod.string(),
+  "tickSize": zod.string(),
+  "checkIntervalMs": zod.number().default(getBotResponseConfigCheckIntervalMsDefault)
+}),
+  "status": zod.object({
+  "running": zod.boolean(),
+  "currentOrderId": zod.string().nullable(),
+  "currentOrderPrice": zod.string().nullable(),
+  "currentOrderVolume": zod.string().nullable(),
+  "topBidPrice": zod.string().nullable(),
+  "topBidOwner": zod.enum(['bot', 'other', 'none']),
+  "cycleCount": zod.number(),
+  "lastAction": zod.string().nullable(),
+  "lastActionAt": zod.string().nullable()
+})
+})
+
+
+/**
+ * @summary Stop and remove a bot instance
+ */
+export const DeleteBotParams = zod.object({
+  "botId": zod.coerce.string()
+})
+
+
+/**
+ * @summary Start a bot
+ */
+export const StartBotParams = zod.object({
+  "botId": zod.coerce.string()
+})
+
+export const startBotResponseConfigCheckIntervalMsDefault = 3000;
 
 export const StartBotResponse = zod.object({
+  "id": zod.string(),
+  "config": zod.object({
+  "pair": zod.string(),
+  "orderSize": zod.string(),
+  "maxBidPrice": zod.string(),
+  "tickSize": zod.string(),
+  "checkIntervalMs": zod.number().default(startBotResponseConfigCheckIntervalMsDefault)
+}),
+  "status": zod.object({
   "running": zod.boolean(),
-  "pair": zod.string().nullable(),
   "currentOrderId": zod.string().nullable(),
   "currentOrderPrice": zod.string().nullable(),
   "currentOrderVolume": zod.string().nullable(),
@@ -58,14 +139,29 @@ export const StartBotResponse = zod.object({
   "lastAction": zod.string().nullable(),
   "lastActionAt": zod.string().nullable()
 })
+})
 
 
 /**
- * @summary Stop the bot
+ * @summary Stop a bot
  */
+export const StopBotParams = zod.object({
+  "botId": zod.coerce.string()
+})
+
+export const stopBotResponseConfigCheckIntervalMsDefault = 3000;
+
 export const StopBotResponse = zod.object({
+  "id": zod.string(),
+  "config": zod.object({
+  "pair": zod.string(),
+  "orderSize": zod.string(),
+  "maxBidPrice": zod.string(),
+  "tickSize": zod.string(),
+  "checkIntervalMs": zod.number().default(stopBotResponseConfigCheckIntervalMsDefault)
+}),
+  "status": zod.object({
   "running": zod.boolean(),
-  "pair": zod.string().nullable(),
   "currentOrderId": zod.string().nullable(),
   "currentOrderPrice": zod.string().nullable(),
   "currentOrderVolume": zod.string().nullable(),
@@ -75,25 +171,16 @@ export const StopBotResponse = zod.object({
   "lastAction": zod.string().nullable(),
   "lastActionAt": zod.string().nullable()
 })
-
-
-/**
- * @summary Get current bot configuration
- */
-export const getBotConfigResponseCheckIntervalMsDefault = 3000;
-
-export const GetBotConfigResponse = zod.object({
-  "pair": zod.string().describe('Trading pair e.g. XBT\/USD'),
-  "orderSize": zod.string().describe('Volume per order e.g. 0.001'),
-  "maxBidPrice": zod.string().describe('Maximum price bot will bid up to'),
-  "tickSize": zod.string().describe('Price increment per tick e.g. 0.1'),
-  "checkIntervalMs": zod.number().default(getBotConfigResponseCheckIntervalMsDefault).describe('How often to poll order book in ms')
 })
 
 
 /**
- * @summary Update bot configuration (only when bot is stopped)
+ * @summary Update bot configuration (only when stopped)
  */
+export const UpdateBotConfigParams = zod.object({
+  "botId": zod.coerce.string()
+})
+
 export const updateBotConfigBodyCheckIntervalMsDefault = 3000;
 
 export const UpdateBotConfigBody = zod.object({
@@ -104,20 +191,38 @@ export const UpdateBotConfigBody = zod.object({
   "checkIntervalMs": zod.number().default(updateBotConfigBodyCheckIntervalMsDefault)
 })
 
-export const updateBotConfigResponseCheckIntervalMsDefault = 3000;
+export const updateBotConfigResponseConfigCheckIntervalMsDefault = 3000;
 
 export const UpdateBotConfigResponse = zod.object({
-  "pair": zod.string().describe('Trading pair e.g. XBT\/USD'),
-  "orderSize": zod.string().describe('Volume per order e.g. 0.001'),
-  "maxBidPrice": zod.string().describe('Maximum price bot will bid up to'),
-  "tickSize": zod.string().describe('Price increment per tick e.g. 0.1'),
-  "checkIntervalMs": zod.number().default(updateBotConfigResponseCheckIntervalMsDefault).describe('How often to poll order book in ms')
+  "id": zod.string(),
+  "config": zod.object({
+  "pair": zod.string(),
+  "orderSize": zod.string(),
+  "maxBidPrice": zod.string(),
+  "tickSize": zod.string(),
+  "checkIntervalMs": zod.number().default(updateBotConfigResponseConfigCheckIntervalMsDefault)
+}),
+  "status": zod.object({
+  "running": zod.boolean(),
+  "currentOrderId": zod.string().nullable(),
+  "currentOrderPrice": zod.string().nullable(),
+  "currentOrderVolume": zod.string().nullable(),
+  "topBidPrice": zod.string().nullable(),
+  "topBidOwner": zod.enum(['bot', 'other', 'none']),
+  "cycleCount": zod.number(),
+  "lastAction": zod.string().nullable(),
+  "lastActionAt": zod.string().nullable()
+})
 })
 
 
 /**
- * @summary Get recent bot activity logs
+ * @summary Get activity logs for a bot
  */
+export const GetBotLogsParams = zod.object({
+  "botId": zod.coerce.string()
+})
+
 export const getBotLogsQueryLimitDefault = 50;
 
 export const GetBotLogsQueryParams = zod.object({
@@ -135,9 +240,13 @@ export const GetBotLogsResponse = zod.array(GetBotLogsResponseItem)
 
 
 /**
- * @summary Get top of order book for current pair
+ * @summary Get order book for a bot's pair
  */
-export const GetOrderBookResponse = zod.object({
+export const GetBotOrderBookParams = zod.object({
+  "botId": zod.coerce.string()
+})
+
+export const GetBotOrderBookResponse = zod.object({
   "pair": zod.string(),
   "bids": zod.array(zod.object({
   "price": zod.string(),
@@ -152,13 +261,23 @@ export const GetOrderBookResponse = zod.object({
 
 
 /**
- * @summary Get server public IP and Kraken connection status
+ * @summary Get order book for any pair (no bot required)
  */
-export const GetServerInfoResponse = zod.object({
-  "publicIp": zod.string().nullable(),
-  "ipError": zod.string().nullable(),
-  "krakenConnected": zod.boolean(),
-  "krakenError": zod.string().nullable()
+export const GetOrderBookQueryParams = zod.object({
+  "pair": zod.coerce.string()
+})
+
+export const GetOrderBookResponse = zod.object({
+  "pair": zod.string(),
+  "bids": zod.array(zod.object({
+  "price": zod.string(),
+  "volume": zod.string()
+})),
+  "asks": zod.array(zod.object({
+  "price": zod.string(),
+  "volume": zod.string()
+})),
+  "timestamp": zod.string()
 })
 
 

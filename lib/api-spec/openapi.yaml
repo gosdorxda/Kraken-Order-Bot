@@ -9,8 +9,8 @@ servers:
 tags:
   - name: health
     description: Health operations
-  - name: bot
-    description: Bot control and status
+  - name: bots
+    description: Bot instances management
   - name: account
     description: Kraken account info
 paths:
@@ -27,73 +27,170 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
-  /bot/status:
+  /info:
     get:
-      operationId: getBotStatus
-      tags: [bot]
-      summary: Get current bot status
+      operationId: getServerInfo
+      tags: [health]
+      summary: Get server public IP and Kraken connection status
       responses:
         "200":
-          description: Bot status
+          description: Server info
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BotStatus"
+                $ref: "#/components/schemas/ServerInfo"
 
-  /bot/start:
+  /bots:
+    get:
+      operationId: listBots
+      tags: [bots]
+      summary: List all bot instances
+      responses:
+        "200":
+          description: All bot instances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BotInstance"
+
     post:
-      operationId: startBot
-      tags: [bot]
-      summary: Start the bot
+      operationId: createBot
+      tags: [bots]
+      summary: Create a new bot instance
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/BotConfigInput"
+      responses:
+        "201":
+          description: Bot created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotInstance"
+        "409":
+          description: Bot for this pair already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bots/{botId}:
+    get:
+      operationId: getBot
+      tags: [bots]
+      summary: Get a single bot instance
+      parameters:
+        - name: botId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Bot instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotInstance"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteBot
+      tags: [bots]
+      summary: Stop and remove a bot instance
+      parameters:
+        - name: botId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bots/{botId}/start:
+    post:
+      operationId: startBot
+      tags: [bots]
+      summary: Start a bot
+      parameters:
+        - name: botId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Bot started
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BotStatus"
-        "400":
-          description: Bad request
+                $ref: "#/components/schemas/BotInstance"
+        "404":
+          description: Not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /bot/stop:
+  /bots/{botId}/stop:
     post:
       operationId: stopBot
-      tags: [bot]
-      summary: Stop the bot
+      tags: [bots]
+      summary: Stop a bot
+      parameters:
+        - name: botId
+          in: path
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Bot stopped
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BotStatus"
-
-  /bot/config:
-    get:
-      operationId: getBotConfig
-      tags: [bot]
-      summary: Get current bot configuration
-      responses:
-        "200":
-          description: Current config
+                $ref: "#/components/schemas/BotInstance"
+        "404":
+          description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BotConfig"
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bots/{botId}/config:
     put:
       operationId: updateBotConfig
-      tags: [bot]
-      summary: Update bot configuration (only when bot is stopped)
+      tags: [bots]
+      summary: Update bot configuration (only when stopped)
+      parameters:
+        - name: botId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -102,24 +199,35 @@ paths:
               $ref: "#/components/schemas/BotConfigInput"
       responses:
         "200":
-          description: Updated config
+          description: Config updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BotConfig"
+                $ref: "#/components/schemas/BotInstance"
         "400":
           description: Bad request
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
-  /bot/logs:
+  /bots/{botId}/logs:
     get:
       operationId: getBotLogs
-      tags: [bot]
-      summary: Get recent bot activity logs
+      tags: [bots]
+      summary: Get activity logs for a bot
       parameters:
+        - name: botId
+          in: path
+          required: true
+          schema:
+            type: string
         - name: limit
           in: query
           schema:
@@ -134,12 +242,55 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/BotLog"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
-  /bot/orderbook:
+  /bots/{botId}/orderbook:
+    get:
+      operationId: getBotOrderBook
+      tags: [bots]
+      summary: Get order book for a bot's pair
+      parameters:
+        - name: botId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Order book snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderBook"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Kraken API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /orderbook:
     get:
       operationId: getOrderBook
-      tags: [bot]
-      summary: Get top of order book for current pair
+      tags: [bots]
+      summary: Get order book for any pair (no bot required)
+      parameters:
+        - name: pair
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Order book snapshot
@@ -148,24 +299,17 @@ paths:
               schema:
                 $ref: "#/components/schemas/OrderBook"
         "400":
-          description: No pair configured
+          description: Missing pair
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-
-  /info:
-    get:
-      operationId: getServerInfo
-      tags: [health]
-      summary: Get server public IP and Kraken connection status
-      responses:
-        "200":
-          description: Server info
+        "500":
+          description: Kraken API error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ServerInfo"
+                $ref: "#/components/schemas/ErrorResponse"
 
   /account/balance:
     get:
@@ -204,14 +348,44 @@ components:
         error:
           type: string
 
+    BotConfig:
+      type: object
+      required: [pair, orderSize, maxBidPrice, tickSize, checkIntervalMs]
+      properties:
+        pair:
+          type: string
+        orderSize:
+          type: string
+        maxBidPrice:
+          type: string
+        tickSize:
+          type: string
+        checkIntervalMs:
+          type: integer
+          default: 3000
+
+    BotConfigInput:
+      type: object
+      required: [pair, orderSize, maxBidPrice, tickSize]
+      properties:
+        pair:
+          type: string
+        orderSize:
+          type: string
+        maxBidPrice:
+          type: string
+        tickSize:
+          type: string
+        checkIntervalMs:
+          type: integer
+          default: 3000
+
     BotStatus:
       type: object
-      required: [running, pair, currentOrderId, currentOrderPrice, currentOrderVolume, topBidPrice, topBidOwner, cycleCount, lastAction, lastActionAt]
+      required: [running, currentOrderId, currentOrderPrice, currentOrderVolume, topBidPrice, topBidOwner, cycleCount, lastAction, lastActionAt]
       properties:
         running:
           type: boolean
-        pair:
-          type: ["string", "null"]
         currentOrderId:
           type: ["string", "null"]
         currentOrderPrice:
@@ -230,42 +404,16 @@ components:
         lastActionAt:
           type: ["string", "null"]
 
-    BotConfig:
+    BotInstance:
       type: object
-      required: [pair, orderSize, maxBidPrice, tickSize]
+      required: [id, config, status]
       properties:
-        pair:
+        id:
           type: string
-          description: Trading pair e.g. XBT/USD
-        orderSize:
-          type: string
-          description: Volume per order e.g. 0.001
-        maxBidPrice:
-          type: string
-          description: Maximum price bot will bid up to
-        tickSize:
-          type: string
-          description: Price increment per tick e.g. 0.1
-        checkIntervalMs:
-          type: integer
-          description: How often to poll order book in ms
-          default: 3000
-
-    BotConfigInput:
-      type: object
-      required: [pair, orderSize, maxBidPrice, tickSize]
-      properties:
-        pair:
-          type: string
-        orderSize:
-          type: string
-        maxBidPrice:
-          type: string
-        tickSize:
-          type: string
-        checkIntervalMs:
-          type: integer
-          default: 3000
+        config:
+          $ref: "#/components/schemas/BotConfig"
+        status:
+          $ref: "#/components/schemas/BotStatus"
 
     BotLog:
       type: object

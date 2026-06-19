@@ -19,7 +19,6 @@ export interface BotLog {
 
 export interface BotStatus {
   running: boolean;
-  pair: string | null;
   currentOrderId: string | null;
   currentOrderPrice: string | null;
   currentOrderVolume: string | null;
@@ -30,17 +29,32 @@ export interface BotStatus {
   lastActionAt: string | null;
 }
 
-const DEFAULT_CONFIG: BotConfig = {
-  pair: "XXBTZUSD",
-  orderSize: "0.001",
-  maxBidPrice: "100000",
-  tickSize: "0.1",
-  checkIntervalMs: 3000,
-};
+// Shared Kraken client (one API key for all bots)
+const sharedClient: KrakenClient = (() => {
+  const apiKey = process.env["KRAKEN_API_KEY"] ?? "";
+  const apiSecret = process.env["KRAKEN_API_SECRET"] ?? "";
+  return new KrakenClient(apiKey, apiSecret);
+})();
 
-class KrakenBot {
-  private client: KrakenClient;
-  private config: BotConfig = { ...DEFAULT_CONFIG };
+export async function fetchOrderBook(
+  pair: string
+): Promise<{ bids: { price: string; volume: string }[]; asks: { price: string; volume: string }[] }> {
+  const resp = await (sharedClient as any).api("Depth", { pair, count: 10 });
+  const data = resp.result[Object.keys(resp.result)[0]];
+  return {
+    bids: (data.bids as [string, string][]).map(([price, volume]) => ({ price, volume })),
+    asks: (data.asks as [string, string][]).map(([price, volume]) => ({ price, volume })),
+  };
+}
+
+export async function fetchBalance(): Promise<Record<string, string>> {
+  const resp = await (sharedClient as any).api("Balance", {});
+  return resp.result as Record<string, string>;
+}
+
+export class KrakenBot {
+  readonly id: string;
+  private config: BotConfig;
   private logs: BotLog[] = [];
   private logIdCounter = 0;
 
@@ -55,10 +69,9 @@ class KrakenBot {
   private lastActionAt: string | null = null;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
 
-  constructor() {
-    const apiKey = process.env["KRAKEN_API_KEY"] ?? "";
-    const apiSecret = process.env["KRAKEN_API_SECRET"] ?? "";
-    this.client = new KrakenClient(apiKey, apiSecret);
+  constructor(id: string, config: BotConfig) {
+    this.id = id;
+    this.config = { ...config };
   }
 
   private addLog(level: BotLog["level"], message: string, data?: unknown): void {
@@ -71,7 +84,7 @@ class KrakenBot {
     };
     this.logs.unshift(entry);
     if (this.logs.length > 200) this.logs = this.logs.slice(0, 200);
-    logger.info({ botLog: entry }, message);
+    logger.info({ botId: this.id, botLog: entry }, message);
   }
 
   getConfig(): BotConfig {
@@ -85,7 +98,6 @@ class KrakenBot {
   getStatus(): BotStatus {
     return {
       running: this.running,
-      pair: this.running ? this.config.pair : null,
       currentOrderId: this.currentOrderId,
       currentOrderPrice: this.currentOrderPrice,
       currentOrderVolume: this.currentOrderVolume,
@@ -101,29 +113,11 @@ class KrakenBot {
     return this.logs.slice(0, limit);
   }
 
-  async getOrderBook(pair?: string): Promise<{ bids: { price: string; volume: string }[]; asks: { price: string; volume: string }[] }> {
-    const targetPair = pair ?? this.config.pair;
-    const resp = await (this.client as any).api("Depth", { pair: targetPair, count: 10 });
-    const data = resp.result[Object.keys(resp.result)[0]];
-    return {
-      bids: (data.bids as [string, string][]).map(([price, volume]) => ({ price, volume })),
-      asks: (data.asks as [string, string][]).map(([price, volume]) => ({ price, volume })),
-    };
-  }
-
-  async getBalance(): Promise<Record<string, string>> {
-    const resp = await (this.client as any).api("Balance", {});
-    return resp.result as Record<string, string>;
-  }
-
-  async start(config: BotConfig): Promise<void> {
-    if (this.running) {
-      await this.stop();
-    }
-    this.config = { ...config };
+  async start(): Promise<void> {
+    if (this.running) return;
     this.running = true;
     this.cycleCount = 0;
-    this.addLog("info", `Bot started for pair ${this.config.pair}`, { config });
+    this.addLog("info", `Bot started for pair ${this.config.pair}`, { config: this.config });
     this.intervalHandle = setInterval(() => {
       this.runCycle().catch((err: unknown) => {
         this.addLog("error", "Cycle error", err instanceof Error ? err.message : String(err));
@@ -158,7 +152,7 @@ class KrakenBot {
     this.cycleCount++;
 
     try {
-      const book = await this.getOrderBook(this.config.pair);
+      const book = await fetchOrderBook(this.config.pair);
       const topBid = book.bids[0];
       if (!topBid) {
         this.addLog("warn", "Empty order book, skipping cycle");
@@ -181,15 +175,11 @@ class KrakenBot {
         } else {
           const myPrice = parseFloat(this.currentOrderPrice ?? "0");
           myOrderIsAtTop = myPrice >= topBidPriceNum;
-          if (myOrderIsAtTop) {
-            this.topBidOwner = "bot";
-          }
+          if (myOrderIsAtTop) this.topBidOwner = "bot";
         }
       }
 
-      if (this.currentOrderId && myOrderIsAtTop) {
-        return;
-      }
+      if (this.currentOrderId && myOrderIsAtTop) return;
 
       const targetPrice = topBidPriceNum + tickNum;
 
@@ -209,7 +199,8 @@ class KrakenBot {
 
       if (this.currentOrderId) {
         await this.cancelOrder(this.currentOrderId);
-        this.addLog("info", `Cancelled order at ${this.currentOrderPrice} — re-placing at ${targetPrice.toFixed(this.decimalPlaces(this.config.tickSize))}`);
+        const dp = this.decimalPlaces(this.config.tickSize);
+        this.addLog("info", `Cancelled order at ${this.currentOrderPrice} — re-placing at ${targetPrice.toFixed(dp)}`);
         this.currentOrderId = null;
         this.currentOrderPrice = null;
       }
@@ -229,19 +220,18 @@ class KrakenBot {
   }
 
   private async cancelOrder(orderId: string): Promise<void> {
-    await (this.client as any).api("CancelOrder", { txid: orderId });
+    await (sharedClient as any).api("CancelOrder", { txid: orderId });
   }
 
   private async checkOrderOpen(orderId: string): Promise<{ isOpen: boolean }> {
-    const resp = await (this.client as any).api("QueryOrders", { txid: orderId, trades: false });
+    const resp = await (sharedClient as any).api("QueryOrders", { txid: orderId, trades: false });
     const order = resp.result?.[orderId];
     if (!order) return { isOpen: false };
-    const openStatuses = ["open", "pending"];
-    return { isOpen: openStatuses.includes(order.status) };
+    return { isOpen: ["open", "pending"].includes(order.status) };
   }
 
   private async placeOrder(pair: string, price: string, volume: string): Promise<string> {
-    const resp = await (this.client as any).api("AddOrder", {
+    const resp = await (sharedClient as any).api("AddOrder", {
       pair,
       type: "buy",
       ordertype: "limit",
@@ -249,9 +239,7 @@ class KrakenBot {
       volume,
     });
     const txids: string[] = resp.result?.txid ?? [];
-    if (!txids.length) {
-      throw new Error("No order ID returned from Kraken");
-    }
+    if (!txids.length) throw new Error("No order ID returned from Kraken");
     return txids[0]!;
   }
 
@@ -265,5 +253,3 @@ class KrakenBot {
     return parts.length > 1 ? parts[1]!.length : 0;
   }
 }
-
-export const krakenBot = new KrakenBot();

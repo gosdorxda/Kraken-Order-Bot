@@ -13,6 +13,22 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface BotConfig {
+  pair: string;
+  orderSize: string;
+  maxBidPrice: string;
+  tickSize: string;
+  checkIntervalMs: number;
+}
+
+export interface BotConfigInput {
+  pair: string;
+  orderSize: string;
+  maxBidPrice: string;
+  tickSize: string;
+  checkIntervalMs?: number;
+}
+
 export type BotStatusTopBidOwner = typeof BotStatusTopBidOwner[keyof typeof BotStatusTopBidOwner];
 
 
@@ -24,8 +40,6 @@ export const BotStatusTopBidOwner = {
 
 export interface BotStatus {
   running: boolean;
-  /** @nullable */
-  pair: string | null;
   /** @nullable */
   currentOrderId: string | null;
   /** @nullable */
@@ -42,25 +56,10 @@ export interface BotStatus {
   lastActionAt: string | null;
 }
 
-export interface BotConfig {
-  /** Trading pair e.g. XBT/USD */
-  pair: string;
-  /** Volume per order e.g. 0.001 */
-  orderSize: string;
-  /** Maximum price bot will bid up to */
-  maxBidPrice: string;
-  /** Price increment per tick e.g. 0.1 */
-  tickSize: string;
-  /** How often to poll order book in ms */
-  checkIntervalMs?: number;
-}
-
-export interface BotConfigInput {
-  pair: string;
-  orderSize: string;
-  maxBidPrice: string;
-  tickSize: string;
-  checkIntervalMs?: number;
+export interface BotInstance {
+  id: string;
+  config: BotConfig;
+  status: BotStatus;
 }
 
 export type BotLogLevel = typeof BotLogLevel[keyof typeof BotLogLevel];
@@ -111,5 +110,9 @@ export interface AssetBalance {
 
 export type GetBotLogsParams = {
 limit?: number;
+};
+
+export type GetOrderBookParams = {
+pair: string;
 };
 
