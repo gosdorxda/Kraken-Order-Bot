@@ -85,12 +85,13 @@ function PositionChip({ bot }: { bot: BotInstance }) {
   const cb = bot.status.circuitBreakerTripped;
   const { running, topBidOwner } = bot.status;
 
-  if (cb) return <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-400">🔌 Circuit Breaker</span>;
-  if (!running) return <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">⏹ Stopped</span>;
-  if (paused) return <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400">⏸ Batas Maks</span>;
-  if (topBidOwner === "bot") return <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">🏆 At Top</span>;
-  if (topBidOwner === "other") return <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400">📉 Outbid</span>;
-  return <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-400">⏳ No Order</span>;
+  const base = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold border";
+  if (cb)               return <span className={`${base} bg-red-500/15 border-red-500/40 text-red-400`}>🔌 Circuit Breaker</span>;
+  if (!running)         return <span className={`${base} bg-muted/60 border-border text-muted-foreground`}>⏹ Stopped</span>;
+  if (paused)           return <span className={`${base} bg-orange-500/15 border-orange-500/40 text-orange-400`}>⏸ Batas Maks</span>;
+  if (topBidOwner === "bot")   return <span className={`${base} bg-emerald-500/15 border-emerald-500/40 text-emerald-400`}>🏆 At Top</span>;
+  if (topBidOwner === "other") return <span className={`${base} bg-amber-500/15 border-amber-500/40 text-amber-400`}>📉 Outbid</span>;
+  return <span className={`${base} bg-blue-500/15 border-blue-500/40 text-blue-400`}>⏳ No Order</span>;
 }
 
 function RunningDot({ running }: { running: boolean }) {
@@ -403,47 +404,47 @@ function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) 
   return (
     <div className={`border rounded-xl overflow-hidden transition-colors ${borderClass}`}>
       {/* Main row */}
-      <div className="flex items-center gap-3 px-4 py-3 flex-wrap md:flex-nowrap">
+      <div className="flex items-center gap-4 px-5 py-4 flex-wrap md:flex-nowrap">
         {/* Pair + dot */}
-        <div className="flex items-center gap-2.5 min-w-[140px]">
+        <div className="flex items-center gap-2.5 shrink-0 min-w-[120px]">
           <RunningDot running={status.running} />
-          <span className="font-mono font-bold text-base tracking-tight">{id}</span>
+          <span className="font-mono font-extrabold text-lg tracking-tight">{id}</span>
         </div>
 
         {/* Position chip */}
-        <div className="min-w-[130px]">
+        <div className="shrink-0">
           <PositionChip bot={bot} />
         </div>
 
         {/* Order details */}
-        <div className="flex-1 min-w-[180px]">
-          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
-            <span className="text-muted-foreground">Order</span>
-            <span className="font-mono text-primary font-semibold">{status.currentOrderPrice ?? "—"}</span>
-            <span className="text-muted-foreground">×</span>
-            <span className="font-mono">{status.currentOrderVolume ?? config.orderSize}</span>
+        <div className="flex-1 min-w-[220px] space-y-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs text-muted-foreground w-14 shrink-0">Order</span>
+            <span className="font-mono text-sm font-bold text-primary">{status.currentOrderPrice ?? "—"}</span>
+            <span className="text-muted-foreground text-xs">×</span>
+            <span className="font-mono text-sm font-semibold text-foreground">{status.currentOrderVolume ?? config.orderSize}</span>
           </div>
-          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs mt-0.5">
-            <span className="text-muted-foreground">Top bid</span>
-            <span className="font-mono text-emerald-400">{status.topBidPrice ?? "—"}</span>
-            <span className="text-muted-foreground">Max</span>
-            <span className="font-mono text-muted-foreground">{config.maxBidPrice}</span>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs text-muted-foreground w-14 shrink-0">Top bid</span>
+            <span className="font-mono text-sm font-bold text-emerald-400">{status.topBidPrice ?? "—"}</span>
+            <span className="text-xs text-muted-foreground ml-2">Max</span>
+            <span className="font-mono text-sm text-muted-foreground">{config.maxBidPrice}</span>
           </div>
         </div>
 
         {/* Config pills */}
-        <div className="hidden lg:flex flex-wrap gap-1.5 text-[10px] min-w-[200px]">
-          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">tick {config.tickSize}</span>
-          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">sz {config.orderSize}</span>
-          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">{config.checkIntervalMs}ms</span>
-          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">{status.cycleCount} cycles</span>
-          {config.oneShotMode && <span className="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 font-medium">🎯 one-shot</span>}
-          {cb && <span className="px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30 font-medium">🔌 {status.consecutiveErrors} err</span>}
+        <div className="hidden lg:flex flex-wrap gap-2">
+          <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">tick {config.tickSize}</span>
+          <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">sz {config.orderSize}</span>
+          <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">{config.checkIntervalMs}ms</span>
+          <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">{status.cycleCount} siklus</span>
+          {config.oneShotMode && <span className="px-2.5 py-1 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/40 text-xs font-semibold">🎯 one-shot</span>}
+          {cb && <span className="px-2.5 py-1 rounded-md bg-red-500/15 text-red-300 border border-red-500/40 text-xs font-semibold">🔌 {status.consecutiveErrors} err</span>}
         </div>
 
         {/* Last action */}
         <div className="hidden xl:block flex-1 min-w-0">
-          {status.lastAction && <p className="text-[11px] text-muted-foreground truncate" title={status.lastAction}>{status.lastAction}</p>}
+          {status.lastAction && <p className="text-xs text-muted-foreground truncate" title={status.lastAction}>{status.lastAction}</p>}
         </div>
 
         {/* Actions */}
