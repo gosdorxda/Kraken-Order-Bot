@@ -1,4 +1,4 @@
-import { useGetBotStatus, useGetOrderBook, useGetAccountBalance, useGetBotLogs, useStartBot, useStopBot, getGetBotStatusQueryKey, getGetBotLogsQueryKey } from "@workspace/api-client-react";
+import { useGetBotStatus, useGetOrderBook, useGetAccountBalance, useGetBotLogs, useStartBot, useStopBot, getGetBotStatusQueryKey, getGetBotLogsQueryKey, getGetOrderBookQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
-  const { data: status, isLoading: statusLoading } = useGetBotStatus({ query: { refetchInterval: 2000 } });
-  const { data: orderBook, isLoading: obLoading } = useGetOrderBook({ query: { refetchInterval: 2000 } });
+  const { data: status, isLoading: statusLoading } = useGetBotStatus({ query: { refetchInterval: 2000, queryKey: getGetBotStatusQueryKey() } });
+  const { data: orderBook, isLoading: obLoading } = useGetOrderBook({ query: { refetchInterval: 2000, queryKey: getGetOrderBookQueryKey() } });
   const { data: balances, isLoading: balLoading } = useGetAccountBalance();
-  const { data: logs, isLoading: logsLoading } = useGetBotLogs({ limit: 50 }, { query: { refetchInterval: 3000 } });
+  const { data: logs, isLoading: logsLoading } = useGetBotLogs({ limit: 50 }, { query: { refetchInterval: 3000, queryKey: getGetBotLogsQueryKey() } });
 
   const startBot = useStartBot();
   const stopBot = useStopBot();

@@ -209,7 +209,7 @@ class KrakenBot {
 
       if (this.currentOrderId) {
         await this.cancelOrder(this.currentOrderId);
-        this.addLog("info", `Cancelled order at ${this.currentOrderPrice} — re-placing at ${targetPrice.toFixed(1)}`);
+        this.addLog("info", `Cancelled order at ${this.currentOrderPrice} — re-placing at ${targetPrice.toFixed(this.decimalPlaces(this.config.tickSize))}`);
         this.currentOrderId = null;
         this.currentOrderPrice = null;
       }
