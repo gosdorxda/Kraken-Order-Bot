@@ -1,5 +1,6 @@
 import KrakenClient from "kraken-api";
 import { logger } from "./logger";
+import { krakenRateLimiter } from "./krakenRateLimiter";
 
 export interface BotConfig {
   pair: string;
@@ -39,7 +40,10 @@ const sharedClient: KrakenClient = (() => {
 export async function fetchOrderBook(
   pair: string
 ): Promise<{ bids: { price: string; volume: string }[]; asks: { price: string; volume: string }[] }> {
-  const resp = await (sharedClient as any).api("Depth", { pair, count: 10 });
+  const resp: any = await krakenRateLimiter.enqueue(
+    () => (sharedClient as any).api("Depth", { pair, count: 10 }),
+    `Depth(${pair})`
+  );
   const data = resp.result[Object.keys(resp.result)[0]];
   return {
     bids: (data.bids as [string, string][]).map(([price, volume]) => ({ price, volume })),
@@ -48,7 +52,10 @@ export async function fetchOrderBook(
 }
 
 export async function fetchBalance(): Promise<Record<string, string>> {
-  const resp = await (sharedClient as any).api("Balance", {});
+  const resp: any = await krakenRateLimiter.enqueue(
+    () => (sharedClient as any).api("Balance", {}),
+    "Balance"
+  );
   return resp.result as Record<string, string>;
 }
 
@@ -220,24 +227,34 @@ export class KrakenBot {
   }
 
   private async cancelOrder(orderId: string): Promise<void> {
-    await (sharedClient as any).api("CancelOrder", { txid: orderId });
+    await krakenRateLimiter.enqueue(
+      () => (sharedClient as any).api("CancelOrder", { txid: orderId }),
+      `CancelOrder(${orderId})`
+    );
   }
 
   private async checkOrderOpen(orderId: string): Promise<{ isOpen: boolean }> {
-    const resp = await (sharedClient as any).api("QueryOrders", { txid: orderId, trades: false });
+    const resp: any = await krakenRateLimiter.enqueue(
+      () => (sharedClient as any).api("QueryOrders", { txid: orderId, trades: false }),
+      `QueryOrders(${orderId})`
+    );
     const order = resp.result?.[orderId];
     if (!order) return { isOpen: false };
     return { isOpen: ["open", "pending"].includes(order.status) };
   }
 
   private async placeOrder(pair: string, price: string, volume: string): Promise<string> {
-    const resp = await (sharedClient as any).api("AddOrder", {
-      pair,
-      type: "buy",
-      ordertype: "limit",
-      price,
-      volume,
-    });
+    const resp: any = await krakenRateLimiter.enqueue(
+      () =>
+        (sharedClient as any).api("AddOrder", {
+          pair,
+          type: "buy",
+          ordertype: "limit",
+          price,
+          volume,
+        }),
+      `AddOrder(${pair}@${price})`
+    );
     const txids: string[] = resp.result?.txid ?? [];
     if (!txids.length) throw new Error("No order ID returned from Kraken");
     return txids[0]!;
