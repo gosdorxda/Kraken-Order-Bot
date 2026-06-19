@@ -13,14 +13,6 @@ export interface ErrorResponse {
   error: string;
 }
 
-export type BotConfigOrderSizeMode = typeof BotConfigOrderSizeMode[keyof typeof BotConfigOrderSizeMode];
-
-
-export const BotConfigOrderSizeMode = {
-  fixed: 'fixed',
-  percent: 'percent',
-} as const;
-
 export interface BotConfig {
   pair: string;
   orderSize: string;
@@ -29,17 +21,7 @@ export interface BotConfig {
   checkIntervalMs: number;
   oneShotMode: boolean;
   maxConsecutiveErrors: number;
-  orderSizeMode: BotConfigOrderSizeMode;
-  orderSizePercent: string;
 }
-
-export type BotConfigInputOrderSizeMode = typeof BotConfigInputOrderSizeMode[keyof typeof BotConfigInputOrderSizeMode];
-
-
-export const BotConfigInputOrderSizeMode = {
-  fixed: 'fixed',
-  percent: 'percent',
-} as const;
 
 export interface BotConfigInput {
   pair: string;
@@ -49,8 +31,6 @@ export interface BotConfigInput {
   checkIntervalMs?: number;
   oneShotMode?: boolean;
   maxConsecutiveErrors?: number;
-  orderSizeMode?: BotConfigInputOrderSizeMode;
-  orderSizePercent?: string;
 }
 
 export type BotStatusTopBidOwner = typeof BotStatusTopBidOwner[keyof typeof BotStatusTopBidOwner];

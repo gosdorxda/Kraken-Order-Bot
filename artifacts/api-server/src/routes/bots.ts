@@ -40,8 +40,6 @@ router.post("/bots", async (req, res): Promise<void> => {
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
     oneShotMode: parsed.data.oneShotMode ?? false,
     maxConsecutiveErrors: parsed.data.maxConsecutiveErrors ?? 5,
-    orderSizeMode: (parsed.data.orderSizeMode ?? "fixed") as "fixed" | "percent",
-    orderSizePercent: parsed.data.orderSizePercent ?? "10",
   };
 
   try {
@@ -124,8 +122,6 @@ router.put("/bots/:botId/config", async (req, res): Promise<void> => {
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
     oneShotMode: parsed.data.oneShotMode ?? false,
     maxConsecutiveErrors: parsed.data.maxConsecutiveErrors ?? 5,
-    orderSizeMode: (parsed.data.orderSizeMode ?? "fixed") as "fixed" | "percent",
-    orderSizePercent: parsed.data.orderSizePercent ?? "10",
   });
   botManager.persist();
 

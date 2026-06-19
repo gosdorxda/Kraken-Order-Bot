@@ -10,8 +10,6 @@ export interface BotConfig {
   checkIntervalMs: number;
   oneShotMode: boolean;
   maxConsecutiveErrors: number;
-  orderSizeMode: "fixed" | "percent";
-  orderSizePercent: string;
 }
 
 export interface BotLog {
@@ -306,20 +304,8 @@ export class KrakenBot {
     this.onPersist?.();
   }
 
-  private async calculateVolume(targetPrice: number): Promise<string> {
-    if ((this.config.orderSizeMode ?? "fixed") !== "percent") {
-      return this.config.orderSize;
-    }
-    try {
-      const balances = await fetchBalance();
-      const usdBal = parseFloat(balances["ZUSD"] ?? balances["USD"] ?? "0");
-      const pct = parseFloat(this.config.orderSizePercent ?? "10") / 100;
-      const vol = (usdBal * pct) / targetPrice;
-      if (vol <= 0) return this.config.orderSize;
-      return vol.toFixed(8);
-    } catch {
-      return this.config.orderSize;
-    }
+  private async calculateVolume(_targetPrice: number): Promise<string> {
+    return this.config.orderSize;
   }
 
   private async cancelOrder(orderId: string): Promise<void> {

@@ -382,7 +382,7 @@ components:
 
     BotConfig:
       type: object
-      required: [pair, orderSize, maxBidPrice, tickSize, checkIntervalMs, oneShotMode, maxConsecutiveErrors, orderSizeMode, orderSizePercent]
+      required: [pair, orderSize, maxBidPrice, tickSize, checkIntervalMs, oneShotMode, maxConsecutiveErrors]
       properties:
         pair:
           type: string
@@ -401,13 +401,6 @@ components:
         maxConsecutiveErrors:
           type: integer
           default: 5
-        orderSizeMode:
-          type: string
-          enum: [fixed, percent]
-          default: fixed
-        orderSizePercent:
-          type: string
-          default: "10"
 
     BotConfigInput:
       type: object
@@ -430,13 +423,6 @@ components:
         maxConsecutiveErrors:
           type: integer
           default: 5
-        orderSizeMode:
-          type: string
-          enum: [fixed, percent]
-          default: fixed
-        orderSizePercent:
-          type: string
-          default: "10"
 
     BotStatus:
       type: object

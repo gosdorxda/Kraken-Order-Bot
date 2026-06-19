@@ -20,8 +20,6 @@ class BotManager {
           checkIntervalMs: p.config.checkIntervalMs ?? 3000,
           oneShotMode: p.config.oneShotMode ?? false,
           maxConsecutiveErrors: p.config.maxConsecutiveErrors ?? 5,
-          orderSizeMode: p.config.orderSizeMode ?? "fixed",
-          orderSizePercent: p.config.orderSizePercent ?? "10",
         };
         const bot = new KrakenBot(p.id, config, () => this.persist());
         bot.loadFills(p.fills ?? [], p.fillIdCounter ?? 0);

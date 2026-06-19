@@ -43,8 +43,6 @@ const configSchema = z.object({
   checkIntervalMs: z.coerce.number().min(500, "Interval minimal 500ms"),
   oneShotMode: z.boolean().default(false),
   maxConsecutiveErrors: z.coerce.number().min(1).max(20).default(5),
-  orderSizeMode: z.enum(["fixed", "percent"]).default("fixed"),
-  orderSizePercent: z.string().default("10"),
 });
 type ConfigForm = z.infer<typeof configSchema>;
 
@@ -56,8 +54,6 @@ const DEFAULT_VALUES: ConfigForm = {
   checkIntervalMs: 3000,
   oneShotMode: false,
   maxConsecutiveErrors: 5,
-  orderSizeMode: "fixed",
-  orderSizePercent: "10",
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -165,8 +161,6 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
           checkIntervalMs: editBot.config.checkIntervalMs ?? 3000,
           oneShotMode: editBot.config.oneShotMode ?? false,
           maxConsecutiveErrors: editBot.config.maxConsecutiveErrors ?? 5,
-          orderSizeMode: (editBot.config.orderSizeMode ?? "fixed") as "fixed" | "percent",
-          orderSizePercent: editBot.config.orderSizePercent ?? "10",
         }
       : DEFAULT_VALUES,
   });
@@ -174,11 +168,10 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
   const watchPair = form.watch("pair");
   const watchTick = form.watch("tickSize");
   const watchMax = form.watch("maxBidPrice");
-  const watchSizeMode = form.watch("orderSizeMode");
   const isPending = createBot.isPending || updateConfig.isPending;
 
   const onSubmit = (values: ConfigForm) => {
-    const payload = { ...values, orderSizeMode: values.orderSizeMode as "fixed" | "percent" };
+    const payload = { ...values };
     if (isEdit) {
       updateConfig.mutate(
         { botId: editBot.id, data: payload },
@@ -248,58 +241,14 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
               )} />
             </div>
 
-            {/* Order size section */}
-            <div className="rounded-lg border border-border p-3 space-y-3">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Order Size</p>
-              <FormField control={form.control} name="orderSizeMode" render={({ field }) => (
-                <FormItem>
-                  <div className="flex gap-2">
-                    {(["fixed", "percent"] as const).map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => field.onChange(m)}
-                        className={`flex-1 py-1.5 rounded-md text-xs font-medium border transition-colors ${field.value === m ? "bg-primary/10 border-primary/40 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}
-                      >
-                        {m === "fixed" ? "Fixed Volume" : "% Balance"}
-                      </button>
-                    ))}
-                  </div>
-                </FormItem>
-              )} />
-
-              {watchSizeMode === "fixed" ? (
-                <FormField control={form.control} name="orderSize" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs">Volume per Order</FormLabel>
-                    <FormControl><Input placeholder="0.001" className="font-mono" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField control={form.control} name="orderSizePercent" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs">% dari Balance ZUSD</FormLabel>
-                      <div className="relative">
-                        <FormControl><Input placeholder="10" className="font-mono pr-6" {...field} /></FormControl>
-                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-                      </div>
-                      <FormDescription className="text-[11px]">e.g. 10 = pakai 10% ZUSD</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="orderSize" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs">Fallback Volume</FormLabel>
-                      <FormControl><Input placeholder="0.001" className="font-mono" {...field} /></FormControl>
-                      <FormDescription className="text-[11px]">Jika balance fetch gagal</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-              )}
-            </div>
+            <FormField control={form.control} name="orderSize" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Jumlah Coin per Order</FormLabel>
+                <FormControl><Input placeholder="0.001" className="font-mono" {...field} /></FormControl>
+                <FormDescription className="text-[11px]">Volume aset yang dibeli per order, misal <span className="font-mono">0.001</span> BTC</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )} />
 
             {/* Advanced toggles */}
             <div className="space-y-2">
@@ -485,9 +434,7 @@ function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) 
         {/* Config pills */}
         <div className="hidden lg:flex flex-wrap gap-1.5 text-[10px] min-w-[200px]">
           <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">tick {config.tickSize}</span>
-          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">
-            {config.orderSizeMode === "percent" ? `${config.orderSizePercent}% bal` : `sz ${config.orderSize}`}
-          </span>
+          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">sz {config.orderSize}</span>
           <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">{config.checkIntervalMs}ms</span>
           <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">{status.cycleCount} cycles</span>
           {config.oneShotMode && <span className="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 font-medium">🎯 one-shot</span>}
