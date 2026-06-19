@@ -19,7 +19,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Save, Loader2, TrendingUp, TrendingDown, Target, ArrowUpDown } from "lucide-react";
+import { Play, Square, Save, Loader2, TrendingUp, TrendingDown, Target, ArrowUpDown, AlertTriangle } from "lucide-react";
 
 const configSchema = z.object({
   pair: z.string().min(1, "Trading pair is required"),
@@ -31,40 +31,49 @@ const configSchema = z.object({
 
 type ConfigForm = z.infer<typeof configSchema>;
 
-function MarketInfoPanel({ pair, tickSize }: { pair: string; tickSize: string }) {
-  const { data: book, isLoading } = useGetOrderBook({
-    query: {
-      refetchInterval: 2000,
-      queryKey: getGetOrderBookQueryKey(),
-    },
-  });
+function decimalPlaces(value: string): number {
+  const parts = value.split(".");
+  return parts.length > 1 ? parts[1]!.length : 0;
+}
 
-  const topBid = book?.bids[0]?.price ?? null;
-  const topAsk = book?.asks[0]?.price ?? null;
+function calcTargetPrice(topBid: string | null, tickSize: string): string | null {
+  if (!topBid || !tickSize) return null;
+  const bidNum = parseFloat(topBid);
+  const tickNum = parseFloat(tickSize);
+  if (isNaN(bidNum) || isNaN(tickNum) || tickNum <= 0) return null;
+  const decimals = Math.max(decimalPlaces(topBid), decimalPlaces(tickSize));
+  return (bidNum + tickNum).toFixed(decimals);
+}
 
-  const calcTarget = () => {
-    if (!topBid || !tickSize) return null;
-    const bidNum = parseFloat(topBid);
-    const tickNum = parseFloat(tickSize);
-    if (isNaN(bidNum) || isNaN(tickNum) || tickNum <= 0) return null;
-    const target = bidNum + tickNum;
-    const decimals = (tickSize.split(".")[1] ?? "").length;
-    return target.toFixed(decimals);
-  };
+interface MarketInfoPanelProps {
+  pair: string;
+  tickSize: string;
+  maxBidPrice: string;
+  topBid: string | null;
+  topAsk: string | null;
+  isLoading: boolean;
+  targetPrice: string | null;
+  targetExceedsMax: boolean;
+}
 
-  const target = calcTarget();
-
-  const midPrice = topBid && topAsk
-    ? ((parseFloat(topBid) + parseFloat(topAsk)) / 2).toFixed(
-        Math.max(
-          (topBid.split(".")[1] ?? "").length,
-          (topAsk.split(".")[1] ?? "").length
+function MarketInfoPanel({
+  pair,
+  tickSize,
+  topBid,
+  topAsk,
+  isLoading,
+  targetPrice,
+  targetExceedsMax,
+}: MarketInfoPanelProps) {
+  const midPrice =
+    topBid && topAsk
+      ? ((parseFloat(topBid) + parseFloat(topAsk)) / 2).toFixed(
+          Math.max(decimalPlaces(topBid), decimalPlaces(topAsk))
         )
-      )
-    : null;
+      : null;
 
   return (
-    <Card className="bg-card border-border">
+    <Card className={`border ${targetExceedsMax ? "border-red-700/60 bg-red-950/10" : "bg-card border-border"}`}>
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
           <ArrowUpDown className="w-4 h-4" />
@@ -72,55 +81,117 @@ function MarketInfoPanel({ pair, tickSize }: { pair: string; tickSize: string })
           {pair && <span className="font-mono text-primary ml-1">{pair}</span>}
         </CardTitle>
         <CardDescription className="text-xs">
-          Real-time data to guide your configuration. Your bot order will be placed at <strong className="text-foreground">Top Buy + Tick Size</strong>, automatically.
+          Real-time data. Bot order will be placed at{" "}
+          <strong className="text-foreground">Top Buy + Tick Size</strong> automatically.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Loader2 className="w-4 h-4 animate-spin" /> Loading market data...
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="rounded-lg bg-background border border-border p-3 space-y-1">
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <ArrowUpDown className="w-3 h-3" /> Mid Price
-              </p>
-              <p className="font-mono text-sm font-semibold text-foreground" data-testid="market-mid-price">
-                {midPrice ?? "—"}
-              </p>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-lg bg-background border border-border p-3 space-y-1">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <ArrowUpDown className="w-3 h-3" /> Mid Price
+                </p>
+                <p className="font-mono text-sm font-semibold text-foreground" data-testid="market-mid-price">
+                  {midPrice ?? "—"}
+                </p>
+              </div>
+
+              <div className="rounded-lg bg-background border border-green-900/50 p-3 space-y-1">
+                <p className="text-xs text-green-500 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> Top Buy Order
+                </p>
+                <p className="font-mono text-sm font-semibold text-green-400" data-testid="market-top-bid">
+                  {topBid ?? "—"}
+                </p>
+                <p className="text-xs text-muted-foreground">Highest bid in book</p>
+              </div>
+
+              <div className="rounded-lg bg-background border border-red-900/50 p-3 space-y-1">
+                <p className="text-xs text-red-400 flex items-center gap-1">
+                  <TrendingDown className="w-3 h-3" /> Top Sell Order
+                </p>
+                <p className="font-mono text-sm font-semibold text-red-400" data-testid="market-top-ask">
+                  {topAsk ?? "—"}
+                </p>
+                <p className="text-xs text-muted-foreground">Lowest ask in book</p>
+              </div>
+
+              <div
+                className={`rounded-lg bg-background p-3 space-y-1 border ${
+                  targetExceedsMax ? "border-red-500/70" : "border-primary/40"
+                }`}
+              >
+                <p
+                  className={`text-xs flex items-center gap-1 ${
+                    targetExceedsMax ? "text-red-400" : "text-primary"
+                  }`}
+                >
+                  <Target className="w-3 h-3" /> Our Target Price
+                </p>
+                <p
+                  className={`font-mono text-sm font-bold ${
+                    targetExceedsMax ? "text-red-400" : "text-primary"
+                  }`}
+                  data-testid="market-target-price"
+                >
+                  {targetPrice ?? "—"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {topBid && tickSize
+                    ? `${topBid} + ${tickSize}`
+                    : "Top Buy + Tick Size"}
+                </p>
+              </div>
             </div>
 
-            <div className="rounded-lg bg-background border border-green-900/50 p-3 space-y-1">
-              <p className="text-xs text-green-500 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> Top Buy Order
-              </p>
-              <p className="font-mono text-sm font-semibold text-green-400" data-testid="market-top-bid">
-                {topBid ?? "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">Highest bid in book</p>
-            </div>
-
-            <div className="rounded-lg bg-background border border-red-900/50 p-3 space-y-1">
-              <p className="text-xs text-red-400 flex items-center gap-1">
-                <TrendingDown className="w-3 h-3" /> Top Sell Order
-              </p>
-              <p className="font-mono text-sm font-semibold text-red-400" data-testid="market-top-ask">
-                {topAsk ?? "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">Lowest ask in book</p>
-            </div>
-
-            <div className="rounded-lg bg-background border border-primary/40 p-3 space-y-1">
-              <p className="text-xs text-primary flex items-center gap-1">
-                <Target className="w-3 h-3" /> Our Target Price
-              </p>
-              <p className="font-mono text-sm font-bold text-primary" data-testid="market-target-price">
-                {target ?? "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">Top Buy + Tick Size</p>
-            </div>
-          </div>
+            {targetExceedsMax && targetPrice && (
+              <div
+                className="flex items-start gap-3 rounded-lg border border-red-700/50 bg-red-950/30 px-4 py-3"
+                data-testid="warning-target-exceeds-max"
+              >
+                <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                <div className="text-sm space-y-1">
+                  <p className="text-red-300 font-semibold">
+                    Target price exceeds Max Bid Price — bot cannot place orders
+                  </p>
+                  <p className="text-red-400/80">
+                    Our target{" "}
+                    <span className="font-mono font-bold">{targetPrice}</span> is already above your
+                    max limit. Lower your{" "}
+                    <strong>Tick Size</strong> so that{" "}
+                    <span className="font-mono">
+                      {topBid} + tickSize
+                    </span>{" "}
+                    stays below Max Bid Price.
+                  </p>
+                  {topBid && (
+                    <p className="text-red-400/60 text-xs font-mono">
+                      Suggested tick: &le;{" "}
+                      {(
+                        parseFloat(
+                          (() => {
+                            const maxNum = parseFloat(
+                              document.querySelector<HTMLInputElement>('[data-testid="input-max-bid-price"]')
+                                ?.value ?? "0"
+                            );
+                            return (maxNum - parseFloat(topBid)).toFixed(
+                              Math.max(decimalPlaces(topBid), 8)
+                            );
+                          })()
+                        ) || 0
+                      ).toFixed(Math.max(decimalPlaces(topBid), 8))}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
@@ -135,6 +206,9 @@ export default function Settings() {
     query: { refetchInterval: 2000, queryKey: getGetBotStatusQueryKey() },
   });
   const { data: config, isLoading: configLoading } = useGetBotConfig();
+  const { data: book, isLoading: bookLoading } = useGetOrderBook({
+    query: { refetchInterval: 2000, queryKey: getGetOrderBookQueryKey() },
+  });
 
   const updateConfig = useUpdateBotConfig();
   const startBot = useStartBot();
@@ -163,32 +237,61 @@ export default function Settings() {
     }
   }, [config, form]);
 
+  const watchTickSize = form.watch("tickSize");
+  const watchMaxBidPrice = form.watch("maxBidPrice");
+  const watchPair = form.watch("pair");
+
+  const topBid = book?.bids[0]?.price ?? null;
+  const topAsk = book?.asks[0]?.price ?? null;
+  const targetPrice = calcTargetPrice(topBid, watchTickSize);
+
+  const targetExceedsMax =
+    targetPrice != null &&
+    watchMaxBidPrice != null &&
+    parseFloat(targetPrice) > parseFloat(watchMaxBidPrice);
+
+  const suggestedMaxTick =
+    topBid && watchMaxBidPrice
+      ? (() => {
+          const room = parseFloat(watchMaxBidPrice) - parseFloat(topBid);
+          if (room <= 0) return null;
+          const decimals = Math.max(decimalPlaces(topBid), decimalPlaces(watchMaxBidPrice), 8);
+          return room.toFixed(decimals);
+        })()
+      : null;
+
   const onSubmit = (values: ConfigForm) => {
-    updateConfig.mutate({ data: values }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetOrderBookQueryKey() });
-        toast({ title: "Configuration saved", description: "Bot settings have been updated." });
-      },
-      onError: (error: unknown) => {
-        const msg = error instanceof Error ? error.message : "An error occurred.";
-        toast({ variant: "destructive", title: "Failed to save", description: msg });
-      },
-    });
+    updateConfig.mutate(
+      { data: values },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetOrderBookQueryKey() });
+          toast({ title: "Configuration saved", description: "Bot settings have been updated." });
+        },
+        onError: (error: unknown) => {
+          const msg = error instanceof Error ? error.message : "An error occurred.";
+          toast({ variant: "destructive", title: "Failed to save", description: msg });
+        },
+      }
+    );
   };
 
   const handleStart = () => {
     const values = form.getValues();
-    startBot.mutate({ data: values }, {
-      onSuccess: () => {
-        toast({ title: "Bot started", description: "The trading bot is now running." });
-        queryClient.invalidateQueries({ queryKey: getGetBotStatusQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetBotLogsQueryKey() });
-      },
-      onError: (error: unknown) => {
-        const msg = error instanceof Error ? error.message : "An error occurred.";
-        toast({ variant: "destructive", title: "Failed to start", description: msg });
-      },
-    });
+    startBot.mutate(
+      { data: values },
+      {
+        onSuccess: () => {
+          toast({ title: "Bot started", description: "The trading bot is now running." });
+          queryClient.invalidateQueries({ queryKey: getGetBotStatusQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetBotLogsQueryKey() });
+        },
+        onError: (error: unknown) => {
+          const msg = error instanceof Error ? error.message : "An error occurred.";
+          toast({ variant: "destructive", title: "Failed to start", description: msg });
+        },
+      }
+    );
   };
 
   const handleStop = () => {
@@ -206,8 +309,7 @@ export default function Settings() {
   };
 
   const isRunning = status?.running;
-  const watchPair = form.watch("pair");
-  const watchTick = form.watch("tickSize");
+  const canStart = !isRunning && !targetExceedsMax && !startBot.isPending;
 
   if (configLoading || statusLoading) {
     return (
@@ -234,42 +336,63 @@ export default function Settings() {
               className="font-bold shadow-lg shadow-destructive/20"
               data-testid="button-stop-bot"
             >
-              {stopBot.isPending
-                ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                : <Square className="w-4 h-4 mr-2" />}
+              {stopBot.isPending ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Square className="w-4 h-4 mr-2" />
+              )}
               STOP BOT
             </Button>
           ) : (
-            <Button
-              onClick={handleStart}
-              disabled={startBot.isPending}
-              size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-lg shadow-primary/20"
-              data-testid="button-start-bot"
-            >
-              {startBot.isPending
-                ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                : <Play className="w-4 h-4 mr-2" />}
-              START BOT
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                onClick={handleStart}
+                disabled={!canStart}
+                size="lg"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shadow-lg shadow-primary/20 disabled:opacity-40"
+                data-testid="button-start-bot"
+              >
+                {startBot.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
+                START BOT
+              </Button>
+              {targetExceedsMax && (
+                <p className="text-xs text-red-400 font-medium flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" /> Fix config to enable start
+                </p>
+              )}
+            </div>
           )}
         </div>
       </header>
 
-      <MarketInfoPanel pair={watchPair} tickSize={watchTick} />
+      <MarketInfoPanel
+        pair={watchPair}
+        tickSize={watchTickSize}
+        maxBidPrice={watchMaxBidPrice}
+        topBid={topBid}
+        topAsk={topAsk}
+        isLoading={bookLoading}
+        targetPrice={targetPrice}
+        targetExceedsMax={targetExceedsMax}
+      />
 
       <Card className="bg-card border-border shadow-lg">
         <CardHeader>
           <CardTitle>Trading Parameters</CardTitle>
           <CardDescription>
-            The bot will place a buy order at <strong>Top Buy Order + Tick Size</strong>, and automatically re-place if outbid, staying below Max Bid Price.
+            Bot places a buy order at{" "}
+            <strong>Top Buy Order + Tick Size</strong>, re-places automatically if outbid,
+            and stops when target would exceed Max Bid Price.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
                 <FormField
                   control={form.control}
                   name="pair"
@@ -280,13 +403,16 @@ export default function Settings() {
                         <Input
                           placeholder="XXBTZUSD"
                           className="font-mono bg-background"
-                          disabled={isRunning}
+                          disabled={!!isRunning}
                           data-testid="input-pair"
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        Kraken internal symbol. Examples: <span className="font-mono text-foreground">XXBTZUSD</span>, <span className="font-mono text-foreground">XETHZUSD</span>, <span className="font-mono text-foreground">SOLUSD</span>
+                        Kraken internal symbol. Examples:{" "}
+                        <span className="font-mono text-foreground">XXBTZUSD</span>,{" "}
+                        <span className="font-mono text-foreground">XETHZUSD</span>,{" "}
+                        <span className="font-mono text-foreground">SOLUSD</span>
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -303,12 +429,16 @@ export default function Settings() {
                         <Input
                           placeholder="0.001"
                           className="font-mono bg-background"
-                          disabled={isRunning}
+                          disabled={!!isRunning}
                           data-testid="input-order-size"
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription>Volume per order (e.g. <span className="font-mono text-foreground">0.001</span> BTC or <span className="font-mono text-foreground">100</span> tokens)</FormDescription>
+                      <FormDescription>
+                        Volume per order (e.g.{" "}
+                        <span className="font-mono text-foreground">0.001</span> BTC or{" "}
+                        <span className="font-mono text-foreground">1000</span> tokens)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -322,15 +452,20 @@ export default function Settings() {
                       <FormLabel>Max Bid Price (Batas Maks)</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="0.090"
-                          className="font-mono bg-background border-amber-900/50 focus-visible:ring-amber-500/50"
-                          disabled={isRunning}
+                          placeholder="0.00018"
+                          className={`font-mono bg-background ${
+                            targetExceedsMax
+                              ? "border-red-500 focus-visible:ring-red-500/50"
+                              : "border-amber-900/50 focus-visible:ring-amber-500/50"
+                          }`}
+                          disabled={!!isRunning}
                           data-testid="input-max-bid-price"
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        Bot will <strong className="text-foreground">stop bidding</strong> if market top bid + tick exceeds this price
+                        Bot will <strong className="text-foreground">stop bidding</strong> if
+                        target price would exceed this
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -345,15 +480,34 @@ export default function Settings() {
                       <FormLabel>Tick Size (Kenaikan Per Tick)</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="0.001"
-                          className="font-mono bg-background"
-                          disabled={isRunning}
+                          placeholder="0.000001"
+                          className={`font-mono bg-background ${
+                            targetExceedsMax ? "border-red-500 focus-visible:ring-red-500/50" : ""
+                          }`}
+                          disabled={!!isRunning}
                           data-testid="input-tick-size"
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
-                        How much to outbid by. For low-price pairs use e.g. <span className="font-mono text-foreground">0.00001</span>
+                        {targetExceedsMax && suggestedMaxTick ? (
+                          <span className="text-amber-400">
+                            Tick too large — try{" "}
+                            <button
+                              type="button"
+                              className="font-mono text-primary underline underline-offset-2 cursor-pointer"
+                              onClick={() => form.setValue("tickSize", suggestedMaxTick)}
+                            >
+                              {suggestedMaxTick}
+                            </button>{" "}
+                            or smaller
+                          </span>
+                        ) : (
+                          <span>
+                            How much to outbid by. For low-price pairs use e.g.{" "}
+                            <span className="font-mono text-foreground">0.000001</span>
+                          </span>
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -371,12 +525,14 @@ export default function Settings() {
                           type="number"
                           placeholder="3000"
                           className="font-mono bg-background max-w-xs"
-                          disabled={isRunning}
+                          disabled={!!isRunning}
                           data-testid="input-check-interval"
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription>How often to poll the order book. Min 500ms, recommended 2000–5000ms.</FormDescription>
+                      <FormDescription>
+                        How often to poll the order book. Min 500ms, recommended 2000–5000ms.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -395,14 +551,16 @@ export default function Settings() {
                 )}
                 <Button
                   type="submit"
-                  disabled={isRunning || updateConfig.isPending}
+                  disabled={!!isRunning || updateConfig.isPending}
                   variant="secondary"
                   className="font-medium"
                   data-testid="button-save-config"
                 >
-                  {updateConfig.isPending
-                    ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    : <Save className="w-4 h-4 mr-2" />}
+                  {updateConfig.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
                   Save Configuration
                 </Button>
               </div>
@@ -413,13 +571,28 @@ export default function Settings() {
 
       <Card className="bg-card border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-muted-foreground font-medium">How the bot works</CardTitle>
+          <CardTitle className="text-sm text-muted-foreground font-medium">
+            How the bot works
+          </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>1. Bot reads the current <strong className="text-foreground">Top Buy Order</strong> price from Kraken's order book.</p>
-          <p>2. Places our order at <strong className="text-foreground">Top Buy + Tick Size</strong> — so we're always first in the queue.</p>
-          <p>3. If someone places a higher bid, bot cancels our order and re-places at the new top + tick.</p>
-          <p>4. If the required price would exceed <strong className="text-amber-400">Max Bid Price</strong>, bot cancels our order and pauses — it will not chase the price further.</p>
+          <p>
+            1. Bot reads the current{" "}
+            <strong className="text-foreground">Top Buy Order</strong> price from Kraken's order book.
+          </p>
+          <p>
+            2. Places our order at{" "}
+            <strong className="text-foreground">Top Buy + Tick Size</strong> — so we're always
+            first in queue.
+          </p>
+          <p>
+            3. If someone places a higher bid, bot cancels and re-places at the new top + tick.
+          </p>
+          <p>
+            4. If required price would exceed{" "}
+            <strong className="text-amber-400">Max Bid Price</strong>, bot pauses and will not
+            chase the price further.
+          </p>
         </CardContent>
       </Card>
     </div>
