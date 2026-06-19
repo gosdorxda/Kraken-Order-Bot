@@ -12,7 +12,7 @@ class BotManager {
   private bots = new Map<string, KrakenBot>();
 
   async initialize(): Promise<void> {
-    const persisted = loadPersistedBots();
+    const persisted = await loadPersistedBots();
     for (const p of persisted) {
       try {
         const config: BotConfig = {
@@ -44,7 +44,9 @@ class BotManager {
       fills: bot.getFills(500),
       fillIdCounter: bot.getFillIdCounter(),
     }));
-    savePersistedBots(data);
+    savePersistedBots(data).catch((err: unknown) => {
+      process.stderr.write(`[persistence] savePersistedBots error: ${String(err)}\n`);
+    });
   }
 
   list(): BotInstanceData[] {
