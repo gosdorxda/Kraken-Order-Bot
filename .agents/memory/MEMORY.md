@@ -1,1 +1,2 @@
 - [Orval Zod index.ts conflict](orval-zod-index-conflict.md) — removing `schemas` from orval zod config prevents duplicate name exports; fix index.ts manually after clean.
+- [Multi-exchange roadmap](multi-exchange-roadmap.md) — user plans to add other exchanges (Indodax, Binance, etc.) with same strategy; extract ExchangeAdapter interface when that time comes.

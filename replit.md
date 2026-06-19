@@ -44,7 +44,13 @@ Kraken top-of-book buy bot with real-time web dashboard. Automatically stays at 
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- UI in Indonesian language (labels, toasts, dialogs)
+- Bot list layout preferred over grid cards
+- Top navbar preferred over sidebar
+
+## Roadmap
+
+- **Multi-exchange support** (planned): same top-of-book buy bot strategy, but extended to other exchanges beyond Kraken (e.g. Indodax, Binance, OKX, etc.). Each exchange will have its own adapter/client, but share the same `BotManager` + polling + rate-limiter architecture. When adding a new exchange: create an exchange adapter interface so `KrakenBot` logic can be reused with a different API client underneath.
 
 ## Gotchas
 
