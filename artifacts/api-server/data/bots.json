@@ -1,0 +1,19 @@
+{
+  "bots": [
+    {
+      "id": "ARTUSD",
+      "config": {
+        "pair": "ARTUSD",
+        "orderSize": "18500",
+        "maxBidPrice": "0.000220",
+        "tickSize": "0.000001",
+        "checkIntervalMs": 10000,
+        "oneShotMode": true,
+        "maxConsecutiveErrors": 5
+      },
+      "running": true,
+      "fills": [],
+      "fillIdCounter": 0
+    }
+  ]
+}
