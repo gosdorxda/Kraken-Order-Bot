@@ -18,18 +18,18 @@ import {
 } from "@workspace/api-client-react";
 import type { BotInstance } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Play, Square, Plus, Trash2, Settings2, Activity, AlertCircle, CheckCircle2, Info,
-  Loader2, TrendingUp, TrendingDown, Target, ArrowUpDown, AlertTriangle,
+  Play, Square, Plus, Trash2, Settings2, AlertCircle, CheckCircle2, Info,
+  Loader2, TrendingUp, ArrowUpDown, AlertTriangle, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+
+// ─── Config form ────────────────────────────────────────────────────────────
 
 const configSchema = z.object({
   pair: z.string().min(1, "Trading pair is required"),
@@ -60,25 +60,73 @@ function calcTarget(topBid: string | null, tick: string): string | null {
   return (b + t).toFixed(Math.max(decimalPlaces(topBid), decimalPlaces(tick)));
 }
 
-function PositionBadge({ owner }: { owner: "bot" | "other" | "none" }) {
-  if (owner === "bot") return <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 uppercase text-[10px] tracking-wider">At Top</Badge>;
-  if (owner === "other") return <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/30 uppercase text-[10px] tracking-wider">Outbid</Badge>;
-  return <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">No Order</Badge>;
+// ─── Position / status helpers ───────────────────────────────────────────────
+
+/**
+ * Infer if the bot is paused at max price:
+ * running + no current order + topBidOwner is "other" = tried to outbid but exceeded max.
+ */
+function isPausedAtMax(bot: BotInstance): boolean {
+  return (
+    bot.status.running &&
+    bot.status.topBidOwner === "other" &&
+    bot.status.currentOrderId === null
+  );
 }
 
-function StatusBadge({ running }: { running: boolean }) {
-  return running
-    ? <Badge className="bg-primary/10 text-primary border border-primary/30 uppercase text-[10px] tracking-wider">Running</Badge>
-    : <Badge variant="secondary" className="uppercase text-[10px] tracking-wider">Stopped</Badge>;
+function PositionChip({ bot }: { bot: BotInstance }) {
+  const paused = isPausedAtMax(bot);
+  const { running, topBidOwner } = bot.status;
+
+  if (!running) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        ⏹ Stopped
+      </span>
+    );
+  }
+  if (paused) {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-400">
+        ⏸ Batas Maks
+      </span>
+    );
+  }
+  if (topBidOwner === "bot") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400">
+        🏆 At Top
+      </span>
+    );
+  }
+  if (topBidOwner === "other") {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-400">
+        📉 Outbid
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-400">
+      ⏳ No Order
+    </span>
+  );
 }
 
-interface MarketRefProps {
-  pair: string;
-  tickSize: string;
-  maxBidPrice: string;
+function RunningDot({ running }: { running: boolean }) {
+  return (
+    <span className="relative flex h-2 w-2 shrink-0">
+      {running && (
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+      )}
+      <span className={`relative inline-flex rounded-full h-2 w-2 ${running ? "bg-emerald-500" : "bg-muted-foreground/40"}`} />
+    </span>
+  );
 }
 
-function MarketRef({ pair, tickSize, maxBidPrice }: MarketRefProps) {
+// ─── Live market reference (inside Add/Edit dialog) ──────────────────────────
+
+function MarketRef({ pair, tickSize, maxBidPrice }: { pair: string; tickSize: string; maxBidPrice: string }) {
   const { data: book, isLoading } = useGetOrderBook(
     { pair },
     { query: { refetchInterval: 2000, enabled: pair.length > 0, queryKey: getGetOrderBookQueryKey({ pair }) } }
@@ -90,44 +138,46 @@ function MarketRef({ pair, tickSize, maxBidPrice }: MarketRefProps) {
   const exceedsMax = target != null && parseFloat(target) > parseFloat(maxBidPrice);
 
   if (!pair) return null;
-  if (isLoading) return <div className="text-xs text-muted-foreground flex items-center gap-1 mt-2"><Loader2 className="w-3 h-3 animate-spin" /> Loading market data…</div>;
+  if (isLoading) {
+    return (
+      <div className="text-xs text-muted-foreground flex items-center gap-1 mt-2">
+        <Loader2 className="w-3 h-3 animate-spin" /> Memuat data pasar…
+      </div>
+    );
+  }
   if (!book) return null;
 
   return (
-    <div className={`rounded-lg border p-3 text-xs space-y-2 mt-2 ${exceedsMax ? "border-red-700/50 bg-red-950/20" : "border-border bg-muted/30"}`}>
+    <div className={`rounded-lg border p-3 text-xs space-y-2 mt-1 ${exceedsMax ? "border-red-700/50 bg-red-950/20" : "border-border bg-muted/30"}`}>
       <div className="flex items-center gap-1 text-muted-foreground font-medium uppercase tracking-wider text-[10px]">
         <ArrowUpDown className="w-3 h-3" /> Live Market · {pair}
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <div className="space-y-0.5">
+        <div>
           <p className="text-muted-foreground text-[10px]">Top Bid</p>
           <p className="font-mono font-semibold text-emerald-400">{topBid ?? "—"}</p>
         </div>
-        <div className="space-y-0.5">
+        <div>
           <p className="text-muted-foreground text-[10px]">Top Ask</p>
           <p className="font-mono font-semibold text-red-400">{topAsk ?? "—"}</p>
         </div>
-        <div className="space-y-0.5">
-          <p className={`text-[10px] ${exceedsMax ? "text-red-400" : "text-primary"}`}>Our Target</p>
+        <div>
+          <p className={`text-[10px] ${exceedsMax ? "text-red-400" : "text-primary"}`}>Target Kita</p>
           <p className={`font-mono font-semibold ${exceedsMax ? "text-red-400" : "text-primary"}`}>{target ?? "—"}</p>
         </div>
       </div>
       {exceedsMax && (
         <p className="flex items-center gap-1 text-red-400 text-[10px]">
-          <AlertTriangle className="w-3 h-3 shrink-0" /> Target exceeds Max Bid Price — bot will pause immediately
+          <AlertTriangle className="w-3 h-3 shrink-0" /> Target melebihi Max Bid — bot akan langsung pause
         </p>
       )}
     </div>
   );
 }
 
-interface BotDialogProps {
-  open: boolean;
-  onClose: () => void;
-  editBot?: BotInstance | null;
-}
+// ─── Add / Edit dialog ───────────────────────────────────────────────────────
 
-function BotDialog({ open, onClose, editBot }: BotDialogProps) {
+function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => void; editBot?: BotInstance | null }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const createBot = useCreateBot();
@@ -150,7 +200,6 @@ function BotDialog({ open, onClose, editBot }: BotDialogProps) {
   const watchPair = form.watch("pair");
   const watchTick = form.watch("tickSize");
   const watchMax = form.watch("maxBidPrice");
-
   const isPending = createBot.isPending || updateConfig.isPending;
 
   const onSubmit = (values: ConfigForm) => {
@@ -163,9 +212,7 @@ function BotDialog({ open, onClose, editBot }: BotDialogProps) {
             queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() });
             onClose();
           },
-          onError: (err) => {
-            toast({ variant: "destructive", title: "Failed to update", description: err instanceof Error ? err.message : "Error" });
-          },
+          onError: (err) => toast({ variant: "destructive", title: "Gagal update", description: err instanceof Error ? err.message : "Error" }),
         }
       );
     } else {
@@ -173,14 +220,12 @@ function BotDialog({ open, onClose, editBot }: BotDialogProps) {
         { data: values },
         {
           onSuccess: () => {
-            toast({ title: `Bot created for ${values.pair}` });
+            toast({ title: `Bot ${values.pair} dibuat` });
             queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() });
             form.reset(DEFAULT_VALUES);
             onClose();
           },
-          onError: (err) => {
-            toast({ variant: "destructive", title: "Failed to create", description: err instanceof Error ? err.message : "Error" });
-          },
+          onError: (err) => toast({ variant: "destructive", title: "Gagal buat bot", description: err instanceof Error ? err.message : "Error" }),
         }
       );
     }
@@ -190,104 +235,78 @@ function BotDialog({ open, onClose, editBot }: BotDialogProps) {
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? `Edit Bot — ${editBot.config.pair}` : "Add New Bot"}</DialogTitle>
+          <DialogTitle>{isEdit ? `Edit Bot — ${editBot.config.pair}` : "Tambah Bot Baru"}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Update configuration for this bot. Stop the bot first to apply changes."
-              : "Configure a new top-of-book buy bot for a trading pair."}
+              ? "Update konfigurasi bot. Stop bot dulu sebelum mengubah config."
+              : "Konfigurasi bot top-of-book baru untuk satu trading pair."}
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="pair"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Trading Pair</FormLabel>
-                    <FormControl>
-                      <Input placeholder="XXBTZUSD" className="font-mono" disabled={isEdit} {...field} />
-                    </FormControl>
-                    <FormDescription className="text-[11px]">
-                      e.g. <span className="font-mono">XXBTZUSD</span>, <span className="font-mono">SOLUSD</span>
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="pair" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Trading Pair</FormLabel>
+                  <FormControl>
+                    <Input placeholder="XXBTZUSD" className="font-mono" disabled={isEdit} {...field} />
+                  </FormControl>
+                  <FormDescription className="text-[11px]">
+                    e.g. <span className="font-mono">XXBTZUSD</span>, <span className="font-mono">SOLUSD</span>
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-              <FormField
-                control={form.control}
-                name="orderSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Order Size</FormLabel>
-                    <FormControl>
-                      <Input placeholder="0.001" className="font-mono" {...field} />
-                    </FormControl>
-                    <FormDescription className="text-[11px]">Volume per order</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="orderSize" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Order Size</FormLabel>
+                  <FormControl><Input placeholder="0.001" className="font-mono" {...field} /></FormControl>
+                  <FormDescription className="text-[11px]">Volume per order</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-              <FormField
-                control={form.control}
-                name="maxBidPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Max Bid Price</FormLabel>
-                    <FormControl>
-                      <Input placeholder="100000" className="font-mono" {...field} />
-                    </FormControl>
-                    <FormDescription className="text-[11px]">Bot stops if exceeded</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="maxBidPrice" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Max Bid Price</FormLabel>
+                  <FormControl><Input placeholder="100000" className="font-mono" {...field} /></FormControl>
+                  <FormDescription className="text-[11px]">Bot pause jika terlampaui</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-              <FormField
-                control={form.control}
-                name="tickSize"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tick Size</FormLabel>
-                    <FormControl>
-                      <Input placeholder="0.1" className="font-mono" {...field} />
-                    </FormControl>
-                    <FormDescription className="text-[11px]">
-                      Outbid increment (e.g. <span className="font-mono">0.000001</span>)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="tickSize" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tick Size</FormLabel>
+                  <FormControl><Input placeholder="0.1" className="font-mono" {...field} /></FormControl>
+                  <FormDescription className="text-[11px]">
+                    Kenaikan per outbid (e.g. <span className="font-mono">0.000001</span>)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
-              <FormField
-                control={form.control}
-                name="checkIntervalMs"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Check Interval (ms)</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="3000" className="font-mono max-w-[160px]" {...field} />
-                    </FormControl>
-                    <FormDescription className="text-[11px]">Min 500ms, recommended 2000–5000ms</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormField control={form.control} name="checkIntervalMs" render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <FormLabel>Check Interval (ms)</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="3000" className="font-mono max-w-[160px]" {...field} />
+                  </FormControl>
+                  <FormDescription className="text-[11px]">Min 500ms, disarankan 5000–8000ms untuk multi-bot</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )} />
             </div>
 
             <MarketRef pair={watchPair} tickSize={watchTick} maxBidPrice={watchMax} />
 
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
-              <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>Cancel</Button>
+              <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>Batal</Button>
               <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {isEdit ? "Save Changes" : "Create Bot"}
+                {isEdit ? "Simpan" : "Buat Bot"}
               </Button>
             </div>
           </form>
@@ -297,12 +316,48 @@ function BotDialog({ open, onClose, editBot }: BotDialogProps) {
   );
 }
 
-interface BotCardProps {
-  bot: BotInstance;
-  onEdit: (bot: BotInstance) => void;
+// ─── Inline log list ─────────────────────────────────────────────────────────
+
+function BotLogList({ botId }: { botId: string }) {
+  const { data: logs, isLoading } = useGetBotLogs(
+    botId,
+    { limit: 20 },
+    { query: { refetchInterval: 3000, queryKey: getGetBotLogsQueryKey(botId, { limit: 20 }) } }
+  );
+
+  if (isLoading) {
+    return <div className="text-xs text-muted-foreground flex items-center gap-1 py-2"><Loader2 className="w-3 h-3 animate-spin" /> Loading…</div>;
+  }
+  if (!logs?.length) {
+    return <div className="text-xs text-muted-foreground py-2">Belum ada aktivitas.</div>;
+  }
+
+  return (
+    <div className="space-y-0.5 max-h-44 overflow-y-auto pr-1">
+      {logs.map((log) => {
+        let Icon = Info;
+        let color = "text-blue-400";
+        if (log.level === "success") { Icon = CheckCircle2; color = "text-emerald-400"; }
+        else if (log.level === "warn") { Icon = AlertCircle; color = "text-amber-400"; }
+        else if (log.level === "error") { Icon = AlertCircle; color = "text-red-400"; }
+
+        return (
+          <div key={log.id} className="flex items-start gap-2 font-mono text-xs py-0.5">
+            <Icon className={`w-3 h-3 mt-0.5 shrink-0 ${color}`} />
+            <span className="text-muted-foreground text-[10px] shrink-0 tabular-nums">
+              {new Date(log.timestamp).toLocaleTimeString()}
+            </span>
+            <span className="text-foreground/80 min-w-0 break-words">{log.message}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
-function BotCard({ bot, onEdit }: BotCardProps) {
+// ─── Bot list row ─────────────────────────────────────────────────────────────
+
+function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const startBot = useStartBot();
@@ -311,120 +366,118 @@ function BotCard({ bot, onEdit }: BotCardProps) {
   const [showLogs, setShowLogs] = useState(false);
 
   const { id, config, status } = bot;
+  const paused = isPausedAtMax(bot);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() });
-
-  const handleStart = () => {
-    startBot.mutate(
-      { botId: id },
-      {
-        onSuccess: () => { toast({ title: `${id} started` }); invalidate(); },
-        onError: (err) => toast({ variant: "destructive", title: "Start failed", description: err instanceof Error ? err.message : "Error" }),
-      }
-    );
-  };
-
-  const handleStop = () => {
-    stopBot.mutate(
-      { botId: id },
-      {
-        onSuccess: () => { toast({ title: `${id} stopped` }); invalidate(); },
-        onError: (err) => toast({ variant: "destructive", title: "Stop failed", description: err instanceof Error ? err.message : "Error" }),
-      }
-    );
-  };
-
-  const handleDelete = () => {
-    if (!confirm(`Remove bot for ${id}? This will cancel any open orders.`)) return;
-    deleteBot.mutate(
-      { botId: id },
-      {
-        onSuccess: () => { toast({ title: `${id} removed` }); invalidate(); },
-        onError: (err) => toast({ variant: "destructive", title: "Delete failed", description: err instanceof Error ? err.message : "Error" }),
-      }
-    );
-  };
-
   const isBusy = startBot.isPending || stopBot.isPending || deleteBot.isPending;
 
+  const handleStart = () => startBot.mutate({ botId: id }, {
+    onSuccess: () => { toast({ title: `▶ ${id} started` }); invalidate(); },
+    onError: (err) => toast({ variant: "destructive", title: "Start failed", description: err instanceof Error ? err.message : "Error" }),
+  });
+
+  const handleStop = () => stopBot.mutate({ botId: id }, {
+    onSuccess: () => { toast({ title: `⏹ ${id} stopped` }); invalidate(); },
+    onError: (err) => toast({ variant: "destructive", title: "Stop failed", description: err instanceof Error ? err.message : "Error" }),
+  });
+
+  const handleDelete = () => {
+    if (!confirm(`Hapus bot ${id}? Order terbuka akan dibatalkan.`)) return;
+    deleteBot.mutate({ botId: id }, {
+      onSuccess: () => { toast({ title: `🗑 ${id} dihapus` }); invalidate(); },
+      onError: (err) => toast({ variant: "destructive", title: "Delete failed", description: err instanceof Error ? err.message : "Error" }),
+    });
+  };
+
   return (
-    <Card className="bg-card border-border shadow-md flex flex-col">
-      <CardHeader className="pb-3 shrink-0">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-mono text-lg font-bold tracking-tight">{id}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <StatusBadge running={status.running} />
-              <PositionBadge owner={status.topBidOwner} />
-            </div>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0"
-              onClick={() => onEdit(bot)}
-              disabled={status.running || isBusy}
-              title="Edit config"
-            >
-              <Settings2 className="w-4 h-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-              onClick={handleDelete}
-              disabled={isBusy}
-              title="Remove bot"
-            >
-              {deleteBot.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
+    <div className={`border rounded-xl overflow-hidden transition-colors ${paused ? "border-orange-700/50 bg-orange-950/10" : "border-border bg-card"}`}>
+      {/* Main row */}
+      <div className="flex items-center gap-3 px-4 py-3 flex-wrap md:flex-nowrap">
 
-      <CardContent className="flex-1 space-y-3">
-        {/* Order info */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-          <div className="text-muted-foreground text-xs">Order Price</div>
-          <div className="font-mono text-xs font-semibold text-primary text-right">{status.currentOrderPrice ?? "—"}</div>
-          <div className="text-muted-foreground text-xs">Volume</div>
-          <div className="font-mono text-xs text-right">{status.currentOrderVolume ?? "—"}</div>
-          <div className="text-muted-foreground text-xs">Top Bid</div>
-          <div className="font-mono text-xs text-right text-emerald-400">{status.topBidPrice ?? "—"}</div>
-          <div className="text-muted-foreground text-xs">Max Price</div>
-          <div className="font-mono text-xs text-right">{config.maxBidPrice}</div>
-          <div className="text-muted-foreground text-xs">Cycles</div>
-          <div className="font-mono text-xs text-right">{status.cycleCount}</div>
+        {/* 1 — Pair + status dot */}
+        <div className="flex items-center gap-2.5 min-w-[140px]">
+          <RunningDot running={status.running} />
+          <span className="font-mono font-bold text-base tracking-tight">{id}</span>
         </div>
 
-        {status.lastAction && (
-          <p className="text-[11px] text-muted-foreground bg-muted/40 rounded px-2 py-1 truncate" title={status.lastAction}>
-            {status.lastAction}
-          </p>
-        )}
+        {/* 2 — Position chip */}
+        <div className="min-w-[110px]">
+          <PositionChip bot={bot} />
+        </div>
 
-        {/* Logs toggle */}
-        <button
-          onClick={() => setShowLogs(!showLogs)}
-          className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Activity className="w-3 h-3" />
-          {showLogs ? "Hide" : "Show"} activity log
-        </button>
+        {/* 3 — Order price & volume */}
+        <div className="flex-1 min-w-[180px]">
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
+            <span className="text-muted-foreground">Order</span>
+            <span className="font-mono text-primary font-semibold">{status.currentOrderPrice ?? "—"}</span>
+            <span className="text-muted-foreground">×</span>
+            <span className="font-mono">{status.currentOrderVolume ?? config.orderSize}</span>
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs mt-0.5">
+            <span className="text-muted-foreground">Top bid</span>
+            <span className="font-mono text-emerald-400">{status.topBidPrice ?? "—"}</span>
+            <span className="text-muted-foreground">Max</span>
+            <span className="font-mono text-muted-foreground">{config.maxBidPrice}</span>
+          </div>
+        </div>
 
-        {showLogs && <BotLogList botId={id} />}
+        {/* 4 — Config pills */}
+        <div className="hidden lg:flex flex-wrap gap-1.5 text-[10px] min-w-[200px]">
+          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">tick {config.tickSize}</span>
+          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">sz {config.orderSize}</span>
+          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">{config.checkIntervalMs}ms</span>
+          <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">{status.cycleCount} cycles</span>
+        </div>
 
-        {/* Action buttons */}
-        <div className="flex gap-2 pt-1">
+        {/* 5 — Last action */}
+        <div className="hidden xl:block flex-1 min-w-0">
+          {status.lastAction && (
+            <p className="text-[11px] text-muted-foreground truncate" title={status.lastAction}>
+              {status.lastAction}
+            </p>
+          )}
+        </div>
+
+        {/* 6 — Actions */}
+        <div className="flex items-center gap-1 shrink-0 ml-auto">
+          {/* Log toggle */}
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            title="Activity log"
+          >
+            {showLogs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {/* Edit */}
+          <button
+            onClick={() => onEdit(bot)}
+            disabled={status.running || isBusy}
+            className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Edit config"
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
+
+          {/* Delete */}
+          <button
+            onClick={handleDelete}
+            disabled={isBusy}
+            className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+            title="Hapus bot"
+          >
+            {deleteBot.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+          </button>
+
+          {/* Start / Stop */}
           {status.running ? (
             <Button
               onClick={handleStop}
               disabled={isBusy}
               variant="destructive"
               size="sm"
-              className="flex-1 font-semibold"
+              className="ml-1 min-w-[76px] font-semibold"
             >
-              {stopBot.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Square className="w-3 h-3 mr-1.5" />}
+              {stopBot.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Square className="w-3 h-3 mr-1.5 fill-current" />}
               Stop
             </Button>
           ) : (
@@ -432,48 +485,37 @@ function BotCard({ bot, onEdit }: BotCardProps) {
               onClick={handleStart}
               disabled={isBusy}
               size="sm"
-              className="flex-1 font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
+              className="ml-1 min-w-[76px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {startBot.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Play className="w-3 h-3 mr-1.5" />}
+              {startBot.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Play className="w-3 h-3 mr-1.5 fill-current" />}
               Start
             </Button>
           )}
         </div>
-      </CardContent>
-    </Card>
-  );
-}
+      </div>
 
-function BotLogList({ botId }: { botId: string }) {
-  const { data: logs, isLoading } = useGetBotLogsInline(botId);
+      {/* Max-price paused banner */}
+      {paused && (
+        <div className="flex items-center gap-2.5 px-4 py-2 bg-orange-950/30 border-t border-orange-700/30 text-xs text-orange-300">
+          <span className="text-base leading-none">⏸</span>
+          <span>
+            Bot di-pause — target harga melebihi <span className="font-mono font-semibold">{config.maxBidPrice}</span>.
+            Naikkan Max Bid Price atau tunggu harga pasar turun.
+          </span>
+        </div>
+      )}
 
-  if (isLoading) return <div className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Loading…</div>;
-  if (!logs?.length) return <div className="text-xs text-muted-foreground">No activity yet.</div>;
-
-  return (
-    <div className="space-y-1 max-h-40 overflow-y-auto text-xs">
-      {logs.slice(0, 20).map((log) => {
-        let Icon = Info;
-        let color = "text-blue-400";
-        if (log.level === "success") { Icon = CheckCircle2; color = "text-emerald-400"; }
-        else if (log.level === "warn") { Icon = AlertCircle; color = "text-amber-400"; }
-        else if (log.level === "error") { Icon = AlertCircle; color = "text-red-400"; }
-
-        return (
-          <div key={log.id} className="flex items-start gap-1.5 font-mono">
-            <Icon className={`w-3 h-3 mt-0.5 shrink-0 ${color}`} />
-            <span className="text-muted-foreground text-[10px] shrink-0">{new Date(log.timestamp).toLocaleTimeString()}</span>
-            <span className="text-foreground/80 truncate">{log.message}</span>
-          </div>
-        );
-      })}
+      {/* Inline log */}
+      {showLogs && (
+        <div className="px-4 pb-3 pt-2 border-t border-border/60 bg-background/40">
+          <BotLogList botId={id} />
+        </div>
+      )}
     </div>
   );
 }
 
-function useGetBotLogsInline(botId: string) {
-  return useGetBotLogs(botId, { limit: 20 }, { query: { refetchInterval: 3000, queryKey: getGetBotLogsQueryKey(botId, { limit: 20 }) } });
-}
+// ─── Main dashboard ───────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const { data: bots, isLoading } = useListBots({
@@ -489,39 +531,38 @@ export default function Dashboard() {
   const closeDialog = () => { setDialogOpen(false); setEditBot(null); };
 
   const runningCount = bots?.filter((b) => b.status.running).length ?? 0;
+  const pausedCount = bots?.filter(isPausedAtMax).length ?? 0;
 
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             {bots?.length
-              ? `${bots.length} bot${bots.length !== 1 ? "s" : ""} configured · ${runningCount} running`
-              : "No bots configured yet"}
+              ? `${bots.length} bot · ${runningCount} running${pausedCount > 0 ? ` · ${pausedCount} ⏸ paused` : ""}`
+              : "Belum ada bot"}
           </p>
         </div>
-        <Button onClick={openAdd} className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shrink-0">
-          <Plus className="w-4 h-4 mr-2" /> Add Bot
-        </Button>
-      </header>
-
-      {/* Account balances */}
-      {balances && balances.length > 0 && (
-        <div className="flex flex-wrap gap-3">
-          {balances.filter((b) => parseFloat(b.balance) > 0).map((a) => (
-            <div key={a.asset} className="bg-card border border-border rounded-lg px-4 py-2.5 min-w-[120px]">
-              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{a.asset}</div>
-              <div className="font-mono text-base font-bold">{parseFloat(a.balance).toFixed(4)}</div>
+        <div className="flex items-center gap-3">
+          {/* Account balances inline */}
+          {balances?.filter((b) => parseFloat(b.balance) > 0).map((a) => (
+            <div key={a.asset} className="bg-card border border-border rounded-lg px-3 py-1.5">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1.5">{a.asset}</span>
+              <span className="font-mono text-sm font-bold">{parseFloat(a.balance).toFixed(4)}</span>
             </div>
           ))}
+          <Button onClick={openAdd} className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shrink-0">
+            <Plus className="w-4 h-4 mr-1.5" /> Add Bot
+          </Button>
         </div>
-      )}
+      </div>
 
-      {/* Bot cards grid */}
+      {/* Bot list */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[1, 2].map((i) => <Skeleton key={i} className="h-64 w-full rounded-xl" />)}
+        <div className="space-y-3">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
         </div>
       ) : !bots?.length ? (
         <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 border border-dashed border-border rounded-xl">
@@ -529,9 +570,9 @@ export default function Dashboard() {
             <TrendingUp className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold text-lg">No bots yet</h3>
+            <h3 className="font-semibold text-lg">Belum ada bot</h3>
             <p className="text-muted-foreground text-sm mt-1 max-w-xs">
-              Create your first bot to start top-of-book bidding on a Kraken trading pair.
+              Buat bot pertama untuk mulai top-of-book bidding di Kraken.
             </p>
           </div>
           <Button onClick={openAdd}>
@@ -539,9 +580,9 @@ export default function Dashboard() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="space-y-3">
           {bots.map((bot) => (
-            <BotCard key={bot.id} bot={bot} onEdit={openEdit} />
+            <BotRow key={bot.id} bot={bot} onEdit={openEdit} />
           ))}
         </div>
       )}

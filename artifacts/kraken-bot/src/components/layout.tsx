@@ -10,30 +10,47 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground font-sans selection:bg-primary/30">
-      {/* Sidebar */}
-      <div className="w-16 md:w-64 border-r border-border bg-card flex flex-col justify-between shrink-0">
-        <div>
-          <div className="h-16 flex items-center justify-center md:justify-start px-4 border-b border-border">
-            <Zap className="h-6 w-6 text-primary" />
-            <span className="ml-3 font-bold text-lg hidden md:block tracking-tight text-white">KRKN.BOT</span>
+    <div className="min-h-screen w-full bg-background text-foreground font-sans selection:bg-primary/30 flex flex-col">
+      {/* Top navbar */}
+      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-sm">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-6">
+          {/* Logo */}
+          <div className="flex items-center gap-2 shrink-0">
+            <Zap className="h-5 w-5 text-primary" />
+            <span className="font-bold text-base tracking-tight text-white">KRKN.BOT</span>
           </div>
-          <nav className="p-2 space-y-1 mt-4">
-            <Link href="/" className={`flex items-center px-3 py-3 rounded-md transition-colors ${location === "/" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              <Activity className="h-5 w-5 shrink-0" />
-              <span className="ml-3 font-medium hidden md:block">Dashboard</span>
+
+          {/* Nav */}
+          <nav className="flex items-center gap-1">
+            <Link
+              href="/"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                location === "/"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <Activity className="h-4 w-4" />
+              Dashboard
             </Link>
-            <Link href="/settings" className={`flex items-center px-3 py-3 rounded-md transition-colors ${location === "/settings" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-secondary hover:text-foreground"}`}>
-              <Settings className="h-5 w-5 shrink-0" />
-              <span className="ml-3 font-medium hidden md:block">Settings</span>
+            <Link
+              href="/settings"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                location === "/settings"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+              Settings
             </Link>
           </nav>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
+      {/* Page content */}
       <main className="flex-1 overflow-y-auto">
-        <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-6 py-6">
           {children}
         </div>
       </main>
