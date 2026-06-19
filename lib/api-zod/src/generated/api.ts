@@ -152,6 +152,17 @@ export const GetOrderBookResponse = zod.object({
 
 
 /**
+ * @summary Get server public IP and Kraken connection status
+ */
+export const GetServerInfoResponse = zod.object({
+  "publicIp": zod.string().nullable(),
+  "ipError": zod.string().nullable(),
+  "krakenConnected": zod.boolean(),
+  "krakenError": zod.string().nullable()
+})
+
+
+/**
  * @summary Get Kraken account balance
  */
 export const GetAccountBalanceResponseItem = zod.object({

@@ -18,3 +18,4 @@ export * from './getBotLogsParams';
 export * from './healthStatus';
 export * from './orderBook';
 export * from './orderBookLevel';
+export * from './serverInfo';

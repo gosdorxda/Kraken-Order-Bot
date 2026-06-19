@@ -154,6 +154,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /info:
+    get:
+      operationId: getServerInfo
+      tags: [health]
+      summary: Get server public IP and Kraken connection status
+      responses:
+        "200":
+          description: Server info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServerInfo"
+
   /account/balance:
     get:
       operationId: getAccountBalance
@@ -295,6 +308,19 @@ components:
           type: string
         volume:
           type: string
+
+    ServerInfo:
+      type: object
+      required: [publicIp, ipError, krakenConnected, krakenError]
+      properties:
+        publicIp:
+          type: ["string", "null"]
+        ipError:
+          type: ["string", "null"]
+        krakenConnected:
+          type: boolean
+        krakenError:
+          type: ["string", "null"]
 
     AssetBalance:
       type: object

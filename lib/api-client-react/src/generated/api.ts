@@ -28,7 +28,8 @@ import type {
   ErrorResponse,
   GetBotLogsParams,
   HealthStatus,
-  OrderBook
+  OrderBook,
+  ServerInfo
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -635,6 +636,83 @@ export function useGetOrderBook<TData = Awaited<ReturnType<typeof getOrderBook>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetOrderBookQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetServerInfoUrl = () => {
+
+
+
+
+  return `/api/info`
+}
+
+/**
+ * @summary Get server public IP and Kraken connection status
+ */
+export const getServerInfo = async ( options?: RequestInit): Promise<ServerInfo> => {
+
+  return customFetch<ServerInfo>(getGetServerInfoUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetServerInfoQueryKey = () => {
+    return [
+    `/api/info`
+    ] as const;
+    }
+
+
+export const getGetServerInfoQueryOptions = <TData = Awaited<ReturnType<typeof getServerInfo>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getServerInfo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetServerInfoQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getServerInfo>>> = ({ signal }) => getServerInfo({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getServerInfo>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetServerInfoQueryResult = NonNullable<Awaited<ReturnType<typeof getServerInfo>>>
+export type GetServerInfoQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get server public IP and Kraken connection status
+ */
+
+export function useGetServerInfo<TData = Awaited<ReturnType<typeof getServerInfo>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getServerInfo>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetServerInfoQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

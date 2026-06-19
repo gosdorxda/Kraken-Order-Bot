@@ -9,9 +9,11 @@ import {
   useStartBot,
   useStopBot,
   useGetOrderBook,
+  useGetServerInfo,
   getGetBotStatusQueryKey,
   getGetBotLogsQueryKey,
   getGetOrderBookQueryKey,
+  getGetServerInfoQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,7 +21,8 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Play, Square, Save, Loader2, TrendingUp, TrendingDown, Target, ArrowUpDown, AlertTriangle } from "lucide-react";
+import { Play, Square, Save, Loader2, TrendingUp, TrendingDown, Target, ArrowUpDown, AlertTriangle, CheckCircle2, XCircle, Copy, Check, RefreshCw, Shield } from "lucide-react";
+import { useState } from "react";
 
 const configSchema = z.object({
   pair: z.string().min(1, "Trading pair is required"),
@@ -569,6 +572,8 @@ export default function Settings() {
         </CardContent>
       </Card>
 
+      <ConnectionPanel />
+
       <Card className="bg-card border-border">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-muted-foreground font-medium">
@@ -596,5 +601,144 @@ export default function Settings() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ConnectionPanel() {
+  const queryClient = useQueryClient();
+  const [copied, setCopied] = useState(false);
+  const { data, isLoading, isFetching, refetch } = useGetServerInfo({
+    query: { queryKey: getGetServerInfoQueryKey() },
+  });
+
+  const copyIp = () => {
+    if (!data?.publicIp) return;
+    navigator.clipboard.writeText(data.publicIp);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: getGetServerInfoQueryKey() });
+    refetch();
+  };
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <Shield className="w-4 h-4" />
+            Connection & Security
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isFetching}
+            className="h-7 px-2 text-muted-foreground"
+            data-testid="button-refresh-connection"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+        <CardDescription className="text-xs">
+          Kraken API connection status and server IP for whitelist configuration.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" /> Checking connection...
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Kraken API Status */}
+              <div className={`rounded-lg bg-background border p-4 space-y-2 ${data?.krakenConnected ? "border-green-900/50" : "border-red-900/50"}`}>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Kraken API
+                </p>
+                <div className="flex items-center gap-2">
+                  {data?.krakenConnected ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-green-400" />
+                      <span className="text-green-400 font-semibold text-sm">Connected</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5 text-red-400" />
+                      <span className="text-red-400 font-semibold text-sm">Failed</span>
+                    </>
+                  )}
+                </div>
+                {data?.krakenError && (
+                  <p className="text-xs text-red-400/80 font-mono break-all">{data.krakenError}</p>
+                )}
+                {data?.krakenConnected && (
+                  <p className="text-xs text-muted-foreground">API key is valid and authenticated</p>
+                )}
+              </div>
+
+              {/* Server IP */}
+              <div className="rounded-lg bg-background border border-border p-4 space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  Server Public IP
+                </p>
+                {data?.publicIp ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-semibold text-foreground" data-testid="text-server-ip">
+                        {data.publicIp}
+                      </span>
+                      <button
+                        onClick={copyIp}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        data-testid="button-copy-ip"
+                        title="Copy IP"
+                      >
+                        {copied ? (
+                          <Check className="w-3.5 h-3.5 text-green-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Add this IP to your Kraken API key whitelist</p>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm text-muted-foreground">Could not resolve</span>
+                    {data?.ipError && (
+                      <p className="text-xs text-red-400/80 font-mono">{data.ipError}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Whitelist instructions */}
+            <div className="rounded-lg border border-border bg-background/50 px-4 py-3 space-y-2">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-primary" />
+                How to set up IP whitelist on Kraken
+              </p>
+              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                <li>Buka <strong className="text-foreground">Kraken</strong> → Security → API</li>
+                <li>Pilih API key kamu → Edit</li>
+                <li>Di field <strong className="text-foreground">IP Whitelist</strong>, masukkan IP di atas</li>
+                <li>Simpan — hanya request dari IP itu yang bisa pakai key tersebut</li>
+              </ol>
+              <p className="text-xs text-amber-400/80 flex items-start gap-1.5 pt-1">
+                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                <span>
+                  Catatan: IP server Replit bisa berubah saat restart atau redeploy. Kalau bot tiba-tiba gagal autentikasi, tekan tombol refresh di atas dan update whitelist di Kraken.
+                </span>
+              </p>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

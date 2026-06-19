@@ -94,6 +94,16 @@ export interface OrderBook {
   timestamp: string;
 }
 
+export interface ServerInfo {
+  /** @nullable */
+  publicIp: string | null;
+  /** @nullable */
+  ipError: string | null;
+  krakenConnected: boolean;
+  /** @nullable */
+  krakenError: string | null;
+}
+
 export interface AssetBalance {
   asset: string;
   balance: string;
