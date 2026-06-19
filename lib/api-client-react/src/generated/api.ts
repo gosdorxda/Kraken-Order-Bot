@@ -25,6 +25,8 @@ import type {
   BotInstance,
   BotLog,
   ErrorResponse,
+  FillRecord,
+  GetBotFillsParams,
   GetBotLogsParams,
   GetOrderBookParams,
   HealthStatus,
@@ -782,6 +784,95 @@ export function useGetBotLogs<TData = Awaited<ReturnType<typeof getBotLogs>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetBotLogsQueryOptions(botId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetBotFillsUrl = (botId: string,
+    params?: GetBotFillsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/bots/${botId}/fills?${stringifiedParams}` : `/api/bots/${botId}/fills`
+}
+
+/**
+ * @summary Get fill history for a bot
+ */
+export const getBotFills = async (botId: string,
+    params?: GetBotFillsParams, options?: RequestInit): Promise<FillRecord[]> => {
+
+  return customFetch<FillRecord[]>(getGetBotFillsUrl(botId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBotFillsQueryKey = (botId: string,
+    params?: GetBotFillsParams,) => {
+    return [
+    `/api/bots/${botId}/fills`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBotFillsQueryOptions = <TData = Awaited<ReturnType<typeof getBotFills>>, TError = ErrorType<ErrorResponse>>(botId: string,
+    params?: GetBotFillsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBotFills>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBotFillsQueryKey(botId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBotFills>>> = ({ signal }) => getBotFills(botId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(botId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBotFills>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBotFillsQueryResult = NonNullable<Awaited<ReturnType<typeof getBotFills>>>
+export type GetBotFillsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get fill history for a bot
+ */
+
+export function useGetBotFills<TData = Awaited<ReturnType<typeof getBotFills>>, TError = ErrorType<ErrorResponse>>(
+ botId: string,
+    params?: GetBotFillsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBotFills>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBotFillsQueryOptions(botId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

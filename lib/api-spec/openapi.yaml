@@ -249,6 +249,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /bots/{botId}/fills:
+    get:
+      operationId: getBotFills
+      tags: [bots]
+      summary: Get fill history for a bot
+      parameters:
+        - name: botId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Fill records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FillRecord"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /bots/{botId}/orderbook:
     get:
       operationId: getBotOrderBook
@@ -350,7 +382,7 @@ components:
 
     BotConfig:
       type: object
-      required: [pair, orderSize, maxBidPrice, tickSize, checkIntervalMs, oneShotMode]
+      required: [pair, orderSize, maxBidPrice, tickSize, checkIntervalMs, oneShotMode, maxConsecutiveErrors, orderSizeMode, orderSizePercent]
       properties:
         pair:
           type: string
@@ -366,7 +398,16 @@ components:
         oneShotMode:
           type: boolean
           default: false
-          description: If true, bot stops automatically after the first order is filled
+        maxConsecutiveErrors:
+          type: integer
+          default: 5
+        orderSizeMode:
+          type: string
+          enum: [fixed, percent]
+          default: fixed
+        orderSizePercent:
+          type: string
+          default: "10"
 
     BotConfigInput:
       type: object
@@ -386,11 +427,20 @@ components:
         oneShotMode:
           type: boolean
           default: false
-          description: If true, bot stops automatically after the first order is filled
+        maxConsecutiveErrors:
+          type: integer
+          default: 5
+        orderSizeMode:
+          type: string
+          enum: [fixed, percent]
+          default: fixed
+        orderSizePercent:
+          type: string
+          default: "10"
 
     BotStatus:
       type: object
-      required: [running, currentOrderId, currentOrderPrice, currentOrderVolume, topBidPrice, topBidOwner, cycleCount, lastAction, lastActionAt]
+      required: [running, currentOrderId, currentOrderPrice, currentOrderVolume, topBidPrice, topBidOwner, cycleCount, lastAction, lastActionAt, circuitBreakerTripped, consecutiveErrors]
       properties:
         running:
           type: boolean
@@ -411,6 +461,10 @@ components:
           type: ["string", "null"]
         lastActionAt:
           type: ["string", "null"]
+        circuitBreakerTripped:
+          type: boolean
+        consecutiveErrors:
+          type: integer
 
     BotInstance:
       type: object
@@ -438,6 +492,23 @@ components:
           type: string
         data:
           type: ["string", "null"]
+
+    FillRecord:
+      type: object
+      required: [id, pair, orderId, price, volume, timestamp]
+      properties:
+        id:
+          type: integer
+        pair:
+          type: string
+        orderId:
+          type: string
+        price:
+          type: string
+        volume:
+          type: string
+        timestamp:
+          type: string
 
     OrderBook:
       type: object

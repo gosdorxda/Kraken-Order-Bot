@@ -9,6 +9,9 @@ export interface BotConfig {
   tickSize: string;
   checkIntervalMs: number;
   oneShotMode: boolean;
+  maxConsecutiveErrors: number;
+  orderSizeMode: "fixed" | "percent";
+  orderSizePercent: string;
 }
 
 export interface BotLog {
@@ -17,6 +20,15 @@ export interface BotLog {
   level: "info" | "warn" | "error" | "success";
   message: string;
   data: string | null;
+}
+
+export interface FillRecord {
+  id: number;
+  pair: string;
+  orderId: string;
+  price: string;
+  volume: string;
+  timestamp: string;
 }
 
 export interface BotStatus {
@@ -29,9 +41,12 @@ export interface BotStatus {
   cycleCount: number;
   lastAction: string | null;
   lastActionAt: string | null;
+  circuitBreakerTripped: boolean;
+  consecutiveErrors: number;
 }
 
-// Shared Kraken client (one API key for all bots)
+// ─── Shared Kraken client ─────────────────────────────────────────────────────
+
 const sharedClient: KrakenClient = (() => {
   const apiKey = process.env["KRAKEN_API_KEY"] ?? "";
   const apiSecret = process.env["KRAKEN_API_SECRET"] ?? "";
@@ -60,11 +75,16 @@ export async function fetchBalance(): Promise<Record<string, string>> {
   return resp.result as Record<string, string>;
 }
 
+// ─── KrakenBot ────────────────────────────────────────────────────────────────
+
 export class KrakenBot {
   readonly id: string;
   private config: BotConfig;
   private logs: BotLog[] = [];
   private logIdCounter = 0;
+  private fills: FillRecord[] = [];
+  private fillIdCounter = 0;
+  private onPersist?: () => void;
 
   private running = false;
   private currentOrderId: string | null = null;
@@ -76,24 +96,16 @@ export class KrakenBot {
   private lastAction: string | null = null;
   private lastActionAt: string | null = null;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
+  private consecutiveErrors = 0;
+  private circuitBreakerTripped = false;
 
-  constructor(id: string, config: BotConfig) {
+  constructor(id: string, config: BotConfig, onPersist?: () => void) {
     this.id = id;
     this.config = { ...config };
+    this.onPersist = onPersist;
   }
 
-  private addLog(level: BotLog["level"], message: string, data?: unknown): void {
-    const entry: BotLog = {
-      id: ++this.logIdCounter,
-      timestamp: new Date().toISOString(),
-      level,
-      message,
-      data: data != null ? JSON.stringify(data) : null,
-    };
-    this.logs.unshift(entry);
-    if (this.logs.length > 200) this.logs = this.logs.slice(0, 200);
-    logger.info({ botId: this.id, botLog: entry }, message);
-  }
+  // ─── Public accessors ───────────────────────────────────────────────────────
 
   getConfig(): BotConfig {
     return { ...this.config };
@@ -114,6 +126,8 @@ export class KrakenBot {
       cycleCount: this.cycleCount,
       lastAction: this.lastAction,
       lastActionAt: this.lastActionAt,
+      circuitBreakerTripped: this.circuitBreakerTripped,
+      consecutiveErrors: this.consecutiveErrors,
     };
   }
 
@@ -121,9 +135,26 @@ export class KrakenBot {
     return this.logs.slice(0, limit);
   }
 
+  getFills(limit = 200): FillRecord[] {
+    return this.fills.slice(0, limit);
+  }
+
+  getFillIdCounter(): number {
+    return this.fillIdCounter;
+  }
+
+  loadFills(fills: FillRecord[], nextId: number): void {
+    this.fills = [...fills];
+    this.fillIdCounter = nextId;
+  }
+
+  // ─── Lifecycle ──────────────────────────────────────────────────────────────
+
   async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
+    this.circuitBreakerTripped = false;
+    this.consecutiveErrors = 0;
     this.cycleCount = 0;
     this.addLog("info", `Bot started for pair ${this.config.pair}`, { config: this.config });
     this.intervalHandle = setInterval(() => {
@@ -153,7 +184,10 @@ export class KrakenBot {
     this.topBidOwner = "none";
     this.topBidPrice = null;
     this.addLog("info", "Bot stopped");
+    this.onPersist?.();
   }
+
+  // ─── Cycle ──────────────────────────────────────────────────────────────────
 
   private async runCycle(): Promise<void> {
     if (!this.running) return;
@@ -177,9 +211,17 @@ export class KrakenBot {
       if (this.currentOrderId) {
         const orderStatus = await this.checkOrderOpen(this.currentOrderId);
         if (!orderStatus.isOpen) {
-          this.addLog("success", `Order ${this.currentOrderId} was filled!`, { price: this.currentOrderPrice });
+          const filledOrderId = this.currentOrderId;
+          const filledPrice = this.currentOrderPrice ?? "0";
+          const filledVolume = this.currentOrderVolume ?? this.config.orderSize;
+
+          this.addLog("success", `Order ${filledOrderId} was filled!`, { price: filledPrice });
+          this.recordFill(filledOrderId, filledPrice, filledVolume);
+
           this.currentOrderId = null;
           this.currentOrderPrice = null;
+          this.currentOrderVolume = null;
+
           if (this.config.oneShotMode) {
             this.addLog("info", "One-shot mode: bot stopped after fill.");
             this.setLastAction("Stopped — order filled (one-shot mode)");
@@ -193,7 +235,10 @@ export class KrakenBot {
         }
       }
 
-      if (this.currentOrderId && myOrderIsAtTop) return;
+      if (this.currentOrderId && myOrderIsAtTop) {
+        this.consecutiveErrors = 0;
+        return;
+      }
 
       const targetPrice = topBidPriceNum + tickNum;
 
@@ -208,6 +253,7 @@ export class KrakenBot {
         } else {
           this.addLog("warn", `Top bid ${topBidPriceNum} + tick ${tickNum} = ${targetPrice} exceeds max ${maxPriceNum}. Not placing order.`);
         }
+        this.consecutiveErrors = 0;
         return;
       }
 
@@ -220,16 +266,59 @@ export class KrakenBot {
       }
 
       const formattedPrice = targetPrice.toFixed(this.decimalPlaces(this.config.tickSize));
-      const orderId = await this.placeOrder(this.config.pair, formattedPrice, this.config.orderSize);
+      const volume = await this.calculateVolume(targetPrice);
+      const orderId = await this.placeOrder(this.config.pair, formattedPrice, volume);
       this.currentOrderId = orderId;
       this.currentOrderPrice = formattedPrice;
-      this.currentOrderVolume = this.config.orderSize;
+      this.currentOrderVolume = volume;
       this.topBidOwner = "bot";
       this.setLastAction(`Placed buy order at ${formattedPrice}`);
-      this.addLog("success", `Placed buy order`, { orderId, price: formattedPrice, volume: this.config.orderSize });
+      this.addLog("success", `Placed buy order`, { orderId, price: formattedPrice, volume });
+
+      this.consecutiveErrors = 0;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.addLog("error", `Cycle error: ${msg}`);
+      this.consecutiveErrors++;
+      const maxErrors = this.config.maxConsecutiveErrors ?? 5;
+      if (this.consecutiveErrors >= maxErrors) {
+        this.circuitBreakerTripped = true;
+        this.addLog("error", `🔌 Circuit breaker: ${maxErrors} errors in a row. Bot stopped.`);
+        this.setLastAction(`Circuit breaker tripped after ${maxErrors} errors`);
+        this.stop();
+      }
+    }
+  }
+
+  // ─── Private helpers ────────────────────────────────────────────────────────
+
+  private recordFill(orderId: string, price: string, volume: string): void {
+    const fill: FillRecord = {
+      id: ++this.fillIdCounter,
+      pair: this.config.pair,
+      orderId,
+      price,
+      volume,
+      timestamp: new Date().toISOString(),
+    };
+    this.fills.unshift(fill);
+    if (this.fills.length > 500) this.fills = this.fills.slice(0, 500);
+    this.onPersist?.();
+  }
+
+  private async calculateVolume(targetPrice: number): Promise<string> {
+    if ((this.config.orderSizeMode ?? "fixed") !== "percent") {
+      return this.config.orderSize;
+    }
+    try {
+      const balances = await fetchBalance();
+      const usdBal = parseFloat(balances["ZUSD"] ?? balances["USD"] ?? "0");
+      const pct = parseFloat(this.config.orderSizePercent ?? "10") / 100;
+      const vol = (usdBal * pct) / targetPrice;
+      if (vol <= 0) return this.config.orderSize;
+      return vol.toFixed(8);
+    } catch {
+      return this.config.orderSize;
     }
   }
 
@@ -275,5 +364,18 @@ export class KrakenBot {
   private decimalPlaces(value: string): number {
     const parts = value.split(".");
     return parts.length > 1 ? parts[1]!.length : 0;
+  }
+
+  private addLog(level: BotLog["level"], message: string, data?: unknown): void {
+    const entry: BotLog = {
+      id: ++this.logIdCounter,
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      data: data != null ? JSON.stringify(data) : null,
+    };
+    this.logs.unshift(entry);
+    if (this.logs.length > 200) this.logs = this.logs.slice(0, 200);
+    logger.info({ botId: this.id, botLog: entry }, message);
   }
 }

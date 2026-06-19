@@ -1,4 +1,6 @@
 import { KrakenBot, type BotConfig } from "./krakenBot";
+import { loadPersistedBots, savePersistedBots } from "./persistence";
+import { logger } from "./logger";
 
 export interface BotInstanceData {
   id: string;
@@ -8,6 +10,44 @@ export interface BotInstanceData {
 
 class BotManager {
   private bots = new Map<string, KrakenBot>();
+
+  async initialize(): Promise<void> {
+    const persisted = loadPersistedBots();
+    for (const p of persisted) {
+      try {
+        const config: BotConfig = {
+          ...p.config,
+          checkIntervalMs: p.config.checkIntervalMs ?? 3000,
+          oneShotMode: p.config.oneShotMode ?? false,
+          maxConsecutiveErrors: p.config.maxConsecutiveErrors ?? 5,
+          orderSizeMode: p.config.orderSizeMode ?? "fixed",
+          orderSizePercent: p.config.orderSizePercent ?? "10",
+        };
+        const bot = new KrakenBot(p.id, config, () => this.persist());
+        bot.loadFills(p.fills ?? [], p.fillIdCounter ?? 0);
+        this.bots.set(p.id, bot);
+        if (p.running) {
+          bot.start().catch((err: unknown) => {
+            logger.error({ err, botId: p.id }, "Failed to auto-start bot on restore");
+          });
+        }
+      } catch (err) {
+        logger.warn({ err, botId: p.id }, "Skipping corrupt persisted bot");
+      }
+    }
+    logger.info({ count: this.bots.size }, "BotManager initialized from persisted state");
+  }
+
+  persist(): void {
+    const data = Array.from(this.bots.entries()).map(([id, bot]) => ({
+      id,
+      config: bot.getConfig(),
+      running: bot.getStatus().running,
+      fills: bot.getFills(500),
+      fillIdCounter: bot.getFillIdCounter(),
+    }));
+    savePersistedBots(data);
+  }
 
   list(): BotInstanceData[] {
     return Array.from(this.bots.entries()).map(([id, bot]) => ({
@@ -26,8 +66,9 @@ class BotManager {
     if (this.bots.has(id)) {
       throw new Error(`Bot for pair ${id} already exists`);
     }
-    const bot = new KrakenBot(id, config);
+    const bot = new KrakenBot(id, config, () => this.persist());
     this.bots.set(id, bot);
+    this.persist();
     return bot;
   }
 
@@ -38,6 +79,7 @@ class BotManager {
       await bot.stop();
     }
     this.bots.delete(id);
+    this.persist();
     return true;
   }
 

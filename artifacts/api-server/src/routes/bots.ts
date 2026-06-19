@@ -11,6 +11,8 @@ import {
   UpdateBotConfigResponse,
   GetBotLogsQueryParams,
   GetBotLogsResponse,
+  GetBotFillsQueryParams,
+  GetBotFillsResponse,
   GetBotOrderBookResponse,
   GetOrderBookQueryParams,
   GetOrderBookResponse,
@@ -37,6 +39,9 @@ router.post("/bots", async (req, res): Promise<void> => {
     tickSize: parsed.data.tickSize,
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
     oneShotMode: parsed.data.oneShotMode ?? false,
+    maxConsecutiveErrors: parsed.data.maxConsecutiveErrors ?? 5,
+    orderSizeMode: (parsed.data.orderSizeMode ?? "fixed") as "fixed" | "percent",
+    orderSizePercent: parsed.data.orderSizePercent ?? "10",
   };
 
   try {
@@ -76,9 +81,10 @@ router.post("/bots/:botId/start", async (req, res): Promise<void> => {
     res.status(404).json({ error: `Bot ${botId} not found` });
     return;
   }
-  bot.start().catch((err: unknown) => {
+  bot.start().then(() => botManager.persist()).catch((err: unknown) => {
     req.log.error({ err, botId }, "Bot start error");
   });
+  botManager.persist();
   const instance = botManager.toInstance(botId)!;
   res.json(StartBotResponse.parse(instance));
 });
@@ -91,6 +97,7 @@ router.post("/bots/:botId/stop", async (req, res): Promise<void> => {
     return;
   }
   await bot.stop();
+  botManager.persist();
   const instance = botManager.toInstance(botId)!;
   res.json(StopBotResponse.parse(instance));
 });
@@ -116,7 +123,11 @@ router.put("/bots/:botId/config", async (req, res): Promise<void> => {
     tickSize: parsed.data.tickSize,
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
     oneShotMode: parsed.data.oneShotMode ?? false,
+    maxConsecutiveErrors: parsed.data.maxConsecutiveErrors ?? 5,
+    orderSizeMode: (parsed.data.orderSizeMode ?? "fixed") as "fixed" | "percent",
+    orderSizePercent: parsed.data.orderSizePercent ?? "10",
   });
+  botManager.persist();
 
   const instance = botManager.toInstance(botId)!;
   res.json(UpdateBotConfigResponse.parse(instance));
@@ -132,6 +143,18 @@ router.get("/bots/:botId/logs", async (req, res): Promise<void> => {
   const qp = GetBotLogsQueryParams.safeParse(req.query);
   const limit = qp.success ? (qp.data.limit ?? 50) : 50;
   res.json(GetBotLogsResponse.parse(bot.getLogs(limit)));
+});
+
+router.get("/bots/:botId/fills", async (req, res): Promise<void> => {
+  const botId = req.params["botId"] as string;
+  const bot = botManager.get(botId);
+  if (!bot) {
+    res.status(404).json({ error: `Bot ${botId} not found` });
+    return;
+  }
+  const qp = GetBotFillsQueryParams.safeParse(req.query);
+  const limit = qp.success ? (qp.data.limit ?? 50) : 50;
+  res.json(GetBotFillsResponse.parse(bot.getFills(limit)));
 });
 
 router.get("/bots/:botId/orderbook", async (req, res): Promise<void> => {
@@ -157,7 +180,6 @@ router.get("/bots/:botId/orderbook", async (req, res): Promise<void> => {
   }
 });
 
-// Generic order book — no bot required (used in settings for live market reference)
 router.get("/orderbook", async (req, res): Promise<void> => {
   const qp = GetOrderBookQueryParams.safeParse(req.query);
   if (!qp.success || !qp.data.pair) {

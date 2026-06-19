@@ -32,6 +32,9 @@ export const GetServerInfoResponse = zod.object({
  */
 export const listBotsResponseConfigCheckIntervalMsDefault = 3000;
 export const listBotsResponseConfigOneShotModeDefault = false;
+export const listBotsResponseConfigMaxConsecutiveErrorsDefault = 5;
+export const listBotsResponseConfigOrderSizeModeDefault = `fixed`;
+export const listBotsResponseConfigOrderSizePercentDefault = `10`;
 
 export const ListBotsResponseItem = zod.object({
   "id": zod.string(),
@@ -41,7 +44,10 @@ export const ListBotsResponseItem = zod.object({
   "maxBidPrice": zod.string(),
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(listBotsResponseConfigCheckIntervalMsDefault),
-  "oneShotMode": zod.boolean().default(listBotsResponseConfigOneShotModeDefault).describe('If true, bot stops automatically after the first order is filled')
+  "oneShotMode": zod.boolean().default(listBotsResponseConfigOneShotModeDefault),
+  "maxConsecutiveErrors": zod.number().default(listBotsResponseConfigMaxConsecutiveErrorsDefault),
+  "orderSizeMode": zod.enum(['fixed', 'percent']).default(listBotsResponseConfigOrderSizeModeDefault),
+  "orderSizePercent": zod.string().default(listBotsResponseConfigOrderSizePercentDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -52,7 +58,9 @@ export const ListBotsResponseItem = zod.object({
   "topBidOwner": zod.enum(['bot', 'other', 'none']),
   "cycleCount": zod.number(),
   "lastAction": zod.string().nullable(),
-  "lastActionAt": zod.string().nullable()
+  "lastActionAt": zod.string().nullable(),
+  "circuitBreakerTripped": zod.boolean(),
+  "consecutiveErrors": zod.number()
 })
 })
 export const ListBotsResponse = zod.array(ListBotsResponseItem)
@@ -63,6 +71,9 @@ export const ListBotsResponse = zod.array(ListBotsResponseItem)
  */
 export const createBotBodyCheckIntervalMsDefault = 3000;
 export const createBotBodyOneShotModeDefault = false;
+export const createBotBodyMaxConsecutiveErrorsDefault = 5;
+export const createBotBodyOrderSizeModeDefault = `fixed`;
+export const createBotBodyOrderSizePercentDefault = `10`;
 
 export const CreateBotBody = zod.object({
   "pair": zod.string(),
@@ -70,7 +81,10 @@ export const CreateBotBody = zod.object({
   "maxBidPrice": zod.string(),
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(createBotBodyCheckIntervalMsDefault),
-  "oneShotMode": zod.boolean().default(createBotBodyOneShotModeDefault).describe('If true, bot stops automatically after the first order is filled')
+  "oneShotMode": zod.boolean().default(createBotBodyOneShotModeDefault),
+  "maxConsecutiveErrors": zod.number().default(createBotBodyMaxConsecutiveErrorsDefault),
+  "orderSizeMode": zod.enum(['fixed', 'percent']).default(createBotBodyOrderSizeModeDefault),
+  "orderSizePercent": zod.string().default(createBotBodyOrderSizePercentDefault)
 })
 
 
@@ -83,6 +97,9 @@ export const GetBotParams = zod.object({
 
 export const getBotResponseConfigCheckIntervalMsDefault = 3000;
 export const getBotResponseConfigOneShotModeDefault = false;
+export const getBotResponseConfigMaxConsecutiveErrorsDefault = 5;
+export const getBotResponseConfigOrderSizeModeDefault = `fixed`;
+export const getBotResponseConfigOrderSizePercentDefault = `10`;
 
 export const GetBotResponse = zod.object({
   "id": zod.string(),
@@ -92,7 +109,10 @@ export const GetBotResponse = zod.object({
   "maxBidPrice": zod.string(),
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(getBotResponseConfigCheckIntervalMsDefault),
-  "oneShotMode": zod.boolean().default(getBotResponseConfigOneShotModeDefault).describe('If true, bot stops automatically after the first order is filled')
+  "oneShotMode": zod.boolean().default(getBotResponseConfigOneShotModeDefault),
+  "maxConsecutiveErrors": zod.number().default(getBotResponseConfigMaxConsecutiveErrorsDefault),
+  "orderSizeMode": zod.enum(['fixed', 'percent']).default(getBotResponseConfigOrderSizeModeDefault),
+  "orderSizePercent": zod.string().default(getBotResponseConfigOrderSizePercentDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -103,7 +123,9 @@ export const GetBotResponse = zod.object({
   "topBidOwner": zod.enum(['bot', 'other', 'none']),
   "cycleCount": zod.number(),
   "lastAction": zod.string().nullable(),
-  "lastActionAt": zod.string().nullable()
+  "lastActionAt": zod.string().nullable(),
+  "circuitBreakerTripped": zod.boolean(),
+  "consecutiveErrors": zod.number()
 })
 })
 
@@ -125,6 +147,9 @@ export const StartBotParams = zod.object({
 
 export const startBotResponseConfigCheckIntervalMsDefault = 3000;
 export const startBotResponseConfigOneShotModeDefault = false;
+export const startBotResponseConfigMaxConsecutiveErrorsDefault = 5;
+export const startBotResponseConfigOrderSizeModeDefault = `fixed`;
+export const startBotResponseConfigOrderSizePercentDefault = `10`;
 
 export const StartBotResponse = zod.object({
   "id": zod.string(),
@@ -134,7 +159,10 @@ export const StartBotResponse = zod.object({
   "maxBidPrice": zod.string(),
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(startBotResponseConfigCheckIntervalMsDefault),
-  "oneShotMode": zod.boolean().default(startBotResponseConfigOneShotModeDefault).describe('If true, bot stops automatically after the first order is filled')
+  "oneShotMode": zod.boolean().default(startBotResponseConfigOneShotModeDefault),
+  "maxConsecutiveErrors": zod.number().default(startBotResponseConfigMaxConsecutiveErrorsDefault),
+  "orderSizeMode": zod.enum(['fixed', 'percent']).default(startBotResponseConfigOrderSizeModeDefault),
+  "orderSizePercent": zod.string().default(startBotResponseConfigOrderSizePercentDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -145,7 +173,9 @@ export const StartBotResponse = zod.object({
   "topBidOwner": zod.enum(['bot', 'other', 'none']),
   "cycleCount": zod.number(),
   "lastAction": zod.string().nullable(),
-  "lastActionAt": zod.string().nullable()
+  "lastActionAt": zod.string().nullable(),
+  "circuitBreakerTripped": zod.boolean(),
+  "consecutiveErrors": zod.number()
 })
 })
 
@@ -159,6 +189,9 @@ export const StopBotParams = zod.object({
 
 export const stopBotResponseConfigCheckIntervalMsDefault = 3000;
 export const stopBotResponseConfigOneShotModeDefault = false;
+export const stopBotResponseConfigMaxConsecutiveErrorsDefault = 5;
+export const stopBotResponseConfigOrderSizeModeDefault = `fixed`;
+export const stopBotResponseConfigOrderSizePercentDefault = `10`;
 
 export const StopBotResponse = zod.object({
   "id": zod.string(),
@@ -168,7 +201,10 @@ export const StopBotResponse = zod.object({
   "maxBidPrice": zod.string(),
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(stopBotResponseConfigCheckIntervalMsDefault),
-  "oneShotMode": zod.boolean().default(stopBotResponseConfigOneShotModeDefault).describe('If true, bot stops automatically after the first order is filled')
+  "oneShotMode": zod.boolean().default(stopBotResponseConfigOneShotModeDefault),
+  "maxConsecutiveErrors": zod.number().default(stopBotResponseConfigMaxConsecutiveErrorsDefault),
+  "orderSizeMode": zod.enum(['fixed', 'percent']).default(stopBotResponseConfigOrderSizeModeDefault),
+  "orderSizePercent": zod.string().default(stopBotResponseConfigOrderSizePercentDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -179,7 +215,9 @@ export const StopBotResponse = zod.object({
   "topBidOwner": zod.enum(['bot', 'other', 'none']),
   "cycleCount": zod.number(),
   "lastAction": zod.string().nullable(),
-  "lastActionAt": zod.string().nullable()
+  "lastActionAt": zod.string().nullable(),
+  "circuitBreakerTripped": zod.boolean(),
+  "consecutiveErrors": zod.number()
 })
 })
 
@@ -193,6 +231,9 @@ export const UpdateBotConfigParams = zod.object({
 
 export const updateBotConfigBodyCheckIntervalMsDefault = 3000;
 export const updateBotConfigBodyOneShotModeDefault = false;
+export const updateBotConfigBodyMaxConsecutiveErrorsDefault = 5;
+export const updateBotConfigBodyOrderSizeModeDefault = `fixed`;
+export const updateBotConfigBodyOrderSizePercentDefault = `10`;
 
 export const UpdateBotConfigBody = zod.object({
   "pair": zod.string(),
@@ -200,11 +241,17 @@ export const UpdateBotConfigBody = zod.object({
   "maxBidPrice": zod.string(),
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(updateBotConfigBodyCheckIntervalMsDefault),
-  "oneShotMode": zod.boolean().default(updateBotConfigBodyOneShotModeDefault).describe('If true, bot stops automatically after the first order is filled')
+  "oneShotMode": zod.boolean().default(updateBotConfigBodyOneShotModeDefault),
+  "maxConsecutiveErrors": zod.number().default(updateBotConfigBodyMaxConsecutiveErrorsDefault),
+  "orderSizeMode": zod.enum(['fixed', 'percent']).default(updateBotConfigBodyOrderSizeModeDefault),
+  "orderSizePercent": zod.string().default(updateBotConfigBodyOrderSizePercentDefault)
 })
 
 export const updateBotConfigResponseConfigCheckIntervalMsDefault = 3000;
 export const updateBotConfigResponseConfigOneShotModeDefault = false;
+export const updateBotConfigResponseConfigMaxConsecutiveErrorsDefault = 5;
+export const updateBotConfigResponseConfigOrderSizeModeDefault = `fixed`;
+export const updateBotConfigResponseConfigOrderSizePercentDefault = `10`;
 
 export const UpdateBotConfigResponse = zod.object({
   "id": zod.string(),
@@ -214,7 +261,10 @@ export const UpdateBotConfigResponse = zod.object({
   "maxBidPrice": zod.string(),
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(updateBotConfigResponseConfigCheckIntervalMsDefault),
-  "oneShotMode": zod.boolean().default(updateBotConfigResponseConfigOneShotModeDefault).describe('If true, bot stops automatically after the first order is filled')
+  "oneShotMode": zod.boolean().default(updateBotConfigResponseConfigOneShotModeDefault),
+  "maxConsecutiveErrors": zod.number().default(updateBotConfigResponseConfigMaxConsecutiveErrorsDefault),
+  "orderSizeMode": zod.enum(['fixed', 'percent']).default(updateBotConfigResponseConfigOrderSizeModeDefault),
+  "orderSizePercent": zod.string().default(updateBotConfigResponseConfigOrderSizePercentDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -225,7 +275,9 @@ export const UpdateBotConfigResponse = zod.object({
   "topBidOwner": zod.enum(['bot', 'other', 'none']),
   "cycleCount": zod.number(),
   "lastAction": zod.string().nullable(),
-  "lastActionAt": zod.string().nullable()
+  "lastActionAt": zod.string().nullable(),
+  "circuitBreakerTripped": zod.boolean(),
+  "consecutiveErrors": zod.number()
 })
 })
 
@@ -251,6 +303,30 @@ export const GetBotLogsResponseItem = zod.object({
   "data": zod.string().nullish()
 })
 export const GetBotLogsResponse = zod.array(GetBotLogsResponseItem)
+
+
+/**
+ * @summary Get fill history for a bot
+ */
+export const GetBotFillsParams = zod.object({
+  "botId": zod.coerce.string()
+})
+
+export const getBotFillsQueryLimitDefault = 50;
+
+export const GetBotFillsQueryParams = zod.object({
+  "limit": zod.coerce.number().default(getBotFillsQueryLimitDefault)
+})
+
+export const GetBotFillsResponseItem = zod.object({
+  "id": zod.number(),
+  "pair": zod.string(),
+  "orderId": zod.string(),
+  "price": zod.string(),
+  "volume": zod.string(),
+  "timestamp": zod.string()
+})
+export const GetBotFillsResponse = zod.array(GetBotFillsResponseItem)
 
 
 /**
