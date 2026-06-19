@@ -9,6 +9,26 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Login with dashboard password
+ */
+export const AuthLoginBody = zod.object({
+  "password": zod.string()
+})
+
+export const AuthLoginResponse = zod.object({
+  "token": zod.string()
+})
+
+
+/**
+ * @summary Verify token is still valid
+ */
+export const AuthVerifyResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({

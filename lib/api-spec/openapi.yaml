@@ -9,11 +9,57 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
   - name: bots
     description: Bot instances management
   - name: account
     description: Kraken account info
 paths:
+  /auth/login:
+    post:
+      operationId: authLogin
+      tags: [auth]
+      summary: Login with dashboard password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Wrong password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/verify:
+    get:
+      operationId: authVerify
+      tags: [auth]
+      summary: Verify token is still valid
+      responses:
+        "200":
+          description: Token valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyResponse"
+        "401":
+          description: Token invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -366,6 +412,27 @@ paths:
 
 components:
   schemas:
+    LoginRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    VerifyResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+
     HealthStatus:
       type: object
       required: [status]

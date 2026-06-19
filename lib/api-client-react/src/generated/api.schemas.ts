@@ -5,6 +5,18 @@
  * Kraken Top-of-Book Bot API
  * OpenAPI spec version: 0.1.0
  */
+export interface LoginRequest {
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+}
+
+export interface VerifyResponse {
+  ok: boolean;
+}
+
 export interface HealthStatus {
   status: string;
 }

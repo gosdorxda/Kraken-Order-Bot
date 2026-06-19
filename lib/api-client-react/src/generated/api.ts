@@ -30,8 +30,11 @@ import type {
   GetBotLogsParams,
   GetOrderBookParams,
   HealthStatus,
+  LoginRequest,
+  LoginResponse,
   OrderBook,
-  ServerInfo
+  ServerInfo,
+  VerifyResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -43,6 +46,154 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+export const getAuthLoginUrl = () => {
+
+
+
+
+  return `/api/auth/login`
+}
+
+/**
+ * @summary Login with dashboard password
+ */
+export const authLogin = async (loginRequest: LoginRequest, options?: RequestInit): Promise<LoginResponse> => {
+
+  return customFetch<LoginResponse>(getAuthLoginUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      loginRequest,)
+  }
+);}
+
+
+
+
+export const getAuthLoginMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authLogin>>, TError,{data: BodyType<LoginRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof authLogin>>, TError,{data: BodyType<LoginRequest>}, TContext> => {
+
+const mutationKey = ['authLogin'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof authLogin>>, {data: BodyType<LoginRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  authLogin(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AuthLoginMutationResult = NonNullable<Awaited<ReturnType<typeof authLogin>>>
+    export type AuthLoginMutationBody = BodyType<LoginRequest>
+    export type AuthLoginMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Login with dashboard password
+ */
+export const useAuthLogin = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof authLogin>>, TError,{data: BodyType<LoginRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof authLogin>>,
+        TError,
+        {data: BodyType<LoginRequest>},
+        TContext
+      > => {
+      return useMutation(getAuthLoginMutationOptions(options));
+    }
+
+export const getAuthVerifyUrl = () => {
+
+
+
+
+  return `/api/auth/verify`
+}
+
+/**
+ * @summary Verify token is still valid
+ */
+export const authVerify = async ( options?: RequestInit): Promise<VerifyResponse> => {
+
+  return customFetch<VerifyResponse>(getAuthVerifyUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getAuthVerifyQueryKey = () => {
+    return [
+    `/api/auth/verify`
+    ] as const;
+    }
+
+
+export const getAuthVerifyQueryOptions = <TData = Awaited<ReturnType<typeof authVerify>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof authVerify>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAuthVerifyQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof authVerify>>> = ({ signal }) => authVerify({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof authVerify>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type AuthVerifyQueryResult = NonNullable<Awaited<ReturnType<typeof authVerify>>>
+export type AuthVerifyQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Verify token is still valid
+ */
+
+export function useAuthVerify<TData = Awaited<ReturnType<typeof authVerify>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof authVerify>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getAuthVerifyQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
 
 
 

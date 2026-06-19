@@ -1,13 +1,19 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, Settings, Zap } from "lucide-react";
+import { Activity, Settings, Zap, LogOut } from "lucide-react";
+import { clearToken } from "@/lib/auth";
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
   }, []);
+
+  const handleLogout = () => {
+    clearToken();
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground font-sans selection:bg-primary/30 flex flex-col">
@@ -21,7 +27,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Nav */}
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 flex-1">
             <Link
               href="/"
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
@@ -45,6 +51,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
               Settings
             </Link>
           </nav>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline">Logout</span>
+          </button>
         </div>
       </header>
 

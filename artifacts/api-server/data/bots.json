@@ -11,7 +11,7 @@
         "oneShotMode": true,
         "maxConsecutiveErrors": 5
       },
-      "running": true,
+      "running": false,
       "fills": [],
       "fillIdCounter": 0
     }
