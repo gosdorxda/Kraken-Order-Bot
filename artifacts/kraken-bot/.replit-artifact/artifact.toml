@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Kraken Bot Dashboard"
+version = "1.0.0"
+id = "artifacts/kraken-bot"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19887
+
+[services.development]
+run = "pnpm --filter @workspace/kraken-bot run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/kraken-bot", "run", "build" ]
+publicDir = "artifacts/kraken-bot/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19887"
+BASE_PATH = "/"

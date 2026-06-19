@@ -1,22 +1,24 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Kraken Top-of-Book Bot API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: bot
+    description: Bot control and status
+  - name: account
+    description: Kraken account info
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +26,281 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /bot/status:
+    get:
+      operationId: getBotStatus
+      tags: [bot]
+      summary: Get current bot status
+      responses:
+        "200":
+          description: Bot status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotStatus"
+
+  /bot/start:
+    post:
+      operationId: startBot
+      tags: [bot]
+      summary: Start the bot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotConfigInput"
+      responses:
+        "200":
+          description: Bot started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotStatus"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bot/stop:
+    post:
+      operationId: stopBot
+      tags: [bot]
+      summary: Stop the bot
+      responses:
+        "200":
+          description: Bot stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotStatus"
+
+  /bot/config:
+    get:
+      operationId: getBotConfig
+      tags: [bot]
+      summary: Get current bot configuration
+      responses:
+        "200":
+          description: Current config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotConfig"
+    put:
+      operationId: updateBotConfig
+      tags: [bot]
+      summary: Update bot configuration (only when bot is stopped)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotConfigInput"
+      responses:
+        "200":
+          description: Updated config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotConfig"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /bot/logs:
+    get:
+      operationId: getBotLogs
+      tags: [bot]
+      summary: Get recent bot activity logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Activity logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BotLog"
+
+  /bot/orderbook:
+    get:
+      operationId: getOrderBook
+      tags: [bot]
+      summary: Get top of order book for current pair
+      responses:
+        "200":
+          description: Order book snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderBook"
+        "400":
+          description: No pair configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /account/balance:
+    get:
+      operationId: getAccountBalance
+      tags: [account]
+      summary: Get Kraken account balance
+      responses:
+        "200":
+          description: Account balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AssetBalance"
+        "500":
+          description: Kraken API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    BotStatus:
+      type: object
+      required: [running, pair, currentOrderId, currentOrderPrice, currentOrderVolume, topBidPrice, topBidOwner, cycleCount, lastAction, lastActionAt]
+      properties:
+        running:
+          type: boolean
+        pair:
+          type: ["string", "null"]
+        currentOrderId:
+          type: ["string", "null"]
+        currentOrderPrice:
+          type: ["string", "null"]
+        currentOrderVolume:
+          type: ["string", "null"]
+        topBidPrice:
+          type: ["string", "null"]
+        topBidOwner:
+          type: string
+          enum: [bot, other, none]
+        cycleCount:
+          type: integer
+        lastAction:
+          type: ["string", "null"]
+        lastActionAt:
+          type: ["string", "null"]
+
+    BotConfig:
+      type: object
+      required: [pair, orderSize, maxBidPrice, tickSize]
+      properties:
+        pair:
+          type: string
+          description: Trading pair e.g. XBT/USD
+        orderSize:
+          type: string
+          description: Volume per order e.g. 0.001
+        maxBidPrice:
+          type: string
+          description: Maximum price bot will bid up to
+        tickSize:
+          type: string
+          description: Price increment per tick e.g. 0.1
+        checkIntervalMs:
+          type: integer
+          description: How often to poll order book in ms
+          default: 3000
+
+    BotConfigInput:
+      type: object
+      required: [pair, orderSize, maxBidPrice, tickSize]
+      properties:
+        pair:
+          type: string
+        orderSize:
+          type: string
+        maxBidPrice:
+          type: string
+        tickSize:
+          type: string
+        checkIntervalMs:
+          type: integer
+          default: 3000
+
+    BotLog:
+      type: object
+      required: [id, timestamp, level, message]
+      properties:
+        id:
+          type: integer
+        timestamp:
+          type: string
+        level:
+          type: string
+          enum: [info, warn, error, success]
+        message:
+          type: string
+        data:
+          type: ["string", "null"]
+
+    OrderBook:
+      type: object
+      required: [pair, bids, asks, timestamp]
+      properties:
+        pair:
+          type: string
+        bids:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderBookLevel"
+        asks:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderBookLevel"
+        timestamp:
+          type: string
+
+    OrderBookLevel:
+      type: object
+      required: [price, volume]
+      properties:
+        price:
+          type: string
+        volume:
+          type: string
+
+    AssetBalance:
+      type: object
+      required: [asset, balance]
+      properties:
+        asset:
+          type: string
+        balance:
+          type: string
