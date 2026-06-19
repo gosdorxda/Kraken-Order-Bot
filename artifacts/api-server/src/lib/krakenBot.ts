@@ -8,6 +8,7 @@ export interface BotConfig {
   maxBidPrice: string;
   tickSize: string;
   checkIntervalMs: number;
+  oneShotMode: boolean;
 }
 
 export interface BotLog {
@@ -179,6 +180,12 @@ export class KrakenBot {
           this.addLog("success", `Order ${this.currentOrderId} was filled!`, { price: this.currentOrderPrice });
           this.currentOrderId = null;
           this.currentOrderPrice = null;
+          if (this.config.oneShotMode) {
+            this.addLog("info", "One-shot mode: bot stopped after fill.");
+            this.setLastAction("Stopped — order filled (one-shot mode)");
+            this.stop();
+            return;
+          }
         } else {
           const myPrice = parseFloat(this.currentOrderPrice ?? "0");
           myOrderIsAtTop = myPrice >= topBidPriceNum;

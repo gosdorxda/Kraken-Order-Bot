@@ -350,7 +350,7 @@ components:
 
     BotConfig:
       type: object
-      required: [pair, orderSize, maxBidPrice, tickSize, checkIntervalMs]
+      required: [pair, orderSize, maxBidPrice, tickSize, checkIntervalMs, oneShotMode]
       properties:
         pair:
           type: string
@@ -363,6 +363,10 @@ components:
         checkIntervalMs:
           type: integer
           default: 3000
+        oneShotMode:
+          type: boolean
+          default: false
+          description: If true, bot stops automatically after the first order is filled
 
     BotConfigInput:
       type: object
@@ -379,6 +383,10 @@ components:
         checkIntervalMs:
           type: integer
           default: 3000
+        oneShotMode:
+          type: boolean
+          default: false
+          description: If true, bot stops automatically after the first order is filled
 
     BotStatus:
       type: object

@@ -36,6 +36,7 @@ router.post("/bots", async (req, res): Promise<void> => {
     maxBidPrice: parsed.data.maxBidPrice,
     tickSize: parsed.data.tickSize,
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
+    oneShotMode: parsed.data.oneShotMode ?? false,
   };
 
   try {
@@ -114,6 +115,7 @@ router.put("/bots/:botId/config", async (req, res): Promise<void> => {
     maxBidPrice: parsed.data.maxBidPrice,
     tickSize: parsed.data.tickSize,
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
+    oneShotMode: parsed.data.oneShotMode ?? false,
   });
 
   const instance = botManager.toInstance(botId)!;

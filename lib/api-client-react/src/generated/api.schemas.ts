@@ -19,6 +19,8 @@ export interface BotConfig {
   maxBidPrice: string;
   tickSize: string;
   checkIntervalMs: number;
+  /** If true, bot stops automatically after the first order is filled */
+  oneShotMode: boolean;
 }
 
 export interface BotConfigInput {
@@ -27,6 +29,8 @@ export interface BotConfigInput {
   maxBidPrice: string;
   tickSize: string;
   checkIntervalMs?: number;
+  /** If true, bot stops automatically after the first order is filled */
+  oneShotMode?: boolean;
 }
 
 export type BotStatusTopBidOwner = typeof BotStatusTopBidOwner[keyof typeof BotStatusTopBidOwner];

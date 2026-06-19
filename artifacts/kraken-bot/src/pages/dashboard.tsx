@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
 import {
   Play, Square, Plus, Trash2, Settings2, AlertCircle, CheckCircle2, Info,
   Loader2, TrendingUp, ArrowUpDown, AlertTriangle, ChevronDown, ChevronUp,
@@ -37,6 +38,7 @@ const configSchema = z.object({
   maxBidPrice: z.string().min(1, "Max bid price is required"),
   tickSize: z.string().min(1, "Tick size is required"),
   checkIntervalMs: z.coerce.number().min(500, "Interval must be at least 500ms"),
+  oneShotMode: z.boolean().default(false),
 });
 type ConfigForm = z.infer<typeof configSchema>;
 
@@ -46,6 +48,7 @@ const DEFAULT_VALUES: ConfigForm = {
   maxBidPrice: "100000",
   tickSize: "0.1",
   checkIntervalMs: 3000,
+  oneShotMode: false,
 };
 
 function decimalPlaces(v: string): number {
@@ -193,6 +196,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
           maxBidPrice: editBot.config.maxBidPrice,
           tickSize: editBot.config.tickSize,
           checkIntervalMs: editBot.config.checkIntervalMs ?? 3000,
+          oneShotMode: editBot.config.oneShotMode ?? false,
         }
       : DEFAULT_VALUES,
   });
@@ -296,6 +300,27 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
                   </FormControl>
                   <FormDescription className="text-[11px]">Min 500ms, disarankan 5000–8000ms untuk multi-bot</FormDescription>
                   <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="oneShotMode" render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-sm font-medium cursor-pointer">
+                        🎯 One-Shot Mode
+                      </FormLabel>
+                      <FormDescription className="text-[11px]">
+                        Bot berhenti otomatis setelah order pertama terisi. Cocok untuk beli sekali di harga terbaik.
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </div>
                 </FormItem>
               )} />
             </div>
@@ -426,6 +451,11 @@ function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) 
           <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">sz {config.orderSize}</span>
           <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">{config.checkIntervalMs}ms</span>
           <span className="px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-mono">{status.cycleCount} cycles</span>
+          {config.oneShotMode && (
+            <span className="px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-400 border border-violet-500/30 font-medium">
+              🎯 one-shot
+            </span>
+          )}
         </div>
 
         {/* 5 — Last action */}
