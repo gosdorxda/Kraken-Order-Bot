@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { botManager } from "../lib/botManager";
 import { fetchOrderBook, fetchMarket } from "../lib/krakenBot";
+import { fetchGateMarket } from "../lib/gateMarket";
 import {
   CreateBotBody,
   UpdateBotConfigBody,
@@ -215,6 +216,15 @@ router.get("/logs", (req, res): void => {
 router.get("/market", async (_req, res): Promise<void> => {
   try {
     const tickers = await fetchMarket();
+    res.json(tickers);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+router.get("/market/gate", async (_req, res): Promise<void> => {
+  try {
+    const tickers = await fetchGateMarket();
     res.json(tickers);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
