@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useGetAllLogs, getGetAllLogsQueryKey } from "@workspace/api-client-react";
-import { ScrollText, RefreshCw, AlertCircle, Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ScrollText, RefreshCw, AlertCircle, Info, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 
 type Level = "all" | "info" | "warn" | "error" | "success";
 
@@ -27,10 +27,18 @@ function fmtTs(ts: string) {
   return d.toLocaleString("id-ID", { hour12: false, dateStyle: "short", timeStyle: "medium" });
 }
 
+function truncateId(id: string, maxLen = 14): string {
+  return id.length > maxLen ? `${id.slice(0, maxLen)}…` : id;
+}
+
+const PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;
+
 export default function Logs() {
-  const [level, setLevel]     = useState<Level>("all");
-  const [search, setSearch]   = useState("");
+  const [level, setLevel]       = useState<Level>("all");
+  const [search, setSearch]     = useState("");
   const [botFilter, setBotFilter] = useState("all");
+  const [pageSize, setPageSize] = useState<number>(50);
+  const [page, setPage]         = useState(1);
 
   const { data = [], isFetching, refetch } = useGetAllLogs(
     { limit: 500 },
@@ -50,6 +58,14 @@ export default function Logs() {
       return true;
     });
   }, [data, level, botFilter, search]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [level, search, botFilter, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage   = Math.min(page, totalPages);
+  const paginated  = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   const levels: Level[] = ["all", "success", "info", "warn", "error"];
 
@@ -90,15 +106,19 @@ export default function Logs() {
           ))}
         </div>
 
-        {/* Bot filter */}
-        {bots.length > 1 && (
+        {/* Bot filter — always visible when there's data */}
+        {data.length > 0 && (
           <select
             value={botFilter}
             onChange={(e) => setBotFilter(e.target.value)}
             className="px-2.5 py-1.5 rounded-md bg-muted border border-border text-xs font-mono text-foreground"
           >
             <option value="all">Semua bot</option>
-            {bots.map((b) => <option key={b} value={b}>{b}</option>)}
+            {bots.map((b) => (
+              <option key={b} value={b} title={b}>
+                {truncateId(b)}
+              </option>
+            ))}
           </select>
         )}
 
@@ -110,6 +130,20 @@ export default function Logs() {
           onChange={(e) => setSearch(e.target.value)}
           className="px-3 py-1.5 rounded-md bg-muted border border-border text-xs text-foreground placeholder:text-muted-foreground min-w-[180px]"
         />
+
+        {/* Rows per page */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Baris/hal:</span>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="px-2 py-1.5 rounded-md bg-muted border border-border text-xs text-foreground"
+          >
+            {PAGE_SIZE_OPTIONS.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Log table */}
@@ -119,35 +153,91 @@ export default function Logs() {
           <p className="text-sm">Tidak ada log yang cocok</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border bg-muted/40 text-muted-foreground">
-                  <th className="text-left px-4 py-2.5 font-medium w-[140px]">Waktu</th>
-                  <th className="text-left px-3 py-2.5 font-medium w-[110px]">Bot</th>
-                  <th className="text-left px-3 py-2.5 font-medium w-[90px]">Level</th>
-                  <th className="text-left px-3 py-2.5 font-medium">Pesan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/30">
-                {filtered.map((log) => (
-                  <tr key={`${log.botId}-${log.id}`} className={`border-b ${rowBg(log.level)}`}>
-                    <td className="px-4 py-2 font-mono text-muted-foreground whitespace-nowrap">{fmtTs(log.timestamp)}</td>
-                    <td className="px-3 py-2 font-mono text-foreground/70 whitespace-nowrap">{log.botId}</td>
-                    <td className="px-3 py-2 whitespace-nowrap"><LevelBadge level={log.level} /></td>
-                    <td className="px-3 py-2 text-foreground/90">
-                      {log.message}
-                      {log.data && (
-                        <span className="ml-2 font-mono text-muted-foreground text-[10px]">{log.data}</span>
-                      )}
-                    </td>
+        <>
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                    <th className="text-left px-4 py-2.5 font-medium w-[140px]">Waktu</th>
+                    <th className="text-left px-3 py-2.5 font-medium w-[110px]">Bot</th>
+                    <th className="text-left px-3 py-2.5 font-medium w-[90px]">Level</th>
+                    <th className="text-left px-3 py-2.5 font-medium">Pesan</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/30">
+                  {paginated.map((log) => (
+                    <tr key={`${log.botId}-${log.id}`} className={`border-b ${rowBg(log.level)}`}>
+                      <td className="px-4 py-2 font-mono text-muted-foreground whitespace-nowrap">{fmtTs(log.timestamp)}</td>
+                      <td className="px-3 py-2 font-mono text-foreground/70 whitespace-nowrap" title={log.botId}>
+                        {truncateId(log.botId)}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap"><LevelBadge level={log.level} /></td>
+                      <td className="px-3 py-2 text-foreground/90">
+                        {log.message}
+                        {log.data && (
+                          <span className="ml-2 font-mono text-muted-foreground text-[10px]">{log.data}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">
+              Halaman {safePage} dari {totalPages} · {filtered.length} entri
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Prev
+              </button>
+
+              {/* Page numbers — show up to 5 around current */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
+                .reduce<(number | "…")[]>((acc, p, i, arr) => {
+                  if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("…");
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === "…" ? (
+                    <span key={`ellipsis-${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`w-7 h-7 rounded-md text-xs font-medium transition-colors ${
+                        p === safePage
+                          ? "bg-primary/20 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
