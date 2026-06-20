@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import { useGetMarket, getGetMarketQueryKey } from "@workspace/api-client-react";
 import type { MarketTicker } from "@workspace/api-client-react";
-import { BarChart2, RefreshCw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { BarChart2, RefreshCw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, TrendingUp, TrendingDown } from "lucide-react";
 
-type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
+type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "change24h" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
@@ -29,22 +29,27 @@ function fmtPrice(n: string) {
   return v.toFixed(6);
 }
 
+function tokenName(displayName: string) {
+  return displayName.split("/")[0] ?? displayName;
+}
+
 function tradeUrl(displayName: string) {
-  return `https://www.kraken.com/trade/${displayName.replace("/", "-")}`;
+  return `https://pro.kraken.com/app/trade/${displayName.toLowerCase().replace("/", "-")}`;
 }
 
 const COL_HEADERS: { key: SortKey; label: string; align: "left" | "right" }[] = [
-  { key: "displayName", label: "Pair", align: "left" },
+  { key: "displayName", label: "Token",          align: "left" },
   { key: "last",        label: "Harga Terakhir", align: "right" },
-  { key: "bid",         label: "Bid", align: "right" },
-  { key: "ask",         label: "Ask", align: "right" },
-  { key: "spread",      label: "Spread ($)", align: "right" },
-  { key: "spreadPct",   label: "Spread %", align: "right" },
-  { key: "volume24h",   label: "Volume 24h", align: "right" },
+  { key: "change24h",   label: "24h %",          align: "right" },
+  { key: "bid",         label: "Bid",            align: "right" },
+  { key: "ask",         label: "Ask",            align: "right" },
+  { key: "spread",      label: "Spread ($)",     align: "right" },
+  { key: "spreadPct",   label: "Spread %",       align: "right" },
+  { key: "volume24h",   label: "Volume 24h",     align: "right" },
 ];
 
 export default function Market() {
-  const [sortKey, setSortKey] = useState<SortKey>("spreadPct");
+  const [sortKey, setSortKey] = useState<SortKey>("change24h");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch]   = useState("");
 
@@ -123,7 +128,7 @@ export default function Market() {
       <div className="flex items-center gap-2">
         <input
           type="text"
-          placeholder="Cari pair (contoh: BTC, ETH, SOL...)"
+          placeholder="Cari token (contoh: BTC, ETH, SOL...)"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="px-3 py-1.5 rounded-md bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground min-w-[240px]"
@@ -140,7 +145,7 @@ export default function Market() {
 
       {/* Hint */}
       <p className="text-xs text-muted-foreground -mt-1">
-        Klik kolom header untuk urutkan · Klik baris untuk buka di Kraken · Auto-refresh tiap 15 detik
+        Klik kolom header untuk urutkan · Klik baris untuk buka di Kraken Pro · Auto-refresh tiap 15 detik
       </p>
 
       {/* Table */}
@@ -177,10 +182,18 @@ export default function Market() {
                   const spreadPctNum = row.spreadPct;
                   const spreadColor =
                     spreadPctNum < 0.05
-                      ? "text-emerald-400"
+                      ? "text-emerald-500"
                       : spreadPctNum < 0.15
-                      ? "text-amber-400"
-                      : "text-red-400";
+                      ? "text-amber-500"
+                      : "text-red-500";
+
+                  const changePos = row.change24h > 0;
+                  const changeNeg = row.change24h < 0;
+                  const changeColor = changePos
+                    ? "text-emerald-500"
+                    : changeNeg
+                    ? "text-red-500"
+                    : "text-muted-foreground";
 
                   return (
                     <tr
@@ -188,9 +201,9 @@ export default function Market() {
                       onClick={() => window.open(tradeUrl(row.displayName), "_blank", "noopener,noreferrer")}
                       className="border-b border-border/40 hover:bg-muted/30 cursor-pointer transition-colors"
                     >
-                      {/* Pair name */}
+                      {/* Token name only */}
                       <td className="px-4 py-3">
-                        <span className="font-semibold text-foreground">{row.displayName}</span>
+                        <span className="font-semibold text-foreground">{tokenName(row.displayName)}</span>
                       </td>
 
                       {/* Last price */}
@@ -198,13 +211,22 @@ export default function Market() {
                         ${fmtPrice(row.last)}
                       </td>
 
+                      {/* 24h Change */}
+                      <td className={`px-4 py-3 text-right font-mono font-semibold ${changeColor}`}>
+                        <span className="inline-flex items-center justify-end gap-1">
+                          {changePos && <TrendingUp className="w-3 h-3" />}
+                          {changeNeg && <TrendingDown className="w-3 h-3" />}
+                          {changePos ? "+" : ""}{row.change24h.toFixed(2)}%
+                        </span>
+                      </td>
+
                       {/* Bid */}
-                      <td className="px-4 py-3 text-right font-mono text-emerald-400/80">
+                      <td className="px-4 py-3 text-right font-mono text-emerald-500/80">
                         ${fmtPrice(row.bid)}
                       </td>
 
                       {/* Ask */}
-                      <td className="px-4 py-3 text-right font-mono text-red-400/80">
+                      <td className="px-4 py-3 text-right font-mono text-red-500/80">
                         ${fmtPrice(row.ask)}
                       </td>
 

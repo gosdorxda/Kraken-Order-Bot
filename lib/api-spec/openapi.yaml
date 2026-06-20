@@ -608,7 +608,7 @@ components:
 
     MarketTicker:
       type: object
-      required: [pair, displayName, bid, ask, last, spread, spreadPct, volume24h, high24h, low24h]
+      required: [pair, displayName, bid, ask, last, open24h, change24h, spread, spreadPct, volume24h, high24h, low24h]
       properties:
         pair:
           type: string
@@ -620,6 +620,10 @@ components:
           type: string
         last:
           type: string
+        open24h:
+          type: string
+        change24h:
+          type: number
         spread:
           type: string
         spreadPct:

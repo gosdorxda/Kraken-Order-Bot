@@ -392,6 +392,8 @@ export const GetMarketResponseItem = zod.object({
   "bid": zod.string(),
   "ask": zod.string(),
   "last": zod.string(),
+  "open24h": zod.string(),
+  "change24h": zod.number(),
   "spread": zod.string(),
   "spreadPct": zod.number(),
   "volume24h": zod.string(),

@@ -125,6 +125,8 @@ export interface MarketTicker {
   bid: string;
   ask: string;
   last: string;
+  open24h: string;
+  change24h: number;
   spread: string;
   spreadPct: number;
   volume24h: string;

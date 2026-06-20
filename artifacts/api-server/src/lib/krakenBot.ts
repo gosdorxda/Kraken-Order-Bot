@@ -79,6 +79,8 @@ export interface MarketTicker {
   bid: string;
   ask: string;
   last: string;
+  open24h: string;
+  change24h: number;
   spread: string;
   spreadPct: number;
   volume24h: string;
@@ -126,12 +128,18 @@ export async function fetchMarket(): Promise<MarketTicker[]> {
     const spreadPct = mid > 0 ? (spread / mid) * 100 : 0;
     const dp: number = (info as any).pair_decimals ?? 2;
 
+    const lastPrice = parseFloat(ticker.c[0]);
+    const openPrice = parseFloat(ticker.o);
+    const change24h = openPrice > 0 ? ((lastPrice - openPrice) / openPrice) * 100 : 0;
+
     result.push({
       pair: krakenKey,
       displayName: (info as any).wsname as string,
       bid: ticker.b[0],
       ask: ticker.a[0],
       last: ticker.c[0],
+      open24h: ticker.o,
+      change24h: Math.round(change24h * 1000) / 1000,
       spread: spread.toFixed(dp),
       spreadPct: Math.round(spreadPct * 100000) / 100000,
       volume24h: ticker.v[1],
