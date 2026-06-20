@@ -129,8 +129,17 @@ export class KrakenBot {
     };
   }
 
-  getLogs(limit = 50): BotLog[] {
+  getLogs(limit = 500): BotLog[] {
     return this.logs.slice(0, limit);
+  }
+
+  getLogIdCounter(): number {
+    return this.logIdCounter;
+  }
+
+  loadLogs(logs: BotLog[], nextId: number): void {
+    this.logs = [...logs];
+    this.logIdCounter = nextId;
   }
 
   getFills(limit = 200): FillRecord[] {
@@ -410,7 +419,7 @@ export class KrakenBot {
       data: data != null ? JSON.stringify(data) : null,
     };
     this.logs.unshift(entry);
-    if (this.logs.length > 200) this.logs = this.logs.slice(0, 200);
+    if (this.logs.length > 500) this.logs = this.logs.slice(0, 500);
     logger.info({ botId: this.id, botLog: entry }, message);
   }
 }

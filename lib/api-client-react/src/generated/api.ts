@@ -26,10 +26,12 @@ import type {
   BotLog,
   ErrorResponse,
   FillRecord,
+  GetAllLogsParams,
   GetBotFillsParams,
   GetBotLogsParams,
   GetOrderBookParams,
   HealthStatus,
+  LogEntry,
   LoginRequest,
   LoginResponse,
   OrderBook,
@@ -935,6 +937,90 @@ export function useGetBotLogs<TData = Awaited<ReturnType<typeof getBotLogs>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetBotLogsQueryOptions(botId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAllLogsUrl = (params?: GetAllLogsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/logs?${stringifiedParams}` : `/api/logs`
+}
+
+/**
+ * @summary Get aggregated activity logs across all bots
+ */
+export const getAllLogs = async (params?: GetAllLogsParams, options?: RequestInit): Promise<LogEntry[]> => {
+
+  return customFetch<LogEntry[]>(getGetAllLogsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAllLogsQueryKey = (params?: GetAllLogsParams,) => {
+    return [
+    `/api/logs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAllLogsQueryOptions = <TData = Awaited<ReturnType<typeof getAllLogs>>, TError = ErrorType<unknown>>(params?: GetAllLogsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAllLogs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAllLogsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllLogs>>> = ({ signal }) => getAllLogs(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAllLogs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAllLogsQueryResult = NonNullable<Awaited<ReturnType<typeof getAllLogs>>>
+export type GetAllLogsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get aggregated activity logs across all bots
+ */
+
+export function useGetAllLogs<TData = Awaited<ReturnType<typeof getAllLogs>>, TError = ErrorType<unknown>>(
+ params?: GetAllLogsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAllLogs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAllLogsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

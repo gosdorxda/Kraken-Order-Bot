@@ -298,6 +298,26 @@ export const GetBotLogsResponse = zod.array(GetBotLogsResponseItem)
 
 
 /**
+ * @summary Get aggregated activity logs across all bots
+ */
+export const getAllLogsQueryLimitDefault = 500;
+
+export const GetAllLogsQueryParams = zod.object({
+  "limit": zod.coerce.number().default(getAllLogsQueryLimitDefault)
+})
+
+export const GetAllLogsResponseItem = zod.object({
+  "id": zod.number(),
+  "botId": zod.string(),
+  "timestamp": zod.string(),
+  "level": zod.enum(['info', 'warn', 'error', 'success']),
+  "message": zod.string(),
+  "data": zod.string().nullish()
+})
+export const GetAllLogsResponse = zod.array(GetAllLogsResponseItem)
+
+
+/**
  * @summary Get fill history for a bot
  */
 export const GetBotFillsParams = zod.object({

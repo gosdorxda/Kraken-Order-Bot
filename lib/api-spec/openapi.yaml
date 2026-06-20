@@ -295,6 +295,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /logs:
+    get:
+      operationId: getAllLogs
+      tags: [bots]
+      summary: Get aggregated activity logs across all bots
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 500
+      responses:
+        "200":
+          description: Aggregated activity logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LogEntry"
+
   /bots/{botId}/fills:
     get:
       operationId: getBotFills
@@ -536,6 +557,24 @@ components:
       properties:
         id:
           type: integer
+        timestamp:
+          type: string
+        level:
+          type: string
+          enum: [info, warn, error, success]
+        message:
+          type: string
+        data:
+          type: ["string", "null"]
+
+    LogEntry:
+      type: object
+      required: [id, botId, timestamp, level, message]
+      properties:
+        id:
+          type: integer
+        botId:
+          type: string
         timestamp:
           type: string
         level:

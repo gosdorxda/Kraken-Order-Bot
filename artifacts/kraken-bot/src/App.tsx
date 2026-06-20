@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import { Layout } from "@/components/layout";
 import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
+import Logs from "@/pages/logs";
 import Login from "@/pages/login";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -28,6 +29,7 @@ function Router() {
           <Layout>
             <Switch>
               <Route path="/" component={Dashboard} />
+              <Route path="/logs" component={Logs} />
               <Route path="/settings" component={Settings} />
               <Route component={NotFound} />
             </Switch>

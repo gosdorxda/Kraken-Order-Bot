@@ -1,5 +1,5 @@
 import { Storage } from "@google-cloud/storage";
-import type { BotConfig, FillRecord } from "./krakenBot.js";
+import type { BotConfig, FillRecord, BotLog } from "./krakenBot.js";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 const BOTS_OBJECT_NAME = "bots.json";
@@ -34,6 +34,8 @@ export interface PersistedBot {
   running: boolean;
   fills: FillRecord[];
   fillIdCounter: number;
+  logs: BotLog[];
+  logIdCounter: number;
 }
 
 export async function loadPersistedBots(): Promise<PersistedBot[]> {

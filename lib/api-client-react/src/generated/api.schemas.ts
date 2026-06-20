@@ -99,6 +99,26 @@ export interface BotLog {
   data?: string | null;
 }
 
+export type LogEntryLevel = typeof LogEntryLevel[keyof typeof LogEntryLevel];
+
+
+export const LogEntryLevel = {
+  info: 'info',
+  warn: 'warn',
+  error: 'error',
+  success: 'success',
+} as const;
+
+export interface LogEntry {
+  id: number;
+  botId: string;
+  timestamp: string;
+  level: LogEntryLevel;
+  message: string;
+  /** @nullable */
+  data?: string | null;
+}
+
 export interface FillRecord {
   id: number;
   pair: string;
@@ -136,6 +156,10 @@ export interface AssetBalance {
 }
 
 export type GetBotLogsParams = {
+limit?: number;
+};
+
+export type GetAllLogsParams = {
 limit?: number;
 };
 

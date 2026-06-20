@@ -23,6 +23,7 @@ class BotManager {
         };
         const bot = new KrakenBot(p.id, config, () => this.persist());
         bot.loadFills(p.fills ?? [], p.fillIdCounter ?? 0);
+        bot.loadLogs(p.logs ?? [], p.logIdCounter ?? 0);
         this.bots.set(p.id, bot);
         const isDev = process.env["NODE_ENV"] !== "production";
         if (p.running && !isDev) {
@@ -46,6 +47,8 @@ class BotManager {
       running: bot.getStatus().running,
       fills: bot.getFills(500),
       fillIdCounter: bot.getFillIdCounter(),
+      logs: bot.getLogs(500),
+      logIdCounter: bot.getLogIdCounter(),
     }));
     savePersistedBots(data).catch((err: unknown) => {
       process.stderr.write(`[persistence] savePersistedBots error: ${String(err)}\n`);

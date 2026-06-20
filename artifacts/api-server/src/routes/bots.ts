@@ -16,6 +16,7 @@ import {
   GetBotOrderBookResponse,
   GetOrderBookQueryParams,
   GetOrderBookResponse,
+  GetAllLogsQueryParams,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -195,6 +196,20 @@ router.get("/orderbook", async (req, res): Promise<void> => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+router.get("/logs", (req, res): void => {
+  const qp = GetAllLogsQueryParams.safeParse(req.query);
+  const limit = qp.success ? (qp.data.limit ?? 500) : 500;
+  const allLogs = botManager
+    .list()
+    .flatMap((b) => {
+      const bot = botManager.get(b.id);
+      return bot ? bot.getLogs(limit).map((log) => ({ ...log, botId: b.id })) : [];
+    })
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, limit);
+  res.json(allLogs);
 });
 
 export default router;
