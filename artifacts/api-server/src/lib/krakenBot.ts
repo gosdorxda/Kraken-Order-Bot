@@ -154,7 +154,11 @@ export class KrakenBot {
     this.circuitBreakerTripped = false;
     this.consecutiveErrors = 0;
     this.cycleCount = 0;
+    this.currentOrderId = null;
+    this.currentOrderPrice = null;
+    this.currentOrderVolume = null;
     this.addLog("info", `Bot started for pair ${this.config.pair}`, { config: this.config });
+    await this.cancelStaleOpenOrders();
     this.intervalHandle = setInterval(() => {
       this.runCycle().catch((err: unknown) => {
         this.addLog("error", "Cycle error", err instanceof Error ? err.message : String(err));
@@ -326,6 +330,31 @@ export class KrakenBot {
 
   private async calculateVolume(_targetPrice: number): Promise<string> {
     return this.config.orderSize;
+  }
+
+  private async cancelStaleOpenOrders(): Promise<void> {
+    try {
+      const resp: any = await krakenRateLimiter.enqueue(
+        () => (sharedClient as any).api("OpenOrders", {}),
+        "OpenOrders"
+      );
+      const orders: Record<string, any> = resp.result?.open ?? {};
+      const stale = Object.entries(orders).filter(
+        ([, o]) => o.descr?.pair === this.config.pair && o.descr?.type === "buy"
+      );
+      if (stale.length === 0) return;
+      this.addLog("warn", `Ditemukan ${stale.length} order terbuka di Kraken untuk ${this.config.pair} — membatalkan sebelum mulai`);
+      for (const [txid] of stale) {
+        try {
+          await this.cancelOrder(txid);
+          this.addLog("info", `Order stale ${txid} dibatalkan`);
+        } catch (err) {
+          this.addLog("warn", `Gagal batalkan order stale ${txid}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    } catch (err) {
+      this.addLog("warn", `Gagal cek open orders saat start: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   private async cancelOrder(orderId: string): Promise<void> {
