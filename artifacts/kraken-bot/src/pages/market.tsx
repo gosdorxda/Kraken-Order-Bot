@@ -3,7 +3,7 @@ import { useGetMarket, getGetMarketQueryKey } from "@workspace/api-client-react"
 import type { MarketTicker } from "@workspace/api-client-react";
 import { BarChart2, RefreshCw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
-type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "spread" | "spreadPct" | "volume24h">;
+type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
@@ -36,6 +36,8 @@ function tradeUrl(displayName: string) {
 const COL_HEADERS: { key: SortKey; label: string; align: "left" | "right" }[] = [
   { key: "displayName", label: "Pair", align: "left" },
   { key: "last",        label: "Harga Terakhir", align: "right" },
+  { key: "bid",         label: "Bid", align: "right" },
+  { key: "ask",         label: "Ask", align: "right" },
   { key: "spread",      label: "Spread ($)", align: "right" },
   { key: "spreadPct",   label: "Spread %", align: "right" },
   { key: "volume24h",   label: "Volume 24h", align: "right" },
@@ -183,7 +185,7 @@ export default function Market() {
                   return (
                     <tr
                       key={row.pair}
-                      onClick={() => window.open(tradeUrl(row.displayName), "_blank")}
+                      onClick={() => window.open(tradeUrl(row.displayName), "_blank", "noopener,noreferrer")}
                       className="border-b border-border/40 hover:bg-muted/30 cursor-pointer transition-colors"
                     >
                       {/* Pair name */}
@@ -194,6 +196,16 @@ export default function Market() {
                       {/* Last price */}
                       <td className="px-4 py-3 text-right font-mono text-foreground">
                         ${fmtPrice(row.last)}
+                      </td>
+
+                      {/* Bid */}
+                      <td className="px-4 py-3 text-right font-mono text-emerald-400/80">
+                        ${fmtPrice(row.bid)}
+                      </td>
+
+                      {/* Ask */}
+                      <td className="px-4 py-3 text-right font-mono text-red-400/80">
+                        ${fmtPrice(row.ask)}
                       </td>
 
                       {/* Spread $ */}
