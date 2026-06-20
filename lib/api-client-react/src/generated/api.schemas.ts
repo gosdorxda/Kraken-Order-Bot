@@ -119,6 +119,19 @@ export interface LogEntry {
   data?: string | null;
 }
 
+export interface MarketTicker {
+  pair: string;
+  displayName: string;
+  bid: string;
+  ask: string;
+  last: string;
+  spread: string;
+  spreadPct: number;
+  volume24h: string;
+  high24h: string;
+  low24h: string;
+}
+
 export interface FillRecord {
   id: number;
   pair: string;

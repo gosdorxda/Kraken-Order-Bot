@@ -384,6 +384,24 @@ export const GetOrderBookResponse = zod.object({
 
 
 /**
+ * @summary Get all USD spot pairs with ticker data
+ */
+export const GetMarketResponseItem = zod.object({
+  "pair": zod.string(),
+  "displayName": zod.string(),
+  "bid": zod.string(),
+  "ask": zod.string(),
+  "last": zod.string(),
+  "spread": zod.string(),
+  "spreadPct": zod.number(),
+  "volume24h": zod.string(),
+  "high24h": zod.string(),
+  "low24h": zod.string()
+})
+export const GetMarketResponse = zod.array(GetMarketResponseItem)
+
+
+/**
  * @summary Get Kraken account balance
  */
 export const GetAccountBalanceResponseItem = zod.object({

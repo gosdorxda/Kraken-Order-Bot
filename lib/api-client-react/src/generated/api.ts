@@ -34,6 +34,7 @@ import type {
   LogEntry,
   LoginRequest,
   LoginResponse,
+  MarketTicker,
   OrderBook,
   ServerInfo,
   VerifyResponse
@@ -1271,6 +1272,83 @@ export function useGetOrderBook<TData = Awaited<ReturnType<typeof getOrderBook>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetOrderBookQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMarketUrl = () => {
+
+
+
+
+  return `/api/market`
+}
+
+/**
+ * @summary Get all USD spot pairs with ticker data
+ */
+export const getMarket = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+
+  return customFetch<MarketTicker[]>(getGetMarketUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketQueryKey = () => {
+    return [
+    `/api/market`
+    ] as const;
+    }
+
+
+export const getGetMarketQueryOptions = <TData = Awaited<ReturnType<typeof getMarket>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarket>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarket>>> = ({ signal }) => getMarket({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarket>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketQueryResult = NonNullable<Awaited<ReturnType<typeof getMarket>>>
+export type GetMarketQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get all USD spot pairs with ticker data
+ */
+
+export function useGetMarket<TData = Awaited<ReturnType<typeof getMarket>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarket>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

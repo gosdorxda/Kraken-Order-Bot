@@ -73,6 +73,77 @@ export async function fetchBalance(): Promise<Record<string, string>> {
   return resp.result as Record<string, string>;
 }
 
+export interface MarketTicker {
+  pair: string;
+  displayName: string;
+  bid: string;
+  ask: string;
+  last: string;
+  spread: string;
+  spreadPct: number;
+  volume24h: string;
+  high24h: string;
+  low24h: string;
+}
+
+let marketCache: { data: MarketTicker[]; fetchedAt: number } | null = null;
+const MARKET_CACHE_TTL_MS = 10_000;
+
+export async function fetchMarket(): Promise<MarketTicker[]> {
+  if (marketCache && Date.now() - marketCache.fetchedAt < MARKET_CACHE_TTL_MS) {
+    return marketCache.data;
+  }
+
+  const pairsResp: any = await krakenRateLimiter.enqueue(
+    () => (sharedClient as any).api("AssetPairs", {}),
+    "AssetPairs"
+  );
+
+  const usdPairs = Object.entries(pairsResp.result as Record<string, any>).filter(
+    ([, info]) =>
+      info.status === "online" &&
+      typeof info.wsname === "string" &&
+      info.wsname.endsWith("/USD")
+  );
+
+  if (usdPairs.length === 0) return [];
+
+  const pairNames = usdPairs.map(([name]) => name).join(",");
+  const tickerResp: any = await krakenRateLimiter.enqueue(
+    () => (sharedClient as any).api("Ticker", { pair: pairNames }),
+    "Ticker(USD)"
+  );
+
+  const result: MarketTicker[] = [];
+  for (const [krakenKey, info] of usdPairs) {
+    const ticker = tickerResp.result[krakenKey];
+    if (!ticker) continue;
+
+    const bid = parseFloat(ticker.b[0]);
+    const ask = parseFloat(ticker.a[0]);
+    const spread = ask - bid;
+    const mid = (bid + ask) / 2;
+    const spreadPct = mid > 0 ? (spread / mid) * 100 : 0;
+    const dp: number = (info as any).pair_decimals ?? 2;
+
+    result.push({
+      pair: krakenKey,
+      displayName: (info as any).wsname as string,
+      bid: ticker.b[0],
+      ask: ticker.a[0],
+      last: ticker.c[0],
+      spread: spread.toFixed(dp),
+      spreadPct: Math.round(spreadPct * 100000) / 100000,
+      volume24h: ticker.v[1],
+      high24h: ticker.h[1],
+      low24h: ticker.l[1],
+    });
+  }
+
+  marketCache = { data: result, fetchedAt: Date.now() };
+  return result;
+}
+
 // ─── KrakenBot ────────────────────────────────────────────────────────────────
 
 export class KrakenBot {

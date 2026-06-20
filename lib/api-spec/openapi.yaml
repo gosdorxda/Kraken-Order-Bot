@@ -410,6 +410,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /market:
+    get:
+      operationId: getMarket
+      tags: [bots]
+      summary: Get all USD spot pairs with ticker data
+      responses:
+        "200":
+          description: Market tickers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketTicker"
+        "500":
+          description: Kraken API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /account/balance:
     get:
       operationId: getAccountBalance
@@ -584,6 +605,31 @@ components:
           type: string
         data:
           type: ["string", "null"]
+
+    MarketTicker:
+      type: object
+      required: [pair, displayName, bid, ask, last, spread, spreadPct, volume24h, high24h, low24h]
+      properties:
+        pair:
+          type: string
+        displayName:
+          type: string
+        bid:
+          type: string
+        ask:
+          type: string
+        last:
+          type: string
+        spread:
+          type: string
+        spreadPct:
+          type: number
+        volume24h:
+          type: string
+        high24h:
+          type: string
+        low24h:
+          type: string
 
     FillRecord:
       type: object

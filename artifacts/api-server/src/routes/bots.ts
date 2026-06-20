@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { botManager } from "../lib/botManager";
-import { fetchOrderBook } from "../lib/krakenBot";
+import { fetchOrderBook, fetchMarket } from "../lib/krakenBot";
 import {
   CreateBotBody,
   UpdateBotConfigBody,
@@ -210,6 +210,15 @@ router.get("/logs", (req, res): void => {
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, limit);
   res.json(allLogs);
+});
+
+router.get("/market", async (_req, res): Promise<void> => {
+  try {
+    const tickers = await fetchMarket();
+    res.json(tickers);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
 });
 
 export default router;

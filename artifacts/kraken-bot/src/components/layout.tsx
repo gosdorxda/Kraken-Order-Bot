@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, Settings, Zap, LogOut, ScrollText } from "lucide-react";
+import { Activity, Settings, Zap, LogOut, ScrollText, BarChart2 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -38,6 +38,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <Activity className="h-4 w-4" />
               Dashboard
+            </Link>
+            <Link
+              href="/market"
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                location === "/market"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              <BarChart2 className="h-4 w-4" />
+              Market
             </Link>
             <Link
               href="/logs"
