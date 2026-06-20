@@ -234,6 +234,26 @@ export class KrakenBot {
       }
 
       if (this.currentOrderId && myOrderIsAtTop) {
+        // Step-down: if there's a gap between our price and the second-best bid,
+        // move our order down to secondBid + tick to avoid overpaying.
+        const secondBid = book.bids[1];
+        const myPrice = parseFloat(this.currentOrderPrice ?? "0");
+        if (secondBid) {
+          const secondBidNum = parseFloat(secondBid.price);
+          const optimalPrice = secondBidNum + tickNum;
+          if (myPrice > optimalPrice + tickNum * 0.5) {
+            const formattedOptimal = optimalPrice.toFixed(this.decimalPlaces(this.config.tickSize));
+            await this.cancelOrder(this.currentOrderId);
+            this.addLog("info", `Step-down: bid turun dari ${this.currentOrderPrice} ke ${formattedOptimal} (bid kedua: ${secondBid.price})`);
+            const volume = await this.calculateVolume(optimalPrice);
+            const orderId = await this.placeOrder(this.config.pair, formattedOptimal, volume);
+            this.currentOrderId = orderId;
+            this.currentOrderPrice = formattedOptimal;
+            this.currentOrderVolume = volume;
+            this.topBidOwner = "bot";
+            this.setLastAction(`Step-down ke ${formattedOptimal}`);
+          }
+        }
         this.consecutiveErrors = 0;
         return;
       }
