@@ -1,19 +1,32 @@
-import { useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Activity, Settings, Zap, LogOut, ScrollText, BarChart2 } from "lucide-react";
+import { Activity, Settings, Zap, LogOut, ScrollText, BarChart2, Moon, Sun, Type } from "lucide-react";
 import { clearToken } from "@/lib/auth";
+import { useTheme, useFont } from "@/lib/preferences";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
+  const { theme, toggleTheme } = useTheme();
+  const { font, setFont, options: fontOptions } = useFont();
+  const [fontMenuOpen, setFontMenuOpen] = useState(false);
+  const fontMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    function handleClickOutside(e: MouseEvent) {
+      if (fontMenuRef.current && !fontMenuRef.current.contains(e.target as Node)) {
+        setFontMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
     clearToken();
     navigate("/login");
   };
+
+  const isDark = theme === "dark";
 
   return (
     <div className="min-h-screen w-full bg-background text-foreground font-sans selection:bg-primary/30 flex flex-col">
@@ -23,7 +36,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <div className="flex items-center gap-2 shrink-0">
             <Zap className="h-5 w-5 text-primary" />
-            <span className="font-bold text-base tracking-tight text-white">KRKN.BOT</span>
+            <span className="font-bold text-base tracking-tight text-foreground">KRKN.BOT</span>
           </div>
 
           {/* Nav */}
@@ -74,15 +87,63 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           </nav>
 
-          {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
-            title="Logout"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
+          {/* Right controls */}
+          <div className="flex items-center gap-1">
+            {/* Font selector */}
+            <div className="relative" ref={fontMenuRef}>
+              <button
+                onClick={() => setFontMenuOpen((o) => !o)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  fontMenuOpen
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+                title="Ganti font"
+              >
+                <Type className="h-4 w-4" />
+                <span className="hidden sm:inline text-xs">Font</span>
+              </button>
+
+              {fontMenuOpen && (
+                <div className="absolute right-0 mt-1 w-44 rounded-lg border border-border bg-card shadow-lg z-50 py-1 text-sm">
+                  {fontOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setFont(opt.value); setFontMenuOpen(false); }}
+                      className={`w-full text-left px-3 py-2 transition-colors ${
+                        font === opt.value
+                          ? "bg-primary/10 text-primary"
+                          : "text-foreground hover:bg-secondary"
+                      }`}
+                      style={{ fontFamily: opt.value }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              title={isDark ? "Mode terang" : "Mode gelap"}
+            >
+              {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <span className="hidden sm:inline text-xs">{isDark ? "Terang" : "Gelap"}</span>
+            </button>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs">Logout</span>
+            </button>
+          </div>
         </div>
       </header>
 
