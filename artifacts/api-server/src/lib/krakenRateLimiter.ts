@@ -46,16 +46,29 @@ class KrakenRateLimiter {
 
     this.lastCallAt = Date.now();
 
-    try {
-      const result = await fn();
-      this.onSuccess();
-      return result;
-    } catch (err) {
-      if (isRateLimitError(err)) {
-        this.onRateLimit(label);
+    const MAX_NONCE_RETRIES = 3;
+    let nonceAttempt = 0;
+
+    while (true) {
+      try {
+        const result = await fn();
+        this.onSuccess();
+        return result;
+      } catch (err) {
+        if (isRateLimitError(err)) {
+          this.onRateLimit(label);
+          throw err;
+        }
+        if (isNonceError(err) && nonceAttempt < MAX_NONCE_RETRIES) {
+          nonceAttempt++;
+          const delay = 150 * nonceAttempt;
+          logger.warn({ label, attempt: nonceAttempt, delayMs: delay }, "Invalid nonce — retrying");
+          await sleep(delay);
+          this.lastCallAt = Date.now();
+          continue;
+        }
         throw err;
       }
-      throw err;
     }
   }
 
@@ -90,6 +103,13 @@ function sleep(ms: number): Promise<void> {
 function isRateLimitError(err: unknown): boolean {
   if (err instanceof Error) {
     return /rate limit|EGeneral:Unknown|EAPI:Rate limit/i.test(err.message);
+  }
+  return false;
+}
+
+function isNonceError(err: unknown): boolean {
+  if (err instanceof Error) {
+    return /invalid nonce|EAPI:Invalid nonce/i.test(err.message);
   }
   return false;
 }

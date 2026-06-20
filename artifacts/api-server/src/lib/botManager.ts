@@ -24,10 +24,13 @@ class BotManager {
         const bot = new KrakenBot(p.id, config, () => this.persist());
         bot.loadFills(p.fills ?? [], p.fillIdCounter ?? 0);
         this.bots.set(p.id, bot);
-        if (p.running) {
+        const isDev = process.env["NODE_ENV"] !== "production";
+        if (p.running && !isDev) {
           bot.start().catch((err: unknown) => {
             logger.error({ err, botId: p.id }, "Failed to auto-start bot on restore");
           });
+        } else if (p.running && isDev) {
+          logger.info({ botId: p.id }, "Dev mode: bot not auto-started (run published app or start manually)");
         }
       } catch (err) {
         logger.warn({ err, botId: p.id }, "Skipping corrupt persisted bot");
