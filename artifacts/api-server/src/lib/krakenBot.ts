@@ -446,20 +446,39 @@ export class KrakenBot {
   }
 
   private async cancelOrder(orderId: string): Promise<void> {
-    await krakenRateLimiter.enqueue(
-      () => (sharedClient as any).api("CancelOrder", { txid: orderId }),
-      `CancelOrder(${orderId})`
-    );
+    try {
+      await krakenRateLimiter.enqueue(
+        () => (sharedClient as any).api("CancelOrder", { txid: orderId }),
+        `CancelOrder(${orderId})`
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/unknown order/i.test(msg)) {
+        // Order already gone — nothing to cancel, not an error
+        return;
+      }
+      throw err;
+    }
   }
 
   private async checkOrderOpen(orderId: string): Promise<{ isOpen: boolean }> {
-    const resp: any = await krakenRateLimiter.enqueue(
-      () => (sharedClient as any).api("QueryOrders", { txid: orderId, trades: false }),
-      `QueryOrders(${orderId})`
-    );
-    const order = resp.result?.[orderId];
-    if (!order) return { isOpen: false };
-    return { isOpen: ["open", "pending"].includes(order.status) };
+    try {
+      const resp: any = await krakenRateLimiter.enqueue(
+        () => (sharedClient as any).api("QueryOrders", { txid: orderId, trades: false }),
+        `QueryOrders(${orderId})`
+      );
+      const order = resp.result?.[orderId];
+      if (!order) return { isOpen: false };
+      return { isOpen: ["open", "pending"].includes(order.status) };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/unknown order/i.test(msg)) {
+        // Order no longer exists on Kraken (filled or externally cancelled)
+        this.addLog("info", `Order ${orderId} not found on Kraken — treated as closed`);
+        return { isOpen: false };
+      }
+      throw err;
+    }
   }
 
   private async placeOrder(pair: string, price: string, volume: string): Promise<string> {
