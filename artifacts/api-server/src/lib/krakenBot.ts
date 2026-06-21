@@ -142,7 +142,7 @@ export async function fetchMarket(): Promise<MarketTicker[]> {
       change24h: Math.round(change24h * 1000) / 1000,
       spread: spread.toFixed(dp),
       spreadPct: Math.round(spreadPct * 100000) / 100000,
-      volume24h: ticker.v[1],
+      volume24h: (parseFloat(ticker.v[1]) * lastPrice).toFixed(0),
       high24h: ticker.h[1],
       low24h: ticker.l[1],
     });

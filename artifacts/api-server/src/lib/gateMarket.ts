@@ -10,6 +10,7 @@ interface GateTicker {
   highest_bid: string;
   change_percentage: string;
   base_volume: string;
+  quote_volume: string;
   high_24h: string;
   low_24h: string;
 }
@@ -50,7 +51,7 @@ export async function fetchGateMarket(): Promise<MarketTicker[]> {
       change24h:  Math.round((isNaN(change24h) ? 0 : change24h) * 1000) / 1000,
       spread:     spread.toFixed(dp),
       spreadPct:  Math.round(spreadPct * 100000) / 100000,
-      volume24h:  t.base_volume,
+      volume24h:  t.quote_volume,
       high24h:    t.high_24h,
       low24h:     t.low_24h,
     };

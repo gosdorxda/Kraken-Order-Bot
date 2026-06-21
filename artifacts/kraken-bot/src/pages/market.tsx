@@ -52,7 +52,7 @@ const COL_HEADERS: { key: SortKey; label: string; align: "left" | "right" }[] = 
   { key: "ask",         label: "Ask",            align: "right" },
   { key: "spread",      label: "Spread ($)",     align: "right" },
   { key: "spreadPct",   label: "Spread %",       align: "right" },
-  { key: "volume24h",   label: "Volume 24h",     align: "right" },
+  { key: "volume24h",   label: "Turnover 24h ($)", align: "right" },
 ];
 
 function ExchangeTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
