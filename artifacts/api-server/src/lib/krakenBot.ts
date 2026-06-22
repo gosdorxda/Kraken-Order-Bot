@@ -269,6 +269,7 @@ export class KrakenBot {
   private consecutiveErrors = 0;
   private consecutiveInsufficientFunds = 0;
   private circuitBreakerTripped = false;
+  private cycleRunning = false;
 
   constructor(id: string, config: BotConfig, onPersist?: () => void) {
     this.id = id;
@@ -381,6 +382,17 @@ export class KrakenBot {
 
   private async runCycle(): Promise<void> {
     if (!this.running) return;
+    if (this.cycleRunning) return;
+    this.cycleRunning = true;
+    try {
+      await this.runCycleInner();
+    } finally {
+      this.cycleRunning = false;
+    }
+  }
+
+  private async runCycleInner(): Promise<void> {
+    if (!this.running) return;
     this.cycleCount++;
 
     try {
@@ -452,7 +464,8 @@ export class KrakenBot {
         if (secondBid) {
           const secondBidNum = parseFloat(secondBid.price);
           const optimalPrice = secondBidNum + tickNum;
-          if (myPrice > optimalPrice + tickNum * 3) {
+          const gapInTicks = Math.round((myPrice - optimalPrice) / tickNum);
+          if (gapInTicks >= 4) {
             const formattedOptimal = optimalPrice.toFixed(this.decimalPlaces(this.config.tickSize));
             await this.cancelOrder(this.currentOrderId);
             this.addLog("info", `Step-down: bid turun dari ${this.currentOrderPrice} ke ${formattedOptimal} (bid kedua: ${secondBid.price})`);
