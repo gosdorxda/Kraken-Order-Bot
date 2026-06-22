@@ -48,7 +48,7 @@ router.post("/bots", async (req, res): Promise<void> => {
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
     oneShotMode: parsed.data.oneShotMode ?? false,
     maxConsecutiveErrors: parsed.data.maxConsecutiveErrors ?? 5,
-    exchange: (parsed.data as any).exchange as "kraken" | "xt" | undefined,
+    exchange: parsed.data.exchange,
   };
 
   try {
@@ -131,7 +131,7 @@ router.put("/bots/:botId/config", async (req, res): Promise<void> => {
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
     oneShotMode: parsed.data.oneShotMode ?? false,
     maxConsecutiveErrors: parsed.data.maxConsecutiveErrors ?? 5,
-    exchange: (parsed.data as any).exchange as "kraken" | "xt" | undefined,
+    exchange: parsed.data.exchange,
   });
   botManager.persist();
 

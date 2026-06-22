@@ -65,9 +65,9 @@ class BotManager {
         process.env["XT_API_SECRET"] ?? ""
       );
       const xtPairs = xtBotsToStart.map((b) => b.getConfig().pair);
-      logger.info({ pairs: xtPairs }, "BotManager: cancelling stale XT open orders before autostart");
+      logger.info({ pairs: xtPairs }, "BotManager: cancelling stale XT open buy orders before autostart");
       for (const pair of xtPairs) {
-        await xtClient.cancelAllOpenOrders(pair);
+        await xtClient.cancelAllOpenBuyOrders(pair);
       }
     }
 

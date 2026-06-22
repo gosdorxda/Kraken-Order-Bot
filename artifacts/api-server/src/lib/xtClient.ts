@@ -173,7 +173,7 @@ export class XtClient {
 
   async getOpenOrders(symbol: string): Promise<string[]> {
     try {
-      const orders = await this.request<Array<{ orderId: string | number }>>(
+      const orders = await this.request<Array<{ orderId: string | number; side?: string; type?: string }>>(
         "GET",
         "/v4/order/open-orders",
         { symbol }
@@ -185,16 +185,38 @@ export class XtClient {
     }
   }
 
-  async cancelAllOpenOrders(symbol: string): Promise<void> {
-    const orderIds = await this.getOpenOrders(symbol);
-    if (orderIds.length === 0) return;
-    logger.info({ symbol, count: orderIds.length }, "XT: cancelling stale open orders");
-    for (const orderId of orderIds) {
-      try {
-        await this.cancelOrder(orderId);
-      } catch {
-        // best effort
+  /**
+   * Cancel all open LIMIT BUY orders for the given symbol.
+   * Mirrors Kraken's cancelAllOpenBuyOrders — only buy-side, to avoid
+   * accidentally cancelling user sell orders on the same pair.
+   */
+  async cancelAllOpenBuyOrders(symbol: string): Promise<void> {
+    try {
+      const orders = await this.request<Array<{ orderId: string | number; side?: string; type?: string }>>(
+        "GET",
+        "/v4/order/open-orders",
+        { symbol }
+      );
+      if (!Array.isArray(orders) || orders.length === 0) return;
+      const buyOrders = orders.filter(
+        (o) => (o.side ?? "").toUpperCase() === "BUY" && (o.type ?? "LIMIT").toUpperCase() === "LIMIT"
+      );
+      if (buyOrders.length === 0) return;
+      logger.info({ symbol, count: buyOrders.length }, "XT: cancelling stale open buy orders on startup");
+      for (const order of buyOrders) {
+        try {
+          await this.cancelOrder(String(order.orderId));
+        } catch {
+          // best effort
+        }
       }
+    } catch {
+      // best effort — startup cleanup, non-fatal
     }
+  }
+
+  /** @deprecated use cancelAllOpenBuyOrders — this method cancels all sides */
+  async cancelAllOpenOrders(symbol: string): Promise<void> {
+    return this.cancelAllOpenBuyOrders(symbol);
   }
 }
