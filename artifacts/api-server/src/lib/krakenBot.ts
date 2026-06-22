@@ -452,7 +452,7 @@ export class KrakenBot {
         if (secondBid) {
           const secondBidNum = parseFloat(secondBid.price);
           const optimalPrice = secondBidNum + tickNum;
-          if (myPrice > optimalPrice + tickNum * 2) {
+          if (myPrice > optimalPrice + tickNum * 3) {
             const formattedOptimal = optimalPrice.toFixed(this.decimalPlaces(this.config.tickSize));
             await this.cancelOrder(this.currentOrderId);
             this.addLog("info", `Step-down: bid turun dari ${this.currentOrderPrice} ke ${formattedOptimal} (bid kedua: ${secondBid.price})`);
