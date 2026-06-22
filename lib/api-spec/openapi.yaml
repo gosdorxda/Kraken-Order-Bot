@@ -475,6 +475,69 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /market/lbank:
+    get:
+      operationId: getMarketLbank
+      tags: [bots]
+      summary: Get all USDT spot pairs from LBank with ticker data
+      responses:
+        "200":
+          description: LBank market tickers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketTicker"
+        "500":
+          description: LBank API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/ascendex:
+    get:
+      operationId: getMarketAscendex
+      tags: [bots]
+      summary: Get all USDT spot pairs from AscendEX with ticker data
+      responses:
+        "200":
+          description: AscendEX market tickers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketTicker"
+        "500":
+          description: AscendEX API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/xt:
+    get:
+      operationId: getMarketXt
+      tags: [bots]
+      summary: Get all USDT spot pairs from XT.com with ticker data
+      responses:
+        "200":
+          description: XT.com market tickers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketTicker"
+        "500":
+          description: XT.com API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /settings:
     get:
       operationId: getSettings

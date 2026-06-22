@@ -1527,6 +1527,237 @@ export function useGetMarketGate<TData = Awaited<ReturnType<typeof getMarketGate
 
 
 
+export const getGetMarketLbankUrl = () => {
+
+
+
+
+  return `/api/market/lbank`
+}
+
+/**
+ * @summary Get all USDT spot pairs from LBank with ticker data
+ */
+export const getMarketLbank = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+
+  return customFetch<MarketTicker[]>(getGetMarketLbankUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketLbankQueryKey = () => {
+    return [
+    `/api/market/lbank`
+    ] as const;
+    }
+
+
+export const getGetMarketLbankQueryOptions = <TData = Awaited<ReturnType<typeof getMarketLbank>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketLbank>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketLbankQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketLbank>>> = ({ signal }) => getMarketLbank({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketLbank>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketLbankQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketLbank>>>
+export type GetMarketLbankQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get all USDT spot pairs from LBank with ticker data
+ */
+
+export function useGetMarketLbank<TData = Awaited<ReturnType<typeof getMarketLbank>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketLbank>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketLbankQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMarketAscendexUrl = () => {
+
+
+
+
+  return `/api/market/ascendex`
+}
+
+/**
+ * @summary Get all USDT spot pairs from AscendEX with ticker data
+ */
+export const getMarketAscendex = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+
+  return customFetch<MarketTicker[]>(getGetMarketAscendexUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketAscendexQueryKey = () => {
+    return [
+    `/api/market/ascendex`
+    ] as const;
+    }
+
+
+export const getGetMarketAscendexQueryOptions = <TData = Awaited<ReturnType<typeof getMarketAscendex>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketAscendex>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketAscendexQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketAscendex>>> = ({ signal }) => getMarketAscendex({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketAscendex>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketAscendexQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketAscendex>>>
+export type GetMarketAscendexQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get all USDT spot pairs from AscendEX with ticker data
+ */
+
+export function useGetMarketAscendex<TData = Awaited<ReturnType<typeof getMarketAscendex>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketAscendex>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketAscendexQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMarketXtUrl = () => {
+
+
+
+
+  return `/api/market/xt`
+}
+
+/**
+ * @summary Get all USDT spot pairs from XT.com with ticker data
+ */
+export const getMarketXt = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+
+  return customFetch<MarketTicker[]>(getGetMarketXtUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketXtQueryKey = () => {
+    return [
+    `/api/market/xt`
+    ] as const;
+    }
+
+
+export const getGetMarketXtQueryOptions = <TData = Awaited<ReturnType<typeof getMarketXt>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketXt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketXtQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketXt>>> = ({ signal }) => getMarketXt({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketXt>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketXtQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketXt>>>
+export type GetMarketXtQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get all USDT spot pairs from XT.com with ticker data
+ */
+
+export function useGetMarketXt<TData = Awaited<ReturnType<typeof getMarketXt>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketXt>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketXtQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getGetSettingsUrl = () => {
 
 

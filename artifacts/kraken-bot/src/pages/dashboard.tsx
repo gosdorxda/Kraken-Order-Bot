@@ -592,7 +592,14 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="space-y-3">
-          {bots.map((bot) => <BotRow key={bot.id} bot={bot} onEdit={openEdit} />)}
+          {[...bots].sort((a, b) => {
+            const score = (bot: typeof a) => {
+              if (bot.status.running && !bot.status.circuitBreakerTripped) return 0;
+              if (bot.status.circuitBreakerTripped) return 2;
+              return 1;
+            };
+            return score(a) - score(b);
+          }).map((bot) => <BotRow key={bot.id} bot={bot} onEdit={openEdit} />)}
         </div>
       )}
 

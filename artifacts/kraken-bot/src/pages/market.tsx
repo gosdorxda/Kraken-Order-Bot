@@ -2,13 +2,16 @@ import { useState, useMemo } from "react";
 import {
   useGetMarket, getGetMarketQueryKey,
   useGetMarketGate, getGetMarketGateQueryKey,
+  useGetMarketLbank, getGetMarketLbankQueryKey,
+  useGetMarketAscendex, getGetMarketAscendexQueryKey,
+  useGetMarketXt, getGetMarketXtQueryKey,
 } from "@workspace/api-client-react";
 import type { MarketTicker } from "@workspace/api-client-react";
 import { BarChart2, RefreshCw, ExternalLink, ArrowUpDown, ArrowUp, ArrowDown, TrendingUp, TrendingDown } from "lucide-react";
 
 type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "change24h" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
-type Exchange = "kraken" | "gate";
+type Exchange = "kraken" | "gate" | "lbank" | "ascendex" | "xt";
 
 function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
   if (col !== sortKey) return <ArrowUpDown className="w-3 h-3 opacity-30" />;
@@ -38,9 +41,10 @@ function tokenName(displayName: string) {
 }
 
 function tradeUrl(exchange: Exchange, pair: string, displayName: string) {
-  if (exchange === "gate") {
-    return `https://www.gate.com/trade/${pair}`;
-  }
+  if (exchange === "gate")     return `https://www.gate.com/trade/${pair}`;
+  if (exchange === "lbank")    return `https://www.lbank.com/trade/${pair.toLowerCase()}`;
+  if (exchange === "ascendex") return `https://ascendex.com/en/cashtrade-spottrading/usdt/${pair.replace("/USDT","").toLowerCase()}`;
+  if (exchange === "xt")       return `https://www.xt.com/en/trade/${pair.toLowerCase()}`;
   return `https://pro.kraken.com/app/trade/${displayName.toLowerCase().replace("/", "-")}`;
 }
 
@@ -125,7 +129,7 @@ function MarketTable({
     return rows;
   }, [data, sortKey, sortDir, search]);
 
-  const quoteLabel = exchange === "gate" ? "USDT" : "USD";
+  const quoteLabel = exchange === "kraken" ? "USD" : "USDT";
 
   return (
     <div className="space-y-3">
@@ -272,11 +276,21 @@ export default function Market() {
   const [exchange, setExchange] = useState<Exchange>("kraken");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const kraken = useGetMarket({ query: { refetchInterval: 15000, queryKey: getGetMarketQueryKey() } as any });
+  const kraken   = useGetMarket({ query: { refetchInterval: 15000, queryKey: getGetMarketQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const gate   = useGetMarketGate({ query: { refetchInterval: 15000, queryKey: getGetMarketGateQueryKey() } as any });
+  const gate     = useGetMarketGate({ query: { refetchInterval: 15000, queryKey: getGetMarketGateQueryKey() } as any });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const lbank    = useGetMarketLbank({ query: { refetchInterval: 15000, queryKey: getGetMarketLbankQueryKey() } as any });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ascendex = useGetMarketAscendex({ query: { refetchInterval: 15000, queryKey: getGetMarketAscendexQueryKey() } as any });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const xt       = useGetMarketXt({ query: { refetchInterval: 15000, queryKey: getGetMarketXtQueryKey() } as any });
 
-  const active = exchange === "kraken" ? kraken : gate;
+  const active = exchange === "kraken" ? kraken
+    : exchange === "gate"     ? gate
+    : exchange === "lbank"    ? lbank
+    : exchange === "ascendex" ? ascendex
+    : xt;
 
   return (
     <div className="space-y-4">
@@ -287,12 +301,21 @@ export default function Market() {
       </div>
 
       {/* Exchange tabs */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <ExchangeTab active={exchange === "kraken"} onClick={() => setExchange("kraken")}>
           Kraken <span className="text-xs opacity-60 ml-1">USD</span>
         </ExchangeTab>
         <ExchangeTab active={exchange === "gate"} onClick={() => setExchange("gate")}>
           Gate.io <span className="text-xs opacity-60 ml-1">USDT</span>
+        </ExchangeTab>
+        <ExchangeTab active={exchange === "lbank"} onClick={() => setExchange("lbank")}>
+          LBank <span className="text-xs opacity-60 ml-1">USDT</span>
+        </ExchangeTab>
+        <ExchangeTab active={exchange === "ascendex"} onClick={() => setExchange("ascendex")}>
+          AscendEX <span className="text-xs opacity-60 ml-1">USDT</span>
+        </ExchangeTab>
+        <ExchangeTab active={exchange === "xt"} onClick={() => setExchange("xt")}>
+          XT.com <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
       </div>
 

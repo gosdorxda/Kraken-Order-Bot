@@ -2,6 +2,9 @@ import { Router, type IRouter } from "express";
 import { botManager } from "../lib/botManager";
 import { fetchOrderBook, fetchMarket } from "../lib/krakenBot";
 import { fetchGateMarket } from "../lib/gateMarket";
+import { fetchLbankMarket } from "../lib/lbankMarket";
+import { fetchAscendexMarket } from "../lib/ascendexMarket";
+import { fetchXtMarket } from "../lib/xtMarket";
 import {
   CreateBotBody,
   UpdateBotConfigBody,
@@ -241,6 +244,33 @@ router.get("/market", async (_req, res): Promise<void> => {
 router.get("/market/gate", async (_req, res): Promise<void> => {
   try {
     const tickers = await fetchGateMarket();
+    res.json(tickers);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+router.get("/market/lbank", async (_req, res): Promise<void> => {
+  try {
+    const tickers = await fetchLbankMarket();
+    res.json(tickers);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+router.get("/market/ascendex", async (_req, res): Promise<void> => {
+  try {
+    const tickers = await fetchAscendexMarket();
+    res.json(tickers);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+router.get("/market/xt", async (_req, res): Promise<void> => {
+  try {
+    const tickers = await fetchXtMarket();
     res.json(tickers);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
