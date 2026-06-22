@@ -1,0 +1,112 @@
+22/06/26, 18.27.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.27.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.27.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.27.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.27.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.27.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.26.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.26.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.26.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.26.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.26.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.26.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.25.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.25.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.25.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.25.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.25.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.25.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.24.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.24.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.24.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.24.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.24.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.24.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.23.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.23.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.23.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.23.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.23.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.23.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.22.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.22.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.22.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.22.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.22.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.22.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.21.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.21.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.21.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.21.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.21.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.21.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.20.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.20.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.20.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.20.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.20.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.20.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.19.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.19.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.19.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.19.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.19.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.19.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.18.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.18.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.18.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.18.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.18.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.18.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.17.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.17.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.17.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.17.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.17.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.17.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.16.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.16.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.16.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.16.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.16.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.16.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.15.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.15.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.15.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.15.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.15.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.15.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.14.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.14.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.14.30	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.14.20	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.14.10	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.14.00	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.13.50	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.13.40	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.13.31	TOKEUSD	warn	Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.
+22/06/26, 18.13.30	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0244
+22/06/26, 18.13.20	TOKEUSD	info	Step-down: bid turun dari 0.0242 ke 0.0240 (bid kedua: 0.02390)
+22/06/26, 18.13.10	TOKEUSD	success	Placed buy order{"orderId":"O6UMWU-C2HEE-AO45KF","price":"0.0242","volume":"3666"}
+22/06/26, 18.13.10	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0242
+22/06/26, 18.13.00	TOKEUSD	info	Step-down: bid turun dari 0.0242 ke 0.0240 (bid kedua: 0.02390)
+22/06/26, 18.12.51	TOKEUSD	success	Placed buy order{"orderId":"O7DCIS-OQWRB-AT3MBA","price":"0.0242","volume":"3666"}
+22/06/26, 18.12.50	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0242
+22/06/26, 18.12.40	TOKEUSD	info	Step-down: bid turun dari 0.0242 ke 0.0240 (bid kedua: 0.02390)
+22/06/26, 18.12.31	TOKEUSD	success	Placed buy order{"orderId":"O3N2XS-PDVDN-Y5VZKT","price":"0.0242","volume":"3666"}
+22/06/26, 18.12.30	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0242
+22/06/26, 18.12.22	TOKEUSD	info	Step-down: bid turun dari 0.0242 ke 0.0240 (bid kedua: 0.02390)
+22/06/26, 18.12.10	TOKEUSD	success	Placed buy order{"orderId":"OFBUHU-LUU6O-ONX5AQ","price":"0.0242","volume":"3666"}
+22/06/26, 18.12.10	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0242
+22/06/26, 18.12.00	TOKEUSD	info	Step-down: bid turun dari 0.0242 ke 0.0240 (bid kedua: 0.02390)
+22/06/26, 18.11.50	TOKEUSD	success	Placed buy order{"orderId":"OLQ2NE-IAMLE-TZEHTL","price":"0.0242","volume":"3666"}
+22/06/26, 18.11.50	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0242
+22/06/26, 18.11.40	TOKEUSD	info	Step-down: bid turun dari 0.0242 ke 0.0240 (bid kedua: 0.02390)
+22/06/26, 18.11.30	TOKEUSD	success	Placed buy order{"orderId":"OD5VQ4-WH55C-EKVQHU","price":"0.0242","volume":"3666"}
+22/06/26, 18.11.30	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0242
+22/06/26, 18.11.20	TOKEUSD	info	Step-down: bid turun dari 0.0242 ke 0.0240 (bid kedua: 0.02390)
+22/06/26, 18.11.10	TOKEUSD	success	Placed buy order{"orderId":"OC5GTL-45BO7-ZGQEPK","price":"0.0242","volume":"3666"}
+22/06/26, 18.11.10	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0242
+22/06/26, 18.11.00	TOKEUSD	info	Step-down: bid turun dari 0.0242 ke 0.0240 (bid kedua: 0.02390)
+22/06/26, 18.10.50	TOKEUSD	success	Placed buy order{"orderId":"OJTEXN-O5XSU-MW3OML","price":"0.0242","volume":"3666"}
+22/06/26, 18.10.50	TOKEUSD	info	Cancelled order at 0.0240 — re-placing at 0.0242

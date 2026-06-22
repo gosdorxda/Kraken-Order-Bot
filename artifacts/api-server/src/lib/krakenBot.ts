@@ -267,6 +267,7 @@ export class KrakenBot {
   private lastActionAt: string | null = null;
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
   private consecutiveErrors = 0;
+  private consecutiveInsufficientFunds = 0;
   private circuitBreakerTripped = false;
 
   constructor(id: string, config: BotConfig, onPersist?: () => void) {
@@ -334,6 +335,7 @@ export class KrakenBot {
     this.running = true;
     this.circuitBreakerTripped = false;
     this.consecutiveErrors = 0;
+    this.consecutiveInsufficientFunds = 0;
     this.cycleCount = 0;
     this.currentOrderId = null;
     this.currentOrderPrice = null;
@@ -367,6 +369,7 @@ export class KrakenBot {
       this.currentOrderId = null;
       this.currentOrderPrice = null;
     }
+    await this.cancelStaleOpenOrders();
     this.topBidOwner = "none";
     this.topBidPrice = null;
     this.addLog("info", "Bot stopped");
@@ -449,7 +452,7 @@ export class KrakenBot {
         if (secondBid) {
           const secondBidNum = parseFloat(secondBid.price);
           const optimalPrice = secondBidNum + tickNum;
-          if (myPrice > optimalPrice + tickNum * 0.5) {
+          if (myPrice > optimalPrice + tickNum * 2) {
             const formattedOptimal = optimalPrice.toFixed(this.decimalPlaces(this.config.tickSize));
             await this.cancelOrder(this.currentOrderId);
             this.addLog("info", `Step-down: bid turun dari ${this.currentOrderPrice} ke ${formattedOptimal} (bid kedua: ${secondBid.price})`);
@@ -502,10 +505,21 @@ export class KrakenBot {
       this.addLog("success", `Placed buy order`, { orderId, price: formattedPrice, volume });
 
       this.consecutiveErrors = 0;
+      this.consecutiveInsufficientFunds = 0;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/insufficient funds/i.test(msg)) {
+        this.consecutiveInsufficientFunds++;
         this.addLog("warn", `Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.`);
+        if (this.consecutiveInsufficientFunds >= 5) {
+          this.addLog("error", `Saldo tidak cukup 5x berturut-turut — bot dihentikan otomatis.`);
+          this.setLastAction("Auto-stop: saldo tidak cukup berulang");
+          void sendTelegramEvent(
+            "circuitBreaker",
+            `⚠️ <b>[${this.id}]</b> Bot dihentikan otomatis — saldo ZUSD tidak cukup 5x berturut-turut.`
+          );
+          this.stop();
+        }
         return;
       }
       this.addLog("error", `Cycle error: ${msg}`);
