@@ -404,11 +404,11 @@ function BotLogList({ botId }: { botId: string }) {
   );
 }
 
-// ─── Bot list row ─────────────────────────────────────────────────────────────
+// ─── Bot card ─────────────────────────────────────────────────────────────────
 
 type ExpandPanel = "logs" | "fills" | null;
 
-function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) => void }) {
+function BotCard({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const startBot = useStartBot();
@@ -448,105 +448,97 @@ function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) 
     ? "border-orange-700/50 bg-orange-950/10"
     : "border-border bg-card";
 
+  const lockedUsd = (() => {
+    if (!status.running || status.currentOrderPrice == null) return null;
+    const price = parseFloat(status.currentOrderPrice);
+    const size = parseFloat(status.currentOrderVolume ?? config.orderSize);
+    if (isNaN(price) || isNaN(size)) return null;
+    return (price * size).toFixed(2);
+  })();
+
   return (
-    <div className={`border rounded-xl overflow-hidden transition-colors ${borderClass}`}>
-      {/* Main row */}
-      <div className="flex items-center gap-4 px-5 py-4 flex-wrap md:flex-nowrap">
-        {/* Pair + dot + exchange badge */}
-        <div className="flex items-center gap-2.5 shrink-0 min-w-[120px]">
+    <div className={`border rounded-xl overflow-hidden transition-colors flex flex-col ${borderClass}`}>
+      {/* Card header: pair + exchange + dot + icon actions */}
+      <div className="flex items-start justify-between px-4 pt-4 pb-2 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <RunningDot running={status.running} />
-          <span className="font-mono font-extrabold text-lg tracking-tight">{id}</span>
+          <span className="font-mono font-extrabold text-base tracking-tight truncate">{id}</span>
           {config.exchange === "xt"
             ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 border border-blue-500/40 text-blue-400 shrink-0">XT</span>
             : <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-500/15 border border-violet-500/40 text-violet-400 shrink-0">K</span>
           }
         </div>
-
-        {/* Position chip */}
-        <div className="shrink-0">
-          <PositionChip bot={bot} />
-        </div>
-
-        {/* Order details */}
-        <div className="flex-1 min-w-[220px] space-y-1">
-          <div className="flex items-baseline gap-2">
-            <span className="text-xs text-muted-foreground w-14 shrink-0">Order</span>
-            <span className="font-mono text-sm font-bold text-primary">{status.currentOrderPrice ?? "—"}</span>
-            <span className="text-muted-foreground text-xs">×</span>
-            <span className="font-mono text-sm font-semibold text-foreground">{status.currentOrderVolume ?? config.orderSize}</span>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-xs text-muted-foreground w-14 shrink-0">Top bid</span>
-            <span className="font-mono text-sm font-bold text-emerald-400">{status.topBidPrice ?? "—"}</span>
-            <span className="text-xs text-muted-foreground ml-2">Max</span>
-            <span className="font-mono text-sm text-muted-foreground">{config.maxBidPrice}</span>
-          </div>
-          {status.running && status.currentOrderPrice != null && (() => {
-            const price = parseFloat(status.currentOrderPrice);
-            const size = parseFloat(status.currentOrderVolume ?? config.orderSize);
-            if (isNaN(price) || isNaN(size)) return null;
-            const locked = (price * size).toFixed(2);
-            return (
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[11px] text-amber-400/80 font-mono">~${locked} terkunci</span>
-              </div>
-            );
-          })()}
-        </div>
-
-        {/* Config pills */}
-        <div className="hidden lg:flex flex-wrap gap-2 ml-4">
-          <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">{status.cycleCount} siklus</span>
-          {config.oneShotMode && <span className="px-2.5 py-1 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/40 text-xs font-semibold">🎯 one-shot</span>}
-          {cb && <span className="px-2.5 py-1 rounded-md bg-red-500/15 text-red-300 border border-red-500/40 text-xs font-semibold">🔌 {status.consecutiveErrors} err</span>}
-        </div>
-
-        {/* Last action */}
-        <div className="hidden xl:block flex-1 min-w-0">
-          {status.lastAction && <p className="text-xs text-muted-foreground truncate" title={status.lastAction}>{status.lastAction}</p>}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1 shrink-0 ml-auto">
-          <button onClick={() => togglePanel("fills")} className={`h-8 w-8 flex items-center justify-center rounded-md transition-colors ${panel === "fills" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} title="Fill history">
-            <CheckCircle2 className="w-4 h-4" />
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button onClick={() => togglePanel("fills")} className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${panel === "fills" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} title="Fill history">
+            <CheckCircle2 className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => togglePanel("logs")} className={`h-8 w-8 flex items-center justify-center rounded-md transition-colors ${panel === "logs" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} title="Activity log">
-            {panel === "logs" ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          <button onClick={() => togglePanel("logs")} className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${panel === "logs" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} title="Activity log">
+            {panel === "logs" ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={() => onEdit(bot)} disabled={status.running || isBusy} className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed" title="Edit config">
-            <Settings2 className="w-4 h-4" />
+          <button onClick={() => onEdit(bot)} disabled={status.running || isBusy} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed" title="Edit config">
+            <Settings2 className="w-3.5 h-3.5" />
           </button>
-          <button onClick={handleDelete} disabled={isBusy} className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40" title="Hapus bot">
-            {deleteBot.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+          <button onClick={handleDelete} disabled={isBusy} className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-40" title="Hapus bot">
+            {deleteBot.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
           </button>
-          {status.running ? (
-            <Button onClick={handleStop} disabled={isBusy} variant="destructive" size="sm" className="ml-1 min-w-[76px] font-semibold">
-              {stopBot.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Square className="w-3 h-3 mr-1.5 fill-current" />}Stop
-            </Button>
-          ) : (
-            <Button onClick={handleStart} disabled={isBusy} size="sm" className="ml-1 min-w-[76px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
-              {startBot.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Play className="w-3 h-3 mr-1.5 fill-current" />}Start
-            </Button>
-          )}
         </div>
       </div>
 
+      {/* Status chip */}
+      <div className="px-4 pb-3">
+        <PositionChip bot={bot} />
+      </div>
+
+      {/* Stats grid */}
+      <div className="px-4 pb-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border/40 pt-3">
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Order</p>
+          <p className="font-mono text-sm font-bold text-primary leading-tight">{status.currentOrderPrice ?? "—"}</p>
+          <p className="font-mono text-xs text-muted-foreground">× {status.currentOrderVolume ?? config.orderSize}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Top Bid</p>
+          <p className="font-mono text-sm font-bold text-emerald-400 leading-tight">{status.topBidPrice ?? "—"}</p>
+          <p className="font-mono text-xs text-muted-foreground">max {config.maxBidPrice}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Siklus</p>
+          <p className="font-mono text-sm font-semibold leading-tight">{status.cycleCount}</p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Terkunci</p>
+          <p className="font-mono text-sm font-semibold text-amber-400/80 leading-tight">{lockedUsd != null ? `~$${lockedUsd}` : "—"}</p>
+        </div>
+      </div>
+
+      {/* Last action */}
+      {status.lastAction && (
+        <div className="px-4 pb-3">
+          <p className="text-[10px] text-muted-foreground truncate" title={status.lastAction}>{status.lastAction}</p>
+        </div>
+      )}
+
+      {/* Badges row */}
+      {(config.oneShotMode || cb) && (
+        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+          {config.oneShotMode && <span className="px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/40 text-[11px] font-semibold">🎯 one-shot</span>}
+          {cb && <span className="px-2 py-0.5 rounded-md bg-red-500/15 text-red-300 border border-red-500/40 text-[11px] font-semibold">🔌 {status.consecutiveErrors} err</span>}
+        </div>
+      )}
+
       {/* Circuit breaker banner */}
       {cb && (
-        <div className="flex items-center gap-2.5 px-4 py-2 bg-red-950/30 border-t border-red-700/30 text-xs text-red-300">
-          <ShieldAlert className="w-4 h-4 shrink-0 text-red-400" />
-          <span>
-            🔌 Circuit breaker aktif — <span className="font-semibold">{status.consecutiveErrors} error berturut-turut</span>. Bot dihentikan otomatis. Start ulang setelah masalah teratasi.
-          </span>
+        <div className="flex items-start gap-2 px-4 py-2 bg-red-950/30 border-t border-red-700/30 text-xs text-red-300">
+          <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5 text-red-400" />
+          <span>Circuit breaker aktif — <span className="font-semibold">{status.consecutiveErrors}x error</span>. Start ulang setelah masalah teratasi.</span>
         </div>
       )}
 
       {/* Max-price paused banner */}
       {paused && !cb && (
-        <div className="flex items-center gap-2.5 px-4 py-2 bg-orange-950/30 border-t border-orange-700/30 text-xs text-orange-300">
-          <span className="text-base leading-none">⏸</span>
-          <span>Bot di-pause — target harga melebihi <span className="font-mono font-semibold">{config.maxBidPrice}</span>. Naikkan Max Bid Price atau tunggu harga pasar turun.</span>
+        <div className="flex items-start gap-2 px-4 py-2 bg-orange-950/30 border-t border-orange-700/30 text-xs text-orange-300">
+          <span className="shrink-0 mt-0.5">⏸</span>
+          <span>Pause — target melebihi <span className="font-mono font-semibold">{config.maxBidPrice}</span>.</span>
         </div>
       )}
 
@@ -563,6 +555,19 @@ function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) 
           <BotLogList botId={id} />
         </div>
       )}
+
+      {/* Start / Stop — full-width footer */}
+      <div className="mt-auto border-t border-border/40 px-4 py-3">
+        {status.running ? (
+          <Button onClick={handleStop} disabled={isBusy} variant="destructive" size="sm" className="w-full font-semibold">
+            {stopBot.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Square className="w-3 h-3 mr-1.5 fill-current" />}Stop
+          </Button>
+        ) : (
+          <Button onClick={handleStart} disabled={isBusy} size="sm" className="w-full font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
+            {startBot.isPending ? <Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> : <Play className="w-3 h-3 mr-1.5 fill-current" />}Start
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -707,7 +712,7 @@ export default function Dashboard() {
 
       {/* Bot list */}
       {isLoading ? (
-        <div className="space-y-3">{[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-56 w-full rounded-xl" />)}</div>
       ) : !bots?.length ? (
         <div className="flex flex-col items-center justify-center py-24 text-center space-y-4 border border-dashed border-border rounded-xl">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -720,7 +725,7 @@ export default function Dashboard() {
           <Button onClick={openAdd}><Plus className="w-4 h-4 mr-2" /> Add Bot</Button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {[...bots].sort((a, b) => {
             const score = (bot: typeof a) => {
               if (bot.status.running && !bot.status.circuitBreakerTripped) return 0;
@@ -728,7 +733,7 @@ export default function Dashboard() {
               return 1;
             };
             return score(a) - score(b);
-          }).map((bot) => <BotRow key={bot.id} bot={bot} onEdit={openEdit} />)}
+          }).map((bot) => <BotCard key={bot.id} bot={bot} onEdit={openEdit} />)}
         </div>
       )}
 
