@@ -326,22 +326,35 @@ export class KrakenBot {
       if (this.currentOrderId) {
         const orderStatus = await this.checkOrderOpen(this.currentOrderId);
         if (!orderStatus.isOpen) {
-          const filledOrderId = this.currentOrderId;
-          const filledPrice = this.currentOrderPrice ?? "0";
-          const filledVolume = this.currentOrderVolume ?? this.config.orderSize;
+          if (orderStatus.reason === "filled") {
+            const filledOrderId = this.currentOrderId;
+            const filledPrice = this.currentOrderPrice ?? "0";
+            const filledVolume = this.currentOrderVolume ?? this.config.orderSize;
 
-          this.addLog("success", `Order ${filledOrderId} was filled!`, { price: filledPrice });
-          this.recordFill(filledOrderId, filledPrice, filledVolume);
+            this.addLog("success", `Order ${filledOrderId} was filled!`, { price: filledPrice });
+            this.recordFill(filledOrderId, filledPrice, filledVolume);
 
-          this.currentOrderId = null;
-          this.currentOrderPrice = null;
-          this.currentOrderVolume = null;
+            this.currentOrderId = null;
+            this.currentOrderPrice = null;
+            this.currentOrderVolume = null;
 
-          if (this.config.oneShotMode) {
-            this.addLog("info", "One-shot mode: bot stopped after fill.");
-            this.setLastAction("Stopped — order filled (one-shot mode)");
-            this.stop();
-            return;
+            if (this.config.oneShotMode) {
+              this.addLog("info", "One-shot mode: bot stopped after fill.");
+              this.setLastAction("Stopped — order filled (one-shot mode)");
+              this.stop();
+              return;
+            }
+          } else {
+            // Order was canceled, expired, or not found — NOT a fill.
+            // Clear tracking state and let the next cycle re-place the order.
+            const reasonLabel =
+              orderStatus.reason === "canceled" ? "dibatalkan Kraken" :
+              orderStatus.reason === "expired"  ? "expired di Kraken" :
+                                                  "tidak ditemukan di Kraken";
+            this.addLog("warn", `Order ${this.currentOrderId} ${reasonLabel} — akan re-place di siklus berikutnya`);
+            this.currentOrderId = null;
+            this.currentOrderPrice = null;
+            this.currentOrderVolume = null;
           }
         } else {
           const myPrice = parseFloat(this.currentOrderPrice ?? "0");
@@ -413,6 +426,10 @@ export class KrakenBot {
       this.consecutiveErrors = 0;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      if (/insufficient funds/i.test(msg)) {
+        this.addLog("warn", `Saldo ZUSD tidak cukup — siklus dilewati. Cek saldo akun Kraken.`);
+        return;
+      }
       this.addLog("error", `Cycle error: ${msg}`);
       this.consecutiveErrors++;
       const maxErrors = this.config.maxConsecutiveErrors ?? 5;
@@ -496,21 +513,26 @@ export class KrakenBot {
     }
   }
 
-  private async checkOrderOpen(orderId: string): Promise<{ isOpen: boolean }> {
+  private async checkOrderOpen(
+    orderId: string
+  ): Promise<{ isOpen: true } | { isOpen: false; reason: "filled" | "canceled" | "expired" | "unknown" }> {
     try {
       const resp: any = await krakenRateLimiter.enqueue(
         () => (sharedClient as any).api("QueryOrders", { txid: orderId, trades: false }),
         `QueryOrders(${orderId})`
       );
       const order = resp.result?.[orderId];
-      if (!order) return { isOpen: false };
-      return { isOpen: ["open", "pending"].includes(order.status) };
+      if (!order) return { isOpen: false, reason: "unknown" };
+      if (["open", "pending"].includes(order.status)) return { isOpen: true };
+      if (order.status === "canceled") return { isOpen: false, reason: "canceled" };
+      if (order.status === "expired") return { isOpen: false, reason: "expired" };
+      // "closed" = fully or partially filled
+      return { isOpen: false, reason: "filled" };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/unknown order/i.test(msg)) {
-        // Order no longer exists on Kraken (filled or externally cancelled)
-        this.addLog("info", `Order ${orderId} not found on Kraken — treated as closed`);
-        return { isOpen: false };
+        this.addLog("info", `Order ${orderId} not found on Kraken — assumed cancelled`);
+        return { isOpen: false, reason: "unknown" };
       }
       throw err;
     }
