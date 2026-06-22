@@ -3,8 +3,8 @@ import { logger } from "./logger";
 import { xtRateLimiter } from "./xtRateLimiter";
 
 const BASE_URL = "https://sapi.xt.com";
-const ACCOUNT_BASE_URL = "https://api.xt.com";
 
+/** Legacy signing for sapi.xt.com (spot trading endpoints) */
 function signMessage(secret: string, timestamp: number, params: Record<string, string>): string {
   const sortedPairs = Object.keys(params)
     .sort()
@@ -13,6 +13,52 @@ function signMessage(secret: string, timestamp: number, params: Record<string, s
   const message = sortedPairs
     ? `request_time=${timestamp}&${sortedPairs}`
     : `request_time=${timestamp}`;
+  return createHmac("sha256", secret).update(message).digest("hex");
+}
+
+/**
+ * New signing for api.xt.com (account/user center endpoints).
+ * Format: {sorted_headers}#{METHOD}#{path}[#{query}][#{body}]
+ * Docs: https://doc.xt.com/docs/user-center/Access%20Description/SignatureGeneration
+ */
+function signMessageAccount(
+  apiKey: string,
+  secret: string,
+  method: string,
+  path: string,
+  timestamp: number,
+  queryParams: Record<string, string> = {},
+  bodyJson?: string
+): string {
+  const recvWindow = "5000";
+  const algorithm = "HmacSHA256";
+
+  // Header part (X): sorted alphabetically by key, joined with &
+  const headerPart = [
+    `validate-algorithms=${algorithm}`,
+    `validate-appkey=${apiKey}`,
+    `validate-recvwindow=${recvWindow}`,
+    `validate-timestamp=${timestamp}`,
+  ].join("&");
+
+  // Data part (Y): #METHOD#path + optional #query + optional #body
+  let dataPart = `#${method.toUpperCase()}#${path}`;
+
+  const hasQuery = Object.keys(queryParams).length > 0;
+  const hasBody = bodyJson && bodyJson !== "{}";
+
+  if (hasQuery) {
+    const sortedQuery = Object.keys(queryParams)
+      .sort()
+      .map((k) => `${k}=${queryParams[k]!}`)
+      .join("&");
+    dataPart += `#${sortedQuery}`;
+  }
+  if (hasBody) {
+    dataPart += `#${bodyJson}`;
+  }
+
+  const message = headerPart + dataPart;
   return createHmac("sha256", secret).update(message).digest("hex");
 }
 
@@ -135,6 +181,79 @@ export class XtClient {
     );
   }
 
+  /**
+   * Signed request to api.xt.com (user center / account endpoints).
+   * Uses the validate-* header scheme and the new signature format.
+   */
+  private async rawRequestAccount<T>(
+    method: "GET" | "POST" | "DELETE",
+    path: string,
+    queryParams: Record<string, string> = {},
+    bodyParams: Record<string, unknown> = {}
+  ): Promise<T> {
+    const timestamp = Date.now();
+    const bodyJson = method !== "GET" && Object.keys(bodyParams).length > 0
+      ? JSON.stringify(bodyParams)
+      : undefined;
+
+    const signature = signMessageAccount(
+      this.apiKey,
+      this.apiSecret,
+      method,
+      path,
+      timestamp,
+      queryParams,
+      bodyJson
+    );
+
+    const headers: Record<string, string> = {
+      "validate-algorithms": "HmacSHA256",
+      "validate-appkey": this.apiKey,
+      "validate-recvwindow": "5000",
+      "validate-timestamp": String(timestamp),
+      "validate-signature": signature,
+      "Content-Type": "application/json",
+    };
+
+    let url = `${BASE_URL}${path}`;
+    if (Object.keys(queryParams).length > 0) {
+      url += `?${new URLSearchParams(queryParams).toString()}`;
+    }
+
+    const resp = await fetch(url, {
+      method,
+      headers,
+      body: bodyJson,
+    });
+
+    const text = await resp.text();
+    let json: any;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      throw new Error(`XT Account API non-JSON response (${resp.status}): ${text.slice(0, 200)}`);
+    }
+
+    if (!resp.ok || (json.rc !== undefined && json.rc !== 0)) {
+      const msg = json.mc ?? json.msg ?? text.slice(0, 200);
+      throw new Error(`XT API error (rc=${json.rc ?? resp.status}): ${msg}`);
+    }
+
+    return json.result as T;
+  }
+
+  private requestAccount<T>(
+    method: "GET" | "POST" | "DELETE",
+    path: string,
+    queryParams?: Record<string, string>,
+    bodyParams?: Record<string, unknown>
+  ): Promise<T> {
+    return xtRateLimiter.enqueue(
+      () => this.rawRequestAccount<T>(method, path, queryParams, bodyParams),
+      `ACCOUNT ${method} ${path}`
+    );
+  }
+
   async placeOrder(symbol: string, price: string, quantity: string): Promise<string> {
     const result = await this.request<{ orderId: string }>(
       "POST",
@@ -229,12 +348,9 @@ export class XtClient {
    */
   async getBalance(): Promise<Array<{ currency: string; available: string; frozen: string }>> {
     type RawAsset = { currency?: string; asset?: string; availableAmount?: string; available?: string; frozenAmount?: string; frozen?: string };
-    const result = await this.request<{ assets?: RawAsset[] } | RawAsset[]>(
+    const result = await this.requestAccount<{ assets?: RawAsset[] } | RawAsset[]>(
       "GET",
-      "/v4/user/balance",
-      {},
-      {},
-      ACCOUNT_BASE_URL
+      "/v4/balances"
     );
     const assets: RawAsset[] = Array.isArray(result)
       ? result
