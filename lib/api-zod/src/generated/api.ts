@@ -318,6 +318,27 @@ export const GetAllLogsResponse = zod.array(GetAllLogsResponseItem)
 
 
 /**
+ * @summary Get fill history for all bots
+ */
+export const getAllFillsQueryLimitDefault = 200;
+
+export const GetAllFillsQueryParams = zod.object({
+  "limit": zod.coerce.number().default(getAllFillsQueryLimitDefault)
+})
+
+export const GetAllFillsResponseItem = zod.object({
+  "id": zod.number(),
+  "botId": zod.string().optional(),
+  "pair": zod.string(),
+  "orderId": zod.string(),
+  "price": zod.string(),
+  "volume": zod.string(),
+  "timestamp": zod.string()
+})
+export const GetAllFillsResponse = zod.array(GetAllFillsResponseItem)
+
+
+/**
  * @summary Get fill history for a bot
  */
 export const GetBotFillsParams = zod.object({
@@ -332,6 +353,7 @@ export const GetBotFillsQueryParams = zod.object({
 
 export const GetBotFillsResponseItem = zod.object({
   "id": zod.number(),
+  "botId": zod.string().optional(),
   "pair": zod.string(),
   "orderId": zod.string(),
   "price": zod.string(),

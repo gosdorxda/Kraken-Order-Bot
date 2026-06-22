@@ -316,6 +316,27 @@ paths:
                 items:
                   $ref: "#/components/schemas/LogEntry"
 
+  /bots/fills:
+    get:
+      operationId: getAllFills
+      tags: [bots]
+      summary: Get fill history for all bots
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 200
+      responses:
+        "200":
+          description: Fill records from all bots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FillRecord"
+
   /bots/{botId}/fills:
     get:
       operationId: getBotFills
@@ -662,6 +683,8 @@ components:
       properties:
         id:
           type: integer
+        botId:
+          type: string
         pair:
           type: string
         orderId:

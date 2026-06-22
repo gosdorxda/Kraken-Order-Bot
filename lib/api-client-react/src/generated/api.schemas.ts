@@ -136,6 +136,7 @@ export interface MarketTicker {
 
 export interface FillRecord {
   id: number;
+  botId?: string;
   pair: string;
   orderId: string;
   price: string;
@@ -177,6 +178,10 @@ limit?: number;
 };
 
 export type GetAllLogsParams = {
+limit?: number;
+};
+
+export type GetAllFillsParams = {
 limit?: number;
 };
 

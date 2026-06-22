@@ -26,6 +26,7 @@ import type {
   BotLog,
   ErrorResponse,
   FillRecord,
+  GetAllFillsParams,
   GetAllLogsParams,
   GetBotFillsParams,
   GetBotLogsParams,
@@ -1022,6 +1023,90 @@ export function useGetAllLogs<TData = Awaited<ReturnType<typeof getAllLogs>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetAllLogsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAllFillsUrl = (params?: GetAllFillsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/bots/fills?${stringifiedParams}` : `/api/bots/fills`
+}
+
+/**
+ * @summary Get fill history for all bots
+ */
+export const getAllFills = async (params?: GetAllFillsParams, options?: RequestInit): Promise<FillRecord[]> => {
+
+  return customFetch<FillRecord[]>(getGetAllFillsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAllFillsQueryKey = (params?: GetAllFillsParams,) => {
+    return [
+    `/api/bots/fills`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAllFillsQueryOptions = <TData = Awaited<ReturnType<typeof getAllFills>>, TError = ErrorType<unknown>>(params?: GetAllFillsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAllFills>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAllFillsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllFills>>> = ({ signal }) => getAllFills(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAllFills>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAllFillsQueryResult = NonNullable<Awaited<ReturnType<typeof getAllFills>>>
+export type GetAllFillsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get fill history for all bots
+ */
+
+export function useGetAllFills<TData = Awaited<ReturnType<typeof getAllFills>>, TError = ErrorType<unknown>>(
+ params?: GetAllFillsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAllFills>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAllFillsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

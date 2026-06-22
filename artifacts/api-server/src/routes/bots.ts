@@ -14,6 +14,8 @@ import {
   GetBotLogsResponse,
   GetBotFillsQueryParams,
   GetBotFillsResponse,
+  GetAllFillsQueryParams,
+  GetAllFillsResponse,
   GetBotOrderBookResponse,
   GetOrderBookQueryParams,
   GetOrderBookResponse,
@@ -141,6 +143,20 @@ router.get("/bots/:botId/logs", async (req, res): Promise<void> => {
   const qp = GetBotLogsQueryParams.safeParse(req.query);
   const limit = qp.success ? (qp.data.limit ?? 50) : 50;
   res.json(GetBotLogsResponse.parse(bot.getLogs(limit)));
+});
+
+router.get("/bots/fills", async (req, res): Promise<void> => {
+  const qp = GetAllFillsQueryParams.safeParse(req.query);
+  const limit = qp.success ? (qp.data.limit ?? 200) : 200;
+  const allFills = botManager.list()
+    .flatMap(({ id }) => {
+      const bot = botManager.get(id);
+      if (!bot) return [];
+      return bot.getFills(limit).map((f) => ({ ...f, botId: id }));
+    })
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .slice(0, limit);
+  res.json(GetAllFillsResponse.parse(allFills));
 });
 
 router.get("/bots/:botId/fills", async (req, res): Promise<void> => {
