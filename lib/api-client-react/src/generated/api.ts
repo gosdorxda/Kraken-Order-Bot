@@ -40,6 +40,8 @@ import type {
   MarketTicker,
   OrderBook,
   ServerInfo,
+  TelegramSettings,
+  TelegramSettingsInput,
   VerifyResponse
 } from './api.schemas';
 
@@ -1671,6 +1673,154 @@ export const useUpdateSettings = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getUpdateSettingsMutationOptions(options));
+    }
+
+export const getGetTelegramSettingsUrl = () => {
+
+
+
+
+  return `/api/telegram/settings`
+}
+
+/**
+ * @summary Get Telegram notification event settings
+ */
+export const getTelegramSettings = async ( options?: RequestInit): Promise<TelegramSettings> => {
+
+  return customFetch<TelegramSettings>(getGetTelegramSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTelegramSettingsQueryKey = () => {
+    return [
+    `/api/telegram/settings`
+    ] as const;
+    }
+
+
+export const getGetTelegramSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getTelegramSettings>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTelegramSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTelegramSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTelegramSettings>>> = ({ signal }) => getTelegramSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTelegramSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTelegramSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getTelegramSettings>>>
+export type GetTelegramSettingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get Telegram notification event settings
+ */
+
+export function useGetTelegramSettings<TData = Awaited<ReturnType<typeof getTelegramSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTelegramSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTelegramSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateTelegramSettingsUrl = () => {
+
+
+
+
+  return `/api/telegram/settings`
+}
+
+/**
+ * @summary Update Telegram notification event settings
+ */
+export const updateTelegramSettings = async (telegramSettingsInput: TelegramSettingsInput, options?: RequestInit): Promise<TelegramSettings> => {
+
+  return customFetch<TelegramSettings>(getUpdateTelegramSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      telegramSettingsInput,)
+  }
+);}
+
+
+
+
+export const getUpdateTelegramSettingsMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTelegramSettings>>, TError,{data: BodyType<TelegramSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTelegramSettings>>, TError,{data: BodyType<TelegramSettingsInput>}, TContext> => {
+
+const mutationKey = ['updateTelegramSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTelegramSettings>>, {data: BodyType<TelegramSettingsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateTelegramSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTelegramSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateTelegramSettings>>>
+    export type UpdateTelegramSettingsMutationBody = BodyType<TelegramSettingsInput>
+    export type UpdateTelegramSettingsMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update Telegram notification event settings
+ */
+export const useUpdateTelegramSettings = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTelegramSettings>>, TError,{data: BodyType<TelegramSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateTelegramSettings>>,
+        TError,
+        {data: BodyType<TelegramSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateTelegramSettingsMutationOptions(options));
     }
 
 export const getGetAccountBalanceUrl = () => {

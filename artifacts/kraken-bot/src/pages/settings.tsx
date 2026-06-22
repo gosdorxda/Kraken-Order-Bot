@@ -1,14 +1,19 @@
 import { useState } from "react";
 import {
-  useGetAccountBalance, useGetServerInfo, getGetServerInfoQueryKey,
-  useGetSettings, useUpdateSettings, getGetSettingsQueryKey,
+  useGetAccountBalance,
+  useGetServerInfo,
+  useGetTelegramSettings,
+  useUpdateTelegramSettings,
+  getGetTelegramSettingsQueryKey,
+  getGetServerInfoQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Shield, CheckCircle2, XCircle, Copy, Check, RefreshCw, Loader2, Bell, BellOff } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 function ConnectionPanel() {
@@ -53,25 +58,33 @@ function ConnectionPanel() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-lg border border-border bg-background p-4 space-y-2">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Kraken API</p>
-              <div className="flex items-center gap-2">
-                {info?.krakenConnected ? (
-                  <><CheckCircle2 className="w-4 h-4 text-emerald-400" /><span className="text-sm font-medium text-emerald-400">Connected</span></>
-                ) : (
-                  <><XCircle className="w-4 h-4 text-red-400" /><span className="text-sm font-medium text-red-400">Disconnected</span></>
-                )}
-              </div>
-              {info?.krakenError && <p className="text-[11px] text-red-400 font-mono break-all">{info.krakenError}</p>}
+              {info?.krakenConnected ? (
+                <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
+                  <CheckCircle2 className="w-4 h-4" /> Connected
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-red-400 font-medium text-sm">
+                  <XCircle className="w-4 h-4" /> Disconnected
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                {info?.krakenConnected ? "API key is valid and authenticated" : (info?.krakenError ?? "Check API key credentials")}
+              </p>
             </div>
+
             <div className="rounded-lg border border-border bg-background p-4 space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Server IP</p>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm text-foreground">{info?.publicIp ?? "—"}</span>
-                {info?.publicIp && (
-                  <button onClick={copyIp} className="text-muted-foreground hover:text-foreground transition-colors">
-                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                )}
-              </div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Server Public IP</p>
+              {info?.publicIp ? (
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm font-bold">{info.publicIp}</span>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={copyIp}>
+                    {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                  </Button>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">{info?.ipError ?? "Unknown"}</span>
+              )}
+              <p className="text-[11px] text-muted-foreground">Add this IP to your Kraken API key whitelist</p>
             </div>
           </div>
         )}
@@ -99,88 +112,120 @@ function ConnectionPanel() {
   );
 }
 
-function TelegramPanel() {
+function TelegramNotificationPanel() {
   const queryClient = useQueryClient();
-  const { data: settings, isLoading } = useGetSettings({
-    query: { queryKey: getGetSettingsQueryKey() } as any,
+  const { data, isLoading } = useGetTelegramSettings({
+    query: { queryKey: getGetTelegramSettingsQueryKey() },
   });
-  const { mutate: save, isPending } = useUpdateSettings({
+
+  const mutation = useUpdateTelegramSettings({
     mutation: {
-      onSuccess: (data) => {
-        queryClient.setQueryData(getGetSettingsQueryKey(), data);
+      onSuccess: (updated) => {
+        queryClient.setQueryData(getGetTelegramSettingsQueryKey(), updated);
         toast.success("Pengaturan notifikasi disimpan");
       },
-      onError: () => toast.error("Gagal menyimpan pengaturan"),
+      onError: () => {
+        toast.error("Gagal menyimpan pengaturan notifikasi");
+      },
     },
   });
 
-  const hasToken = !!(
-    typeof window !== "undefined" &&
-    (window as any).__telegramConfigured !== false
-  );
-
-  const toggle = (key: "fill" | "circuitBreaker" | "botStartStop", value: boolean) => {
-    if (!settings) return;
-    save({
+  const handleToggle = (field: "notifyOnFill" | "notifyOnCircuitBreaker" | "notifyOnStartStop", value: boolean) => {
+    if (!data) return;
+    mutation.mutate({
       data: {
-        telegramNotifications: {
-          ...settings.telegramNotifications,
-          [key]: value,
-        },
+        notifyOnFill: field === "notifyOnFill" ? value : data.notifyOnFill,
+        notifyOnCircuitBreaker: field === "notifyOnCircuitBreaker" ? value : data.notifyOnCircuitBreaker,
+        notifyOnStartStop: field === "notifyOnStartStop" ? value : data.notifyOnStartStop,
       },
     });
   };
 
-  const notif = settings?.telegramNotifications;
+  const isConfigured = data?.configured ?? false;
+  const isPending = mutation.isPending;
 
-  const rows: { key: "fill" | "circuitBreaker" | "botStartStop"; label: string; desc: string; emoji: string }[] = [
-    { key: "fill",           label: "Order terisi",       desc: "Kirim notif setiap kali order buy berhasil diisi", emoji: "✅" },
-    { key: "circuitBreaker", label: "Circuit breaker",    desc: "Kirim notif saat bot berhenti karena terlalu banyak error", emoji: "🚨" },
-    { key: "botStartStop",   label: "Bot start / stop",   desc: "Kirim notif saat bot dimulai atau dihentikan secara manual", emoji: "▶️" },
+  const events: {
+    key: "notifyOnFill" | "notifyOnCircuitBreaker" | "notifyOnStartStop";
+    icon: string;
+    label: string;
+    description: string;
+  }[] = [
+    {
+      key: "notifyOnFill",
+      icon: "✅",
+      label: "Order terisi",
+      description: "Notifikasi saat order beli berhasil dieksekusi",
+    },
+    {
+      key: "notifyOnCircuitBreaker",
+      icon: "🚨",
+      label: "Circuit breaker trip",
+      description: "Notifikasi saat bot berhenti karena terlalu banyak error",
+    },
+    {
+      key: "notifyOnStartStop",
+      icon: "▶️",
+      label: "Bot start / stop manual",
+      description: "Notifikasi saat bot dinyalakan atau dimatikan secara manual",
+    },
   ];
 
   return (
     <Card className="bg-card border-border">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <Bell className="w-4 h-4" /> Notifikasi Telegram
+          {isConfigured ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+          Notifikasi Telegram
         </CardTitle>
         <CardDescription className="text-xs">
-          Pilih event yang akan dikirim ke Telegram. Token dikonfigurasi via environment secrets.
+          Pilih event mana yang akan mengirim notifikasi ke Telegram.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {!hasToken && (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
-            <BellOff className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-amber-300">
-              <strong>TELEGRAM_BOT_TOKEN</strong> dan <strong>TELEGRAM_CHAT_ID</strong> belum dikonfigurasi di Secrets.
-              Notifikasi tidak akan dikirim sampai keduanya diset.
-            </p>
+      <CardContent className="space-y-4">
+        {!isConfigured && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-400 flex items-start gap-2">
+            <span className="shrink-0 mt-0.5">ℹ️</span>
+            <span>
+              Token Telegram belum dikonfigurasi. Set environment variable <code className="font-mono bg-amber-500/20 px-1 rounded">TELEGRAM_BOT_TOKEN</code> dan{" "}
+              <code className="font-mono bg-amber-500/20 px-1 rounded">TELEGRAM_CHAT_ID</code> untuk mengaktifkan notifikasi.
+            </span>
           </div>
         )}
 
         {isLoading ? (
           <div className="space-y-3">
-            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
           </div>
         ) : (
-          <div className="divide-y divide-border/40">
-            {rows.map(({ key, label, desc, emoji }) => (
-              <div key={key} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+          <div className="space-y-3">
+            {events.map(({ key, icon, label, description }) => (
+              <div
+                key={key}
+                className={`flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3 gap-4 ${!isConfigured ? "opacity-50 pointer-events-none" : ""}`}
+              >
                 <div className="space-y-0.5">
-                  <p className="text-sm font-medium flex items-center gap-1.5">
-                    <span>{emoji}</span> {label}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{desc}</p>
+                  <Label htmlFor={key} className="text-sm font-medium flex items-center gap-1.5 cursor-pointer">
+                    <span>{icon}</span> {label}
+                  </Label>
+                  <p className="text-[11px] text-muted-foreground">{description}</p>
                 </div>
                 <Switch
-                  checked={notif?.[key] ?? false}
-                  onCheckedChange={(v) => toggle(key, v)}
-                  disabled={isPending}
+                  id={key}
+                  checked={data?.[key] ?? false}
+                  onCheckedChange={(checked) => handleToggle(key, checked)}
+                  disabled={!isConfigured || isPending}
                 />
               </div>
             ))}
+          </div>
+        )}
+
+        {isPending && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Menyimpan...
           </div>
         )}
       </CardContent>
@@ -200,7 +245,7 @@ export default function Settings() {
 
       <ConnectionPanel />
 
-      <TelegramPanel />
+      <TelegramNotificationPanel />
 
       {/* Account balances */}
       <Card className="bg-card border-border">

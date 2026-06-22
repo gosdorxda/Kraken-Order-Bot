@@ -1,7 +1,7 @@
 import KrakenClient from "kraken-api";
 import { logger } from "./logger";
 import { krakenRateLimiter } from "./krakenRateLimiter";
-import { sendTelegramNotification } from "./telegram.js";
+import { sendTelegramEvent } from "./telegram.js";
 
 export interface BotConfig {
   pair: string;
@@ -266,13 +266,13 @@ export class KrakenBot {
     this.currentOrderPrice = null;
     this.currentOrderVolume = null;
     this.addLog("info", `Bot started for pair ${this.config.pair}`, { config: this.config });
-    void sendTelegramNotification(`▶️ [${this.id}] Bot dimulai untuk pair ${this.config.pair}`, "botStartStop");
+    void sendTelegramEvent("startStop", `▶️ <b>[${this.id}]</b> Bot dimulai untuk pair <b>${this.config.pair}</b>`);
     await this.cancelStaleOpenOrders();
     this.intervalHandle = setInterval(() => {
       this.runCycle().catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         this.addLog("error", "Cycle error (fatal)", msg);
-        void sendTelegramNotification(`⚠️ [${this.id}] Bot berhenti karena error tak terduga:\n${msg}`, "circuitBreaker");
+        void sendTelegramEvent("circuitBreaker", `⚠️ <b>[${this.id}]</b> Bot berhenti karena error tak terduga:\n${msg}`);
         this.stop();
       });
     }, this.config.checkIntervalMs);
@@ -298,7 +298,7 @@ export class KrakenBot {
     this.topBidOwner = "none";
     this.topBidPrice = null;
     this.addLog("info", "Bot stopped");
-    void sendTelegramNotification(`⏹️ [${this.id}] Bot dihentikan`, "botStartStop");
+    void sendTelegramEvent("startStop", `⏹️ <b>[${this.id}]</b> Bot dihentikan untuk pair <b>${this.config.pair}</b>`);
     this.onPersist?.();
   }
 
@@ -437,9 +437,9 @@ export class KrakenBot {
         this.circuitBreakerTripped = true;
         this.addLog("error", `🔌 Circuit breaker: ${maxErrors} errors in a row. Bot stopped.`);
         this.setLastAction(`Circuit breaker tripped after ${maxErrors} errors`);
-        void sendTelegramNotification(
-          `🚨 [${this.id}] Circuit breaker aktif — ${maxErrors} error berturut-turut. Bot berhenti.\n\nError terakhir: ${msg}`,
-          "circuitBreaker"
+        void sendTelegramEvent(
+          "circuitBreaker",
+          `🚨 <b>[${this.id}]</b> Circuit breaker aktif — ${maxErrors} error berturut-turut. Bot berhenti.\n\nError terakhir: ${msg}`
         );
         this.stop();
       }
@@ -462,9 +462,9 @@ export class KrakenBot {
     this.onPersist?.();
 
     const nilai = (parseFloat(price) * parseFloat(volume)).toFixed(2);
-    void sendTelegramNotification(
-      `✅ [${this.id}] Order terisi — ${volume} ${this.config.pair.replace(/^X|ZUSD$|USD$/g, "")} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`,
-      "fill"
+    void sendTelegramEvent(
+      "fill",
+      `✅ <b>[${this.id}]</b> Order terisi — ${volume} ${this.config.pair.replace(/^X|ZUSD$|USD$/g, "")} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
     );
   }
 

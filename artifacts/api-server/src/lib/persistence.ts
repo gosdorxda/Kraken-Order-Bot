@@ -1,5 +1,6 @@
 import { Storage } from "@google-cloud/storage";
 import type { BotConfig, FillRecord, BotLog } from "./krakenBot.js";
+import type { TelegramEventConfig } from "./telegram.js";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 const BOTS_OBJECT_NAME = "bots.json";
@@ -38,27 +39,47 @@ export interface PersistedBot {
   logIdCounter: number;
 }
 
-export async function loadPersistedBots(): Promise<PersistedBot[]> {
+export interface PersistedState {
+  bots: PersistedBot[];
+  telegramSettings?: TelegramEventConfig;
+}
+
+export async function loadPersistedState(): Promise<PersistedState> {
   try {
     const file = getBucket().file(BOTS_OBJECT_NAME);
     const [exists] = await file.exists();
-    if (!exists) return [];
+    if (!exists) return { bots: [] };
     const [contents] = await file.download();
-    const parsed = JSON.parse(contents.toString("utf-8")) as { bots?: PersistedBot[] };
-    return Array.isArray(parsed.bots) ? parsed.bots : [];
+    const parsed = JSON.parse(contents.toString("utf-8")) as {
+      bots?: PersistedBot[];
+      telegramSettings?: TelegramEventConfig;
+    };
+    return {
+      bots: Array.isArray(parsed.bots) ? parsed.bots : [],
+      telegramSettings: parsed.telegramSettings,
+    };
   } catch {
-    process.stderr.write("[persistence] Failed to load bots from object storage\n");
-    return [];
+    process.stderr.write("[persistence] Failed to load state from object storage\n");
+    return { bots: [] };
   }
 }
 
-export async function savePersistedBots(bots: PersistedBot[]): Promise<void> {
+export async function savePersistedState(state: PersistedState): Promise<void> {
   try {
     const file = getBucket().file(BOTS_OBJECT_NAME);
-    await file.save(JSON.stringify({ bots }, null, 2), {
+    await file.save(JSON.stringify(state, null, 2), {
       contentType: "application/json",
     });
   } catch {
-    process.stderr.write("[persistence] Failed to save bots to object storage\n");
+    process.stderr.write("[persistence] Failed to save state to object storage\n");
   }
+}
+
+export async function loadPersistedBots(): Promise<PersistedBot[]> {
+  const state = await loadPersistedState();
+  return state.bots;
+}
+
+export async function savePersistedBots(bots: PersistedBot[]): Promise<void> {
+  await savePersistedState({ bots });
 }

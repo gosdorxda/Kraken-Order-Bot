@@ -1,5 +1,6 @@
 import { KrakenBot, type BotConfig } from "./krakenBot";
-import { loadPersistedBots, savePersistedBots } from "./persistence";
+import { loadPersistedState, savePersistedState } from "./persistence";
+import { getTelegramEventConfig, setTelegramEventConfig, type TelegramEventConfig } from "./telegram";
 import { logger } from "./logger";
 
 export interface BotInstanceData {
@@ -12,8 +13,13 @@ class BotManager {
   private bots = new Map<string, KrakenBot>();
 
   async initialize(): Promise<void> {
-    const persisted = await loadPersistedBots();
-    for (const p of persisted) {
+    const state = await loadPersistedState();
+
+    if (state.telegramSettings) {
+      setTelegramEventConfig(state.telegramSettings);
+    }
+
+    for (const p of state.bots) {
       try {
         const config: BotConfig = {
           ...p.config,
@@ -41,7 +47,7 @@ class BotManager {
   }
 
   persist(): void {
-    const data = Array.from(this.bots.entries()).map(([id, bot]) => ({
+    const bots = Array.from(this.bots.entries()).map(([id, bot]) => ({
       id,
       config: bot.getConfig(),
       running: bot.getStatus().running,
@@ -50,9 +56,18 @@ class BotManager {
       logs: bot.getLogs(500),
       logIdCounter: bot.getLogIdCounter(),
     }));
-    savePersistedBots(data).catch((err: unknown) => {
-      process.stderr.write(`[persistence] savePersistedBots error: ${String(err)}\n`);
+    savePersistedState({ bots, telegramSettings: getTelegramEventConfig() }).catch((err: unknown) => {
+      process.stderr.write(`[persistence] savePersistedState error: ${String(err)}\n`);
     });
+  }
+
+  getTelegramSettings(): TelegramEventConfig {
+    return getTelegramEventConfig();
+  }
+
+  updateTelegramSettings(config: TelegramEventConfig): void {
+    setTelegramEventConfig(config);
+    this.persist();
   }
 
   list(): BotInstanceData[] {

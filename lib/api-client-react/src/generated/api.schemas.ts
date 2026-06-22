@@ -187,6 +187,19 @@ export interface AssetBalance {
   free?: string;
 }
 
+export interface TelegramSettings {
+  configured: boolean;
+  notifyOnFill: boolean;
+  notifyOnCircuitBreaker: boolean;
+  notifyOnStartStop: boolean;
+}
+
+export interface TelegramSettingsInput {
+  notifyOnFill: boolean;
+  notifyOnCircuitBreaker: boolean;
+  notifyOnStartStop: boolean;
+}
+
 export type GetBotLogsParams = {
 limit?: number;
 };

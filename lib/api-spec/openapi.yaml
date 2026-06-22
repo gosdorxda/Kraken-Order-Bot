@@ -511,6 +511,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /telegram/settings:
+    get:
+      operationId: getTelegramSettings
+      tags: [bots]
+      summary: Get Telegram notification event settings
+      responses:
+        "200":
+          description: Current Telegram notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramSettings"
+
+    put:
+      operationId: updateTelegramSettings
+      tags: [bots]
+      summary: Update Telegram notification event settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TelegramSettingsInput"
+      responses:
+        "200":
+          description: Updated Telegram notification settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramSettings"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /account/balance:
     get:
       operationId: getAccountBalance
@@ -809,3 +846,27 @@ components:
           type: string
         free:
           type: string
+
+    TelegramSettings:
+      type: object
+      required: [configured, notifyOnFill, notifyOnCircuitBreaker, notifyOnStartStop]
+      properties:
+        configured:
+          type: boolean
+        notifyOnFill:
+          type: boolean
+        notifyOnCircuitBreaker:
+          type: boolean
+        notifyOnStartStop:
+          type: boolean
+
+    TelegramSettingsInput:
+      type: object
+      required: [notifyOnFill, notifyOnCircuitBreaker, notifyOnStartStop]
+      properties:
+        notifyOnFill:
+          type: boolean
+        notifyOnCircuitBreaker:
+          type: boolean
+        notifyOnStartStop:
+          type: boolean

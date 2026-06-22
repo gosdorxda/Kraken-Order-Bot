@@ -478,6 +478,34 @@ export const UpdateSettingsResponse = zod.object({
 
 
 /**
+ * @summary Get Telegram notification event settings
+ */
+export const GetTelegramSettingsResponse = zod.object({
+  "configured": zod.boolean(),
+  "notifyOnFill": zod.boolean(),
+  "notifyOnCircuitBreaker": zod.boolean(),
+  "notifyOnStartStop": zod.boolean()
+})
+
+
+/**
+ * @summary Update Telegram notification event settings
+ */
+export const UpdateTelegramSettingsBody = zod.object({
+  "notifyOnFill": zod.boolean(),
+  "notifyOnCircuitBreaker": zod.boolean(),
+  "notifyOnStartStop": zod.boolean()
+})
+
+export const UpdateTelegramSettingsResponse = zod.object({
+  "configured": zod.boolean(),
+  "notifyOnFill": zod.boolean(),
+  "notifyOnCircuitBreaker": zod.boolean(),
+  "notifyOnStartStop": zod.boolean()
+})
+
+
+/**
  * @summary Get Kraken account balance
  */
 export const GetAccountBalanceResponseItem = zod.object({
