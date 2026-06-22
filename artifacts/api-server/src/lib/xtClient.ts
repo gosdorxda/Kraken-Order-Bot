@@ -101,7 +101,7 @@ export async function fetchXtSymbolPrecision(
     const resp = await fetch(url);
     if (!resp.ok) return { pricePrecision: 8, quantityPrecision: 8 };
     const json = (await resp.json()) as any;
-    const s = json.result;
+    const s = json.result?.symbols?.[0] ?? json.result;
     return {
       pricePrecision: typeof s?.pricePrecision === "number" ? s.pricePrecision : 8,
       quantityPrecision: typeof s?.quantityPrecision === "number" ? s.quantityPrecision : 8,
