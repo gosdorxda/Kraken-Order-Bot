@@ -444,10 +444,7 @@ function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) 
         </div>
 
         {/* Config pills */}
-        <div className="hidden lg:flex flex-wrap gap-2">
-          <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">tick {config.tickSize}</span>
-          <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">sz {config.orderSize}</span>
-          <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">{config.checkIntervalMs}ms</span>
+        <div className="hidden lg:flex flex-wrap gap-2 ml-4">
           <span className="px-2.5 py-1 rounded-md bg-muted border border-border/60 text-xs font-mono text-foreground/70">{status.cycleCount} siklus</span>
           {config.oneShotMode && <span className="px-2.5 py-1 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/40 text-xs font-semibold">🎯 one-shot</span>}
           {cb && <span className="px-2.5 py-1 rounded-md bg-red-500/15 text-red-300 border border-red-500/40 text-xs font-semibold">🔌 {status.consecutiveErrors} err</span>}
