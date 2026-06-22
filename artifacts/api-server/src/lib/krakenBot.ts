@@ -1,6 +1,7 @@
 import KrakenClient from "kraken-api";
 import { logger } from "./logger";
 import { krakenRateLimiter } from "./krakenRateLimiter";
+import { sendTelegramNotification } from "./telegram.js";
 
 export interface BotConfig {
   pair: string;
@@ -414,6 +415,9 @@ export class KrakenBot {
         this.circuitBreakerTripped = true;
         this.addLog("error", `🔌 Circuit breaker: ${maxErrors} errors in a row. Bot stopped.`);
         this.setLastAction(`Circuit breaker tripped after ${maxErrors} errors`);
+        void sendTelegramNotification(
+          `🚨 <b>[${this.id}]</b> Circuit breaker aktif — ${maxErrors} error berturut-turut. Bot berhenti.\n\nError terakhir: ${msg}`
+        );
         this.stop();
       }
     }
@@ -433,6 +437,11 @@ export class KrakenBot {
     this.fills.unshift(fill);
     if (this.fills.length > 500) this.fills = this.fills.slice(0, 500);
     this.onPersist?.();
+
+    const nilai = (parseFloat(price) * parseFloat(volume)).toFixed(2);
+    void sendTelegramNotification(
+      `✅ <b>[${this.id}]</b> Order terisi — ${volume} ${this.config.pair.replace(/^X|ZUSD$|USD$/g, "")} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
+    );
   }
 
   private async calculateVolume(_targetPrice: number): Promise<string> {
