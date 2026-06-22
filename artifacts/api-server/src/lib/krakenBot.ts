@@ -131,6 +131,41 @@ export async function cancelAllOpenBuyOrders(pairs: string[]): Promise<void> {
   }
 }
 
+/**
+ * Emergency: cancel ALL open buy orders on Kraken across ALL pairs.
+ * No pair filter — nuclear option for when the user needs to stop everything.
+ * Returns count of orders cancelled.
+ */
+export async function emergencyCancelAllKrakenBuyOrders(): Promise<{ cancelled: number }> {
+  let cancelled = 0;
+  try {
+    const resp: any = await krakenRateLimiter.enqueue(
+      () => (sharedClient as any).api("OpenOrders", {}),
+      "OpenOrders(emergency)"
+    );
+    const orders: Record<string, any> = resp.result?.open ?? {};
+    const toCancel = Object.entries(orders).filter(([, o]) => o.descr?.type === "buy");
+    if (toCancel.length === 0) return { cancelled: 0 };
+    for (const [txid] of toCancel) {
+      try {
+        await krakenRateLimiter.enqueue(
+          () => (sharedClient as any).api("CancelOrder", { txid }),
+          `CancelOrder(emergency:${txid})`
+        );
+        cancelled++;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!/unknown order/i.test(msg)) {
+          process.stderr.write(`[emergency] Failed to cancel ${txid}: ${msg}\n`);
+        }
+      }
+    }
+  } catch (err) {
+    process.stderr.write(`[emergency] emergencyCancelAllKrakenBuyOrders failed: ${String(err)}\n`);
+  }
+  return { cancelled };
+}
+
 export interface MarketTicker {
   pair: string;
   displayName: string;

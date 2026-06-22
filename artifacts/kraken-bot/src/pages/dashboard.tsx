@@ -30,8 +30,18 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Play, Square, Plus, Trash2, Settings2, AlertCircle, CheckCircle2, Info,
   Loader2, TrendingUp, ArrowUpDown, AlertTriangle, ChevronDown, ChevronUp,
-  ShieldAlert,
+  ShieldAlert, OctagonX,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Config form schema ───────────────────────────────────────────────────────
@@ -560,13 +570,42 @@ export default function Dashboard() {
     query: { refetchInterval: 2000, queryKey: getListBotsQueryKey() },
   });
   const { data: balances } = useGetAccountBalance();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editBot, setEditBot] = useState<BotInstance | null>(null);
+  const [emergencyOpen, setEmergencyOpen] = useState(false);
+  const [emergencyBusy, setEmergencyBusy] = useState(false);
 
   const openAdd = () => { setEditBot(null); setDialogOpen(true); };
   const openEdit = (bot: BotInstance) => { setEditBot(bot); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditBot(null); };
+
+  const handleEmergencyStop = async () => {
+    setEmergencyBusy(true);
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api/emergency-stop`, { method: "POST" });
+      const data = await res.json() as { botsTopped: number; krakenCancelled: number; xtCancelled: number; errors: string[] };
+      queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() });
+      const parts: string[] = [];
+      if (data.botsTopped > 0) parts.push(`${data.botsTopped} bot dihentikan`);
+      if (data.krakenCancelled > 0) parts.push(`${data.krakenCancelled} order Kraken dibatalkan`);
+      if (data.xtCancelled > 0) parts.push(`${data.xtCancelled} pair XT dibersihkan`);
+      toast({
+        title: "Emergency Stop selesai",
+        description: parts.length > 0 ? parts.join(" · ") : "Tidak ada order aktif yang ditemukan",
+      });
+      if (data.errors.length > 0) {
+        toast({ title: "Beberapa error terjadi", description: data.errors.join(", "), variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Gagal menjalankan Emergency Stop", description: "Cek koneksi ke server", variant: "destructive" });
+    } finally {
+      setEmergencyBusy(false);
+      setEmergencyOpen(false);
+    }
+  };
 
   const runningCount = bots?.filter((b) => b.status.running).length ?? 0;
   const pausedCount = bots?.filter(isPausedAtMax).length ?? 0;
@@ -607,6 +646,15 @@ export default function Dashboard() {
               )}
             </div>
           ))}
+          <Button
+            variant="outline"
+            onClick={() => setEmergencyOpen(true)}
+            disabled={emergencyBusy}
+            className="border-red-700 text-red-400 hover:bg-red-950/50 hover:text-red-300 shrink-0"
+          >
+            <OctagonX className="w-4 h-4 mr-1.5" />
+            Stop Semua
+          </Button>
           <Button onClick={openAdd} className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shrink-0">
             <Plus className="w-4 h-4 mr-1.5" /> Add Bot
           </Button>
@@ -641,6 +689,34 @@ export default function Dashboard() {
       )}
 
       <BotDialog open={dialogOpen} onClose={closeDialog} editBot={editBot} />
+
+      <AlertDialog open={emergencyOpen} onOpenChange={setEmergencyOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-400">
+              <OctagonX className="w-5 h-5" /> Emergency Stop
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">Ini akan melakukan <span className="font-semibold text-foreground">dua hal sekaligus</span>:</span>
+              <ul className="list-disc pl-4 space-y-1 text-sm">
+                <li>Menghentikan semua bot yang sedang berjalan</li>
+                <li>Membatalkan semua order beli terbuka di semua exchange (Kraken &amp; XT)</li>
+              </ul>
+              <span className="block mt-2 text-amber-400 text-sm font-medium">Bot tidak dihapus — kamu bisa start ulang kapan saja.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={emergencyBusy}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleEmergencyStop(); }}
+              disabled={emergencyBusy}
+              className="bg-red-700 hover:bg-red-600 text-white"
+            >
+              {emergencyBusy ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Memproses…</> : <><OctagonX className="w-4 h-4 mr-2" /> Ya, Stop Semua</>}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

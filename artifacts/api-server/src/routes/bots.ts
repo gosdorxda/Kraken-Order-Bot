@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { botManager } from "../lib/botManager";
-import { fetchOrderBook, fetchMarket } from "../lib/krakenBot";
-import { fetchXtOrderBook } from "../lib/xtClient";
+import { fetchOrderBook, fetchMarket, emergencyCancelAllKrakenBuyOrders } from "../lib/krakenBot";
+import { fetchXtOrderBook, XtClient } from "../lib/xtClient";
 import { fetchGateMarket } from "../lib/gateMarket";
 import { fetchLbankMarket } from "../lib/lbankMarket";
 import { fetchAscendexMarket } from "../lib/ascendexMarket";
@@ -281,6 +281,69 @@ router.get("/market/xt", async (_req, res): Promise<void> => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+/**
+ * POST /api/emergency-stop
+ * Nuclear option: stop ALL running bots + cancel ALL open buy orders on every exchange.
+ * Does NOT delete bots — just stops them and wipes open orders.
+ */
+router.post("/emergency-stop", async (req, res): Promise<void> => {
+  const results: { botsTopped: number; krakenCancelled: number; xtCancelled: number; errors: string[] } = {
+    botsTopped: 0,
+    krakenCancelled: 0,
+    xtCancelled: 0,
+    errors: [],
+  };
+
+  // 1. Stop every running bot
+  const allBots = botManager.list();
+  for (const instance of allBots) {
+    const bot = botManager.get(instance.id);
+    if (bot && bot.getStatus().running) {
+      try {
+        await bot.stop();
+        results.botsTopped++;
+      } catch (err) {
+        results.errors.push(`Stop bot ${instance.id}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+  botManager.persist();
+
+  // 2. Cancel ALL open Kraken buy orders (no pair filter — nuclear)
+  try {
+    const { cancelled } = await emergencyCancelAllKrakenBuyOrders();
+    results.krakenCancelled = cancelled;
+  } catch (err) {
+    results.errors.push(`Kraken cancel: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  // 3. Cancel all XT buy orders for every configured XT pair
+  const xtPairs = allBots
+    .filter((b) => b.config.exchange === "xt")
+    .map((b) => b.config.pair);
+  if (xtPairs.length > 0) {
+    try {
+      const xtClient = new XtClient(
+        process.env["XT_API_KEY"] ?? "",
+        process.env["XT_API_SECRET"] ?? ""
+      );
+      for (const pair of xtPairs) {
+        try {
+          await xtClient.cancelAllOpenBuyOrders(pair);
+          results.xtCancelled++;
+        } catch (err) {
+          results.errors.push(`XT cancel ${pair}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    } catch (err) {
+      results.errors.push(`XT client init: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  req.log.warn({ results }, "Emergency stop executed");
+  res.json(results);
 });
 
 export default router;
