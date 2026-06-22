@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "a7wyiewAH2qyIur_UO5TM"
+uri = "file://VPS_SETUP.md"
+type = "text"
+title = "VPS_SETUP.md — Panduan Instalasi di VPS"
