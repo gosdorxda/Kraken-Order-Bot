@@ -43,7 +43,9 @@ export const GetServerInfoResponse = zod.object({
   "publicIp": zod.string().nullable(),
   "ipError": zod.string().nullable(),
   "krakenConnected": zod.boolean(),
-  "krakenError": zod.string().nullable()
+  "krakenError": zod.string().nullable(),
+  "xtConnected": zod.boolean(),
+  "xtError": zod.string().nullable()
 })
 
 
@@ -577,6 +579,17 @@ export const UpdateTelegramSettingsResponse = zod.object({
   "notifyOnCircuitBreaker": zod.boolean(),
   "notifyOnStartStop": zod.boolean()
 })
+
+
+/**
+ * @summary Get XT.com account balance
+ */
+export const GetXtBalanceResponseItem = zod.object({
+  "currency": zod.string(),
+  "available": zod.string(),
+  "frozen": zod.string()
+})
+export const GetXtBalanceResponse = zod.array(GetXtBalanceResponseItem)
 
 
 /**

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { fetchBalance, fetchLockedZusd } from "../lib/krakenBot";
+import { XtClient } from "../lib/xtClient";
 import { GetAccountBalanceResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -30,6 +31,21 @@ router.get("/account/balance", async (req, res): Promise<void> => {
     const msg = err instanceof Error ? err.message : String(err);
     req.log.error({ err: msg }, "Balance fetch error");
     res.status(500).json({ error: msg });
+  }
+});
+
+router.get("/account/xt-balance", async (req, res): Promise<void> => {
+  try {
+    const xtClient = new XtClient(
+      process.env["XT_API_KEY"] ?? "",
+      process.env["XT_API_SECRET"] ?? ""
+    );
+    const balances = await xtClient.getBalance();
+    res.json(balances);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    req.log.warn({ err: msg }, "XT balance fetch failed (returning empty)");
+    res.json([]);
   }
 });
 

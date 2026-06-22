@@ -11,12 +11,15 @@ import {
   useUpdateBotConfig,
   useGetOrderBook,
   useGetAccountBalance,
+  useGetXtBalance,
   useGetBotLogs,
   useGetBotFills,
   getListBotsQueryKey,
   getGetOrderBookQueryKey,
   getGetBotLogsQueryKey,
   getGetBotFillsQueryKey,
+  getGetAccountBalanceQueryKey,
+  getGetXtBalanceQueryKey,
 } from "@workspace/api-client-react";
 import type { BotInstance } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -570,7 +573,8 @@ export default function Dashboard() {
   const { data: bots, isLoading } = useListBots({
     query: { refetchInterval: 2000, queryKey: getListBotsQueryKey() },
   });
-  const { data: balances } = useGetAccountBalance();
+  const { data: krakenBalances } = useGetAccountBalance({ query: { refetchInterval: 30000, queryKey: getGetAccountBalanceQueryKey() } });
+  const { data: xtBalances } = useGetXtBalance({ query: { refetchInterval: 300000, retry: false, queryKey: getGetXtBalanceQueryKey() } });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -633,23 +637,6 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {balances?.filter((b) => parseFloat(b.balance) > 0).map((a) => (
-            <div key={a.asset} className="bg-card border border-border rounded-lg px-3 py-1.5">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1.5">{a.asset}</span>
-              {a.asset === "ZUSD" && a.used !== undefined && a.free !== undefined ? (
-                <span className="inline-flex items-baseline gap-2">
-                  <span className="font-mono text-sm font-bold">{parseFloat(a.balance).toFixed(2)}</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    <span className="text-emerald-500 font-medium">bebas {parseFloat(a.free).toFixed(2)}</span>
-                    {" · "}
-                    <span className="text-amber-500 font-medium">pakai {parseFloat(a.used).toFixed(2)}</span>
-                  </span>
-                </span>
-              ) : (
-                <span className="font-mono text-sm font-bold">{parseFloat(a.balance).toFixed(4)}</span>
-              )}
-            </div>
-          ))}
           <Button
             variant="outline"
             onClick={() => setEmergencyOpen(true)}
@@ -664,6 +651,59 @@ export default function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Balance cards — Kraken & XT side by side */}
+      {(krakenBalances?.length || xtBalances?.length) ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Kraken */}
+          {krakenBalances && krakenBalances.length > 0 && (
+            <div className="bg-card border border-border rounded-xl px-4 py-3 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Kraken</p>
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                {krakenBalances.map((a) => (
+                  <div key={a.asset}>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">{a.asset}</span>
+                    {a.asset === "ZUSD" && a.used !== undefined && a.free !== undefined ? (
+                      <span className="inline-flex items-baseline gap-2">
+                        <span className="font-mono text-sm font-bold">{parseFloat(a.balance).toFixed(2)}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          <span className="text-emerald-500 font-medium">bebas {parseFloat(a.free).toFixed(2)}</span>
+                          {" · "}
+                          <span className="text-amber-500 font-medium">pakai {parseFloat(a.used).toFixed(2)}</span>
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="font-mono text-sm font-bold">{parseFloat(a.balance).toFixed(4)}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* XT.com */}
+          {xtBalances && xtBalances.length > 0 && (
+            <div className="bg-card border border-border rounded-xl px-4 py-3 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">XT.com</p>
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+                {xtBalances.map((a) => (
+                  <div key={a.currency}>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">{a.currency}</span>
+                    <span className="font-mono text-sm font-bold">{parseFloat(a.available).toFixed(a.currency === "USDT" ? 2 : 4)}</span>
+                    {parseFloat(a.frozen) > 0 && (
+                      <span className="text-[10px] text-muted-foreground ml-2">
+                        <span className="text-emerald-500 font-medium">bebas {parseFloat(a.available).toFixed(2)}</span>
+                        {" · "}
+                        <span className="text-amber-500 font-medium">frozen {parseFloat(a.frozen).toFixed(2)}</span>
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
 
       {/* Bot list */}
       {isLoading ? (

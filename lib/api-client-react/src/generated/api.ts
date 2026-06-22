@@ -42,7 +42,8 @@ import type {
   ServerInfo,
   TelegramSettings,
   TelegramSettingsInput,
-  VerifyResponse
+  VerifyResponse,
+  XtAssetBalance
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2053,6 +2054,83 @@ export const useUpdateTelegramSettings = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getUpdateTelegramSettingsMutationOptions(options));
     }
+
+export const getGetXtBalanceUrl = () => {
+
+
+
+
+  return `/api/account/xt-balance`
+}
+
+/**
+ * @summary Get XT.com account balance
+ */
+export const getXtBalance = async ( options?: RequestInit): Promise<XtAssetBalance[]> => {
+
+  return customFetch<XtAssetBalance[]>(getGetXtBalanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetXtBalanceQueryKey = () => {
+    return [
+    `/api/account/xt-balance`
+    ] as const;
+    }
+
+
+export const getGetXtBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getXtBalance>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getXtBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetXtBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getXtBalance>>> = ({ signal }) => getXtBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getXtBalance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetXtBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getXtBalance>>>
+export type GetXtBalanceQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get XT.com account balance
+ */
+
+export function useGetXtBalance<TData = Awaited<ReturnType<typeof getXtBalance>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getXtBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetXtBalanceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetAccountBalanceUrl = () => {
 

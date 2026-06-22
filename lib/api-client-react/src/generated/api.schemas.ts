@@ -196,6 +196,9 @@ export interface ServerInfo {
   krakenConnected: boolean;
   /** @nullable */
   krakenError: string | null;
+  xtConnected: boolean;
+  /** @nullable */
+  xtError: string | null;
 }
 
 export interface AssetBalance {
@@ -203,6 +206,12 @@ export interface AssetBalance {
   balance: string;
   used?: string;
   free?: string;
+}
+
+export interface XtAssetBalance {
+  currency: string;
+  available: string;
+  frozen: string;
 }
 
 export interface TelegramSettings {

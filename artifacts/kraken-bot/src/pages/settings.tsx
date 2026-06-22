@@ -1,11 +1,13 @@
 import { useState } from "react";
 import {
   useGetAccountBalance,
+  useGetXtBalance,
   useGetServerInfo,
   useGetTelegramSettings,
   useUpdateTelegramSettings,
   getGetTelegramSettingsQueryKey,
   getGetServerInfoQueryKey,
+  getGetXtBalanceQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,23 +57,42 @@ function ConnectionPanel() {
             <Skeleton className="h-20 w-full" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Kraken API status */}
             <div className="rounded-lg border border-border bg-background p-4 space-y-2">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Kraken API</p>
               {info?.krakenConnected ? (
                 <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
-                  <CheckCircle2 className="w-4 h-4" /> Connected
+                  <CheckCircle2 className="w-4 h-4" /> Terhubung
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-red-400 font-medium text-sm">
-                  <XCircle className="w-4 h-4" /> Disconnected
+                  <XCircle className="w-4 h-4" /> Gagal
                 </div>
               )}
               <p className="text-[11px] text-muted-foreground">
-                {info?.krakenConnected ? "API key is valid and authenticated" : (info?.krakenError ?? "Check API key credentials")}
+                {info?.krakenConnected ? "API key valid & terautentikasi" : (info?.krakenError ?? "Periksa kredensial API key")}
               </p>
             </div>
 
+            {/* XT.com API status */}
+            <div className="rounded-lg border border-border bg-background p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">XT.com API</p>
+              {info?.xtConnected ? (
+                <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
+                  <CheckCircle2 className="w-4 h-4" /> Terhubung
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-red-400 font-medium text-sm">
+                  <XCircle className="w-4 h-4" /> Gagal
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                {info?.xtConnected ? "API key valid & terautentikasi" : (info?.xtError ?? "Periksa kredensial API key")}
+              </p>
+            </div>
+
+            {/* Server IP */}
             <div className="rounded-lg border border-border bg-background p-4 space-y-2">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Server Public IP</p>
               {info?.publicIp ? (
@@ -84,7 +105,7 @@ function ConnectionPanel() {
               ) : (
                 <span className="text-sm text-muted-foreground">{info?.ipError ?? "Unknown"}</span>
               )}
-              <p className="text-[11px] text-muted-foreground">Add this IP to your Kraken API key whitelist</p>
+              <p className="text-[11px] text-muted-foreground">Tambahkan IP ini ke whitelist API key Kraken</p>
             </div>
           </div>
         )}
@@ -235,6 +256,7 @@ function TelegramNotificationPanel() {
 
 export default function Settings() {
   const { data: balances, isLoading: balLoading } = useGetAccountBalance();
+  const { data: xtBalances, isLoading: xtBalLoading } = useGetXtBalance({ query: { retry: false, queryKey: getGetXtBalanceQueryKey() } });
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -248,28 +270,64 @@ export default function Settings() {
       <TelegramNotificationPanel />
 
       {/* Account balances */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Account Balances</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {balLoading ? (
-            <div className="flex gap-3"><Skeleton className="h-14 w-28" /><Skeleton className="h-14 w-28" /></div>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              {balances?.filter((b) => parseFloat(b.balance) > 0).map((a) => (
-                <div key={a.asset} className="bg-background border border-border rounded-lg px-4 py-2.5 min-w-[120px]">
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{a.asset}</div>
-                  <div className="font-mono text-base font-bold">{parseFloat(a.balance).toFixed(4)}</div>
-                </div>
-              ))}
-              {(!balances || balances.filter((b) => parseFloat(b.balance) > 0).length === 0) && (
-                <p className="text-sm text-muted-foreground">No balances found.</p>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Kraken balance */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Saldo Kraken</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {balLoading ? (
+              <div className="flex gap-3"><Skeleton className="h-14 w-28" /><Skeleton className="h-14 w-28" /></div>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {balances?.filter((b) => parseFloat(b.balance) > 0).map((a) => (
+                  <div key={a.asset} className="bg-background border border-border rounded-lg px-4 py-2.5 min-w-[110px]">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{a.asset}</div>
+                    <div className="font-mono text-base font-bold">{parseFloat(a.balance).toFixed(4)}</div>
+                    {a.asset === "ZUSD" && a.used && parseFloat(a.used) > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        pakai <span className="text-yellow-400">{parseFloat(a.used).toFixed(2)}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {(!balances || balances.filter((b) => parseFloat(b.balance) > 0).length === 0) && (
+                  <p className="text-sm text-muted-foreground">Tidak ada saldo.</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* XT.com balance */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Saldo XT.com</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {xtBalLoading ? (
+              <div className="flex gap-3"><Skeleton className="h-14 w-28" /><Skeleton className="h-14 w-28" /></div>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                {xtBalances && xtBalances.length > 0 ? xtBalances.map((a) => (
+                  <div key={a.currency} className="bg-background border border-border rounded-lg px-4 py-2.5 min-w-[110px]">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{a.currency}</div>
+                    <div className="font-mono text-base font-bold">{parseFloat(a.available).toFixed(4)}</div>
+                    {parseFloat(a.frozen) > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                        terkunci <span className="text-yellow-400">{parseFloat(a.frozen).toFixed(4)}</span>
+                      </div>
+                    )}
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground">Tidak ada saldo.</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* How it works */}
       <Card className="bg-card border-border">

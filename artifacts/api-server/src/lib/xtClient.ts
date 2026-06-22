@@ -3,6 +3,7 @@ import { logger } from "./logger";
 import { xtRateLimiter } from "./xtRateLimiter";
 
 const BASE_URL = "https://sapi.xt.com";
+const ACCOUNT_BASE_URL = "https://api.xt.com";
 
 function signMessage(secret: string, timestamp: number, params: Record<string, string>): string {
   const sortedPairs = Object.keys(params)
@@ -74,7 +75,8 @@ export class XtClient {
     method: "GET" | "POST" | "DELETE",
     path: string,
     queryParams: Record<string, string> = {},
-    bodyParams: Record<string, unknown> = {}
+    bodyParams: Record<string, unknown> = {},
+    baseUrl: string = BASE_URL
   ): Promise<T> {
     const timestamp = Date.now();
     const paramsToSign =
@@ -92,7 +94,7 @@ export class XtClient {
       "Content-Type": "application/json",
     };
 
-    let url = `${BASE_URL}${path}`;
+    let url = `${baseUrl}${path}`;
     if (Object.keys(queryParams).length > 0) {
       url += `?${new URLSearchParams(queryParams).toString()}`;
     }
@@ -124,10 +126,11 @@ export class XtClient {
     method: "GET" | "POST" | "DELETE",
     path: string,
     queryParams?: Record<string, string>,
-    bodyParams?: Record<string, unknown>
+    bodyParams?: Record<string, unknown>,
+    baseUrl?: string
   ): Promise<T> {
     return xtRateLimiter.enqueue(
-      () => this.rawRequest<T>(method, path, queryParams, bodyParams),
+      () => this.rawRequest<T>(method, path, queryParams, bodyParams, baseUrl),
       `${method} ${path}`
     );
   }
@@ -218,5 +221,30 @@ export class XtClient {
   /** @deprecated use cancelAllOpenBuyOrders — this method cancels all sides */
   async cancelAllOpenOrders(symbol: string): Promise<void> {
     return this.cancelAllOpenBuyOrders(symbol);
+  }
+
+  /**
+   * Fetch account balances from XT.com.
+   * Only returns assets with non-zero balance.
+   */
+  async getBalance(): Promise<Array<{ currency: string; available: string; frozen: string }>> {
+    type RawAsset = { currency?: string; asset?: string; availableAmount?: string; available?: string; frozenAmount?: string; frozen?: string };
+    const result = await this.request<{ assets?: RawAsset[] } | RawAsset[]>(
+      "GET",
+      "/v4/user/balance",
+      {},
+      {},
+      ACCOUNT_BASE_URL
+    );
+    const assets: RawAsset[] = Array.isArray(result)
+      ? result
+      : (result as { assets?: RawAsset[] }).assets ?? [];
+    return assets
+      .filter((a) => parseFloat(a.availableAmount ?? a.available ?? "0") > 0 || parseFloat(a.frozenAmount ?? a.frozen ?? "0") > 0)
+      .map((a) => ({
+        currency: String(a.currency ?? a.asset ?? "").toUpperCase(),
+        available: a.availableAmount ?? a.available ?? "0",
+        frozen: a.frozenAmount ?? a.frozen ?? "0",
+      }));
   }
 }

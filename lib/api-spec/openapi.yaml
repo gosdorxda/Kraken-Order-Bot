@@ -611,6 +611,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /account/xt-balance:
+    get:
+      operationId: getXtBalance
+      tags: [account]
+      summary: Get XT.com account balance
+      responses:
+        "200":
+          description: XT account balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/XtAssetBalance"
+        "500":
+          description: XT API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /account/balance:
     get:
       operationId: getAccountBalance
@@ -894,7 +915,7 @@ components:
 
     ServerInfo:
       type: object
-      required: [publicIp, ipError, krakenConnected, krakenError]
+      required: [publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError]
       properties:
         publicIp:
           type: ["string", "null"]
@@ -903,6 +924,10 @@ components:
         krakenConnected:
           type: boolean
         krakenError:
+          type: ["string", "null"]
+        xtConnected:
+          type: boolean
+        xtError:
           type: ["string", "null"]
 
     AssetBalance:
@@ -916,6 +941,17 @@ components:
         used:
           type: string
         free:
+          type: string
+
+    XtAssetBalance:
+      type: object
+      required: [currency, available, frozen]
+      properties:
+        currency:
+          type: string
+        available:
+          type: string
+        frozen:
           type: string
 
     TelegramSettings:

@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { fetchBalance } from "../lib/krakenBot";
+import { XtClient } from "../lib/xtClient";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -17,10 +18,18 @@ router.get("/info", async (req, res): Promise<void> => {
   let ipError: string | null = null;
   let krakenConnected = false;
   let krakenError: string | null = null;
+  let xtConnected = false;
+  let xtError: string | null = null;
 
-  const [ipResult, krakenResult] = await Promise.allSettled([
+  const xtClient = new XtClient(
+    process.env["XT_API_KEY"] ?? "",
+    process.env["XT_API_SECRET"] ?? ""
+  );
+
+  const [ipResult, krakenResult, xtResult] = await Promise.allSettled([
     fetchPublicIp(),
     fetchBalance(),
+    xtClient.getBalance(),
   ]);
 
   if (ipResult.status === "fulfilled") {
@@ -40,7 +49,17 @@ router.get("/info", async (req, res): Promise<void> => {
     req.log.warn({ err: krakenError }, "Kraken connection test failed");
   }
 
-  res.json({ publicIp, ipError, krakenConnected, krakenError });
+  if (xtResult.status === "fulfilled") {
+    xtConnected = true;
+  } else {
+    xtError =
+      xtResult.reason instanceof Error
+        ? xtResult.reason.message
+        : String(xtResult.reason);
+    req.log.warn({ err: xtError }, "XT connection test failed");
+  }
+
+  res.json({ publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError });
 });
 
 export default router;
