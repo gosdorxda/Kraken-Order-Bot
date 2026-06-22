@@ -168,6 +168,8 @@ export interface ServerInfo {
 export interface AssetBalance {
   asset: string;
   balance: string;
+  used?: string;
+  free?: string;
 }
 
 export type GetBotLogsParams = {

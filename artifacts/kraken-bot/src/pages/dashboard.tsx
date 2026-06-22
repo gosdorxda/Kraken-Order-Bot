@@ -548,7 +548,18 @@ export default function Dashboard() {
           {balances?.filter((b) => parseFloat(b.balance) > 0).map((a) => (
             <div key={a.asset} className="bg-card border border-border rounded-lg px-3 py-1.5">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1.5">{a.asset}</span>
-              <span className="font-mono text-sm font-bold">{parseFloat(a.balance).toFixed(4)}</span>
+              {a.asset === "ZUSD" && a.used !== undefined && a.free !== undefined ? (
+                <span className="inline-flex items-baseline gap-2">
+                  <span className="font-mono text-sm font-bold">{parseFloat(a.balance).toFixed(2)}</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    <span className="text-emerald-500 font-medium">bebas {parseFloat(a.free).toFixed(2)}</span>
+                    {" · "}
+                    <span className="text-amber-500 font-medium">pakai {parseFloat(a.used).toFixed(2)}</span>
+                  </span>
+                </span>
+              ) : (
+                <span className="font-mono text-sm font-bold">{parseFloat(a.balance).toFixed(4)}</span>
+              )}
             </div>
           ))}
           <Button onClick={openAdd} className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold shrink-0">

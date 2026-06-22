@@ -428,7 +428,9 @@ export const GetMarketGateResponse = zod.array(GetMarketGateResponseItem)
  */
 export const GetAccountBalanceResponseItem = zod.object({
   "asset": zod.string(),
-  "balance": zod.string()
+  "balance": zod.string(),
+  "used": zod.string().optional(),
+  "free": zod.string().optional()
 })
 export const GetAccountBalanceResponse = zod.array(GetAccountBalanceResponseItem)
 

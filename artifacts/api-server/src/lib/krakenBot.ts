@@ -73,6 +73,25 @@ export async function fetchBalance(): Promise<Record<string, string>> {
   return resp.result as Record<string, string>;
 }
 
+export async function fetchLockedZusd(): Promise<string> {
+  const resp: any = await krakenRateLimiter.enqueue(
+    () => (sharedClient as any).api("OpenOrders", {}),
+    "OpenOrders(balance)"
+  );
+  const orders: Record<string, any> = resp.result?.open ?? {};
+  let locked = 0;
+  for (const order of Object.values(orders)) {
+    if (order.descr?.type !== "buy") continue;
+    if (!String(order.descr?.pair ?? "").endsWith("USD")) continue;
+    const price     = parseFloat(order.descr?.price ?? "0");
+    const vol       = parseFloat(order.vol      ?? "0");
+    const volExec   = parseFloat(order.vol_exec ?? "0");
+    const remaining = vol - volExec;
+    if (remaining > 0 && price > 0) locked += remaining * price;
+  }
+  return locked.toFixed(4);
+}
+
 export interface MarketTicker {
   pair: string;
   displayName: string;

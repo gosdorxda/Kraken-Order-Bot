@@ -720,3 +720,7 @@ components:
           type: string
         balance:
           type: string
+        used:
+          type: string
+        free:
+          type: string
