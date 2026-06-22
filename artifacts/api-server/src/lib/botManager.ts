@@ -1,4 +1,4 @@
-import { KrakenBot, type BotConfig } from "./krakenBot";
+import { KrakenBot, type BotConfig, cancelAllOpenBuyOrders } from "./krakenBot";
 import { loadPersistedState, savePersistedState } from "./persistence";
 import { getTelegramEventConfig, setTelegramEventConfig, type TelegramEventConfig } from "./telegram";
 import { logger } from "./logger";
@@ -19,6 +19,8 @@ class BotManager {
       setTelegramEventConfig(state.telegramSettings);
     }
 
+    const botsToAutoStart: KrakenBot[] = [];
+
     for (const p of state.bots) {
       try {
         const config: BotConfig = {
@@ -33,9 +35,7 @@ class BotManager {
         this.bots.set(p.id, bot);
         const isDev = process.env["NODE_ENV"] !== "production";
         if (p.running && !isDev) {
-          bot.start().catch((err: unknown) => {
-            logger.error({ err, botId: p.id }, "Failed to auto-start bot on restore");
-          });
+          botsToAutoStart.push(bot);
         } else if (p.running && isDev) {
           logger.info({ botId: p.id }, "Dev mode: bot not auto-started (run published app or start manually)");
         }
@@ -43,6 +43,21 @@ class BotManager {
         logger.warn({ err, botId: p.id }, "Skipping corrupt persisted bot");
       }
     }
+
+    // Cancel ALL open buy orders for every configured pair ONCE before starting
+    // any bot. This prevents duplicate orders during rolling restarts/redeploys
+    // where multiple server instances overlap briefly.
+    if (botsToAutoStart.length > 0) {
+      const pairs = botsToAutoStart.map((b) => b.getConfig().pair);
+      await cancelAllOpenBuyOrders(pairs);
+    }
+
+    for (const bot of botsToAutoStart) {
+      bot.start().catch((err: unknown) => {
+        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start bot on restore");
+      });
+    }
+
     logger.info({ count: this.bots.size }, "BotManager initialized from persisted state");
   }
 

@@ -93,6 +93,43 @@ export async function fetchLockedZusd(): Promise<string> {
   return locked.toFixed(4);
 }
 
+/**
+ * Cancel ALL open buy orders on Kraken for the given pairs in one shot.
+ * Call this ONCE in BotManager before starting any bots so rolling restarts
+ * cannot leave orphan orders behind.
+ */
+export async function cancelAllOpenBuyOrders(pairs: string[]): Promise<void> {
+  const pairSet = new Set(pairs);
+  try {
+    const resp: any = await krakenRateLimiter.enqueue(
+      () => (sharedClient as any).api("OpenOrders", {}),
+      "OpenOrders(startup-cleanup)"
+    );
+    const orders: Record<string, any> = resp.result?.open ?? {};
+    const toCancel = Object.entries(orders).filter(
+      ([, o]) => o.descr?.type === "buy" && pairSet.has(o.descr?.pair)
+    );
+    if (toCancel.length === 0) return;
+    process.stderr.write(`[startup] Cancelling ${toCancel.length} stale open buy order(s) for pairs: ${pairs.join(", ")}\n`);
+    for (const [txid] of toCancel) {
+      try {
+        await krakenRateLimiter.enqueue(
+          () => (sharedClient as any).api("CancelOrder", { txid }),
+          `CancelOrder(${txid})`
+        );
+        process.stderr.write(`[startup] Cancelled stale order ${txid}\n`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!/unknown order/i.test(msg)) {
+          process.stderr.write(`[startup] Failed to cancel ${txid}: ${msg}\n`);
+        }
+      }
+    }
+  } catch (err) {
+    process.stderr.write(`[startup] cancelAllOpenBuyOrders failed: ${String(err)}\n`);
+  }
+}
+
 export interface MarketTicker {
   pair: string;
   displayName: string;
@@ -267,7 +304,6 @@ export class KrakenBot {
     this.currentOrderVolume = null;
     this.addLog("info", `Bot started for pair ${this.config.pair}`, { config: this.config });
     void sendTelegramEvent("startStop", `▶️ <b>[${this.id}]</b> Bot dimulai untuk pair <b>${this.config.pair}</b>`);
-    await this.cancelStaleOpenOrders();
     this.intervalHandle = setInterval(() => {
       this.runCycle().catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
