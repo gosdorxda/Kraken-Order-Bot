@@ -27,6 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import { getToken } from "@/lib/auth";
 import {
   Play, Square, Plus, Trash2, Settings2, AlertCircle, CheckCircle2, Info,
   Loader2, TrendingUp, ArrowUpDown, AlertTriangle, ChevronDown, ChevronUp,
@@ -585,7 +586,10 @@ export default function Dashboard() {
   const handleEmergencyStop = async () => {
     setEmergencyBusy(true);
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL}api/emergency-stop`, { method: "POST" });
+      const res = await fetch(`${import.meta.env.BASE_URL}api/emergency-stop`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+      });
       const data = await res.json() as { botsTopped: number; krakenCancelled: number; xtCancelled: number; errors: string[] };
       queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() });
       const parts: string[] = [];
@@ -696,13 +700,15 @@ export default function Dashboard() {
             <AlertDialogTitle className="flex items-center gap-2 text-red-400">
               <OctagonX className="w-5 h-5" /> Emergency Stop
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <span className="block">Ini akan melakukan <span className="font-semibold text-foreground">dua hal sekaligus</span>:</span>
-              <ul className="list-disc pl-4 space-y-1 text-sm">
-                <li>Menghentikan semua bot yang sedang berjalan</li>
-                <li>Membatalkan semua order beli terbuka di semua exchange (Kraken &amp; XT)</li>
-              </ul>
-              <span className="block mt-2 text-amber-400 text-sm font-medium">Bot tidak dihapus — kamu bisa start ulang kapan saja.</span>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Ini akan melakukan <span className="font-semibold text-foreground">dua hal sekaligus</span>:</p>
+                <div className="pl-3 border-l-2 border-border space-y-1">
+                  <p>— Menghentikan semua bot yang sedang berjalan</p>
+                  <p>— Membatalkan semua order beli terbuka di semua exchange (Kraken &amp; XT)</p>
+                </div>
+                <p className="text-amber-400 font-medium">Bot tidak dihapus — kamu bisa start ulang kapan saja.</p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
