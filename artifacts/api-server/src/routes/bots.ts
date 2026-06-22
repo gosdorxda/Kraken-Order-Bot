@@ -210,7 +210,10 @@ router.get("/orderbook", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const book = await fetchOrderBook(qp.data.pair);
+    const isXt = qp.data.exchange === "xt";
+    const book = isXt
+      ? await fetchXtOrderBook(qp.data.pair)
+      : await fetchOrderBook(qp.data.pair);
     res.json(
       GetOrderBookResponse.parse({
         pair: qp.data.pair,

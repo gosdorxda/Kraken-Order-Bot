@@ -245,5 +245,14 @@ limit?: number;
 
 export type GetOrderBookParams = {
 pair: string;
+exchange?: GetOrderBookExchange;
 };
+
+export type GetOrderBookExchange = typeof GetOrderBookExchange[keyof typeof GetOrderBookExchange];
+
+
+export const GetOrderBookExchange = {
+  kraken: 'kraken',
+  xt: 'xt',
+} as const;
 

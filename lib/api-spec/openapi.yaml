@@ -413,6 +413,13 @@ paths:
           required: true
           schema:
             type: string
+        - name: exchange
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [kraken, xt]
+            default: kraken
       responses:
         "200":
           description: Order book snapshot

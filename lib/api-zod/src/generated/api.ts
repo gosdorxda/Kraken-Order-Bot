@@ -403,8 +403,11 @@ export const GetBotOrderBookResponse = zod.object({
 /**
  * @summary Get order book for any pair (no bot required)
  */
+export const getOrderBookQueryExchangeDefault = `kraken`;
+
 export const GetOrderBookQueryParams = zod.object({
-  "pair": zod.coerce.string()
+  "pair": zod.coerce.string(),
+  "exchange": zod.enum(['kraken', 'xt']).default(getOrderBookQueryExchangeDefault)
 })
 
 export const GetOrderBookResponse = zod.object({

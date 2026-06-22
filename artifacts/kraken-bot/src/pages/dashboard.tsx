@@ -127,10 +127,10 @@ function RunningDot({ running }: { running: boolean }) {
 
 // ─── Live market reference ────────────────────────────────────────────────────
 
-function MarketRef({ pair, tickSize, maxBidPrice }: { pair: string; tickSize: string; maxBidPrice: string }) {
+function MarketRef({ pair, exchange, tickSize, maxBidPrice }: { pair: string; exchange: "kraken" | "xt"; tickSize: string; maxBidPrice: string }) {
   const { data: book, isLoading } = useGetOrderBook(
-    { pair },
-    { query: { refetchInterval: 2000, enabled: pair.length > 0, queryKey: getGetOrderBookQueryKey({ pair }) } }
+    { pair, exchange },
+    { query: { refetchInterval: 2000, enabled: pair.length > 0, queryKey: getGetOrderBookQueryKey({ pair, exchange }) } }
   );
 
   const topBid = book?.bids[0]?.price ?? null;
@@ -327,7 +327,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
               )} />
             </div>
 
-            {isKraken && <MarketRef pair={watchPair} tickSize={watchTick} maxBidPrice={watchMax} />}
+            <MarketRef pair={watchPair} exchange={watchExchange} tickSize={watchTick} maxBidPrice={watchMax} />
 
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>Batal</Button>
