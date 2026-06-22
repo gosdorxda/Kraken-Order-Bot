@@ -13,25 +13,23 @@ export async function fetchAscendexMarket(): Promise<MarketTicker[]> {
 
   const json: any = await resp.json();
   const tickers: any[] = Array.isArray(json.data) ? json.data : [];
-
-  const usdt = tickers.filter((t: any) => {
-    const sym: string = t.symbol ?? "";
-    return sym.endsWith("/USDT");
-  });
+  const usdt = tickers.filter((t: any) => (t.symbol ?? "").endsWith("/USDT"));
 
   const result: MarketTicker[] = usdt.map((t: any) => {
     const last   = parseFloat(t.close ?? "0");
-    const bid    = parseFloat(t.bid?.[0] ?? "0") || last;
-    const ask    = parseFloat(t.ask?.[0] ?? "0") || last;
-    const spread = isNaN(ask) || isNaN(bid) ? 0 : ask - bid;
-    const mid    = (bid + ask) / 2;
-    const spreadPct = mid > 0 ? (spread / mid) * 100 : 0;
-    const open   = parseFloat(t.open ?? "0");
-    const change24h = open > 0 ? ((last - open) / open) * 100 : 0;
-    const price  = last || bid || ask;
-    const dp     = price >= 1000 ? 2 : price >= 1 ? 4 : 6;
+    const open   = parseFloat(t.open  ?? "0");
+    const high   = parseFloat(t.high  ?? "0");
+    const low    = parseFloat(t.low   ?? "0");
     const vol    = parseFloat(t.volume ?? "0");
-    const token  = (t.symbol as string).replace("/USDT", "");
+    const bid    = parseFloat(Array.isArray(t.bid) ? t.bid[0] : (t.bid ?? "0")) || last;
+    const ask    = parseFloat(Array.isArray(t.ask) ? t.ask[0] : (t.ask ?? "0")) || last;
+    const spread    = ask > bid ? ask - bid : 0;
+    const mid       = (bid + ask) / 2;
+    const spreadPct = mid > 0 ? (spread / mid) * 100 : 0;
+    const change24h = open > 0 ? ((last - open) / open) * 100 : 0;
+    const price     = last || bid || ask;
+    const dp        = price >= 1000 ? 2 : price >= 1 ? 4 : 6;
+    const token     = (t.symbol as string).replace("/USDT", "");
 
     return {
       pair:        t.symbol as string,
@@ -44,8 +42,8 @@ export async function fetchAscendexMarket(): Promise<MarketTicker[]> {
       spread:      spread.toFixed(dp),
       spreadPct:   Math.round(spreadPct * 100000) / 100000,
       volume24h:   (vol * last).toFixed(2),
-      high24h:     (t.high ?? "0").toString(),
-      low24h:      (t.low  ?? "0").toString(),
+      high24h:     isNaN(high) ? "0" : high.toFixed(dp),
+      low24h:      isNaN(low)  ? "0" : low.toFixed(dp),
     };
   });
 

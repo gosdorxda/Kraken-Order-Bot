@@ -12,32 +12,32 @@ export async function fetchXtMarket(): Promise<MarketTicker[]> {
   if (!resp.ok) throw new Error(`XT.com API error: ${resp.status}`);
 
   const json: any = await resp.json();
-  const tickers: any[] = Array.isArray(json.result?.tickers) ? json.result.tickers
+  const tickers: any[] =
+    Array.isArray(json.result?.tickers) ? json.result.tickers
     : Array.isArray(json.result) ? json.result
     : [];
 
-  const usdt = tickers.filter((t: any) => {
-    const sym: string = t.s ?? t.symbol ?? "";
-    return sym.endsWith("_usdt");
-  });
+  const usdt = tickers.filter((t: any) => (t.s ?? "").endsWith("_usdt"));
 
   const result: MarketTicker[] = usdt.map((t: any) => {
-    const sym    = (t.s ?? t.symbol ?? "") as string;
-    const last   = parseFloat(t.c ?? t.last ?? "0");
-    const bid    = parseFloat(t.b ?? t.bid ?? "0") || last;
-    const ask    = parseFloat(t.a ?? t.ask ?? "0") || last;
-    const spread = isNaN(ask) || isNaN(bid) ? 0 : ask - bid;
-    const mid    = (bid + ask) / 2;
+    const last      = parseFloat(t.c ?? "0");
+    const open      = parseFloat(t.o ?? "0");
+    const high      = parseFloat(t.h ?? "0");
+    const low       = parseFloat(t.l ?? "0");
+    const bid       = parseFloat(t.bp ?? "0") || last;
+    const ask       = parseFloat(t.ap ?? "0") || last;
+    const quoteVol  = parseFloat(t.q ?? "0");
+    const spread    = ask > bid ? ask - bid : 0;
+    const mid       = (bid + ask) / 2;
     const spreadPct = mid > 0 ? (spread / mid) * 100 : 0;
-    const change24h = parseFloat(t.P ?? t.change ?? "0");
-    const price  = last || bid || ask;
-    const dp     = price >= 1000 ? 2 : price >= 1 ? 4 : 6;
-    const vol    = parseFloat(t.qv ?? t.quoteVolume ?? t.v ?? "0");
-    const open24h = change24h !== 0 ? last / (1 + change24h / 100) : last;
-    const token  = sym.replace("_usdt", "").toUpperCase();
+    const change24h = parseFloat(t.cr ?? "0");
+    const price     = last || bid || ask;
+    const dp        = price >= 1000 ? 2 : price >= 1 ? 4 : 6;
+    const open24h   = open > 0 ? open : (change24h !== 0 ? last / (1 + change24h / 100) : last);
+    const token     = (t.s as string).replace("_usdt", "").toUpperCase();
 
     return {
-      pair:        sym,
+      pair:        t.s as string,
       displayName: `${token}/USDT`,
       bid:         bid.toFixed(dp),
       ask:         ask.toFixed(dp),
@@ -46,9 +46,9 @@ export async function fetchXtMarket(): Promise<MarketTicker[]> {
       change24h:   Math.round(change24h * 1000) / 1000,
       spread:      spread.toFixed(dp),
       spreadPct:   Math.round(spreadPct * 100000) / 100000,
-      volume24h:   isNaN(vol) ? "0" : vol.toFixed(2),
-      high24h:     (t.h ?? t.high ?? "0").toString(),
-      low24h:      (t.l ?? t.low  ?? "0").toString(),
+      volume24h:   isNaN(quoteVol) ? "0" : quoteVol.toFixed(2),
+      high24h:     isNaN(high) ? "0" : high.toFixed(dp),
+      low24h:      isNaN(low)  ? "0" : low.toFixed(dp),
     };
   });
 
