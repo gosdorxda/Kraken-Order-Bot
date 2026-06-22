@@ -23,6 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +37,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 // ─── Config form schema ───────────────────────────────────────────────────────
 
 const configSchema = z.object({
+  exchange: z.enum(["kraken", "xt"]).default("kraken"),
   pair: z.string().min(1, "Trading pair is required"),
   orderSize: z.string().min(1, "Order size is required"),
   maxBidPrice: z.string().min(1, "Max bid price is required"),
@@ -47,6 +49,7 @@ const configSchema = z.object({
 type ConfigForm = z.infer<typeof configSchema>;
 
 const DEFAULT_VALUES: ConfigForm = {
+  exchange: "kraken",
   pair: "",
   orderSize: "0.001",
   maxBidPrice: "100000",
@@ -54,6 +57,11 @@ const DEFAULT_VALUES: ConfigForm = {
   checkIntervalMs: 3000,
   oneShotMode: false,
   maxConsecutiveErrors: 5,
+};
+
+const EXCHANGE_HINTS: Record<string, { pairExample: string; pairPlaceholder: string }> = {
+  kraken: { pairExample: "XXBTZUSD, SOLUSD", pairPlaceholder: "XXBTZUSD" },
+  xt:     { pairExample: "btc_usdt, sol_usdt", pairPlaceholder: "btc_usdt" },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -155,6 +163,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
     resolver: zodResolver(configSchema),
     values: isEdit
       ? {
+          exchange: (editBot.config.exchange as "kraken" | "xt") ?? "kraken",
           pair: editBot.config.pair,
           orderSize: editBot.config.orderSize,
           maxBidPrice: editBot.config.maxBidPrice,
@@ -169,6 +178,9 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
   const watchPair = form.watch("pair");
   const watchTick = form.watch("tickSize");
   const watchMax = form.watch("maxBidPrice");
+  const watchExchange = form.watch("exchange");
+  const exchangeHint = EXCHANGE_HINTS[watchExchange] ?? EXCHANGE_HINTS["kraken"]!;
+  const isKraken = watchExchange === "kraken";
   const isPending = createBot.isPending || updateConfig.isPending;
 
   const onSubmit = (values: ConfigForm) => {
@@ -204,12 +216,33 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+
+            {/* Exchange selector */}
+            <FormField control={form.control} name="exchange" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Exchange</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value} disabled={isEdit}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih exchange" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="kraken">Kraken</SelectItem>
+                    <SelectItem value="xt">XT.com</SelectItem>
+                  </SelectContent>
+                </Select>
+                {isEdit && <FormDescription className="text-[11px]">Exchange tidak bisa diubah setelah bot dibuat.</FormDescription>}
+                <FormMessage />
+              </FormItem>
+            )} />
+
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="pair" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Trading Pair</FormLabel>
-                  <FormControl><Input placeholder="XXBTZUSD" className="font-mono" disabled={isEdit} {...field} /></FormControl>
-                  <FormDescription className="text-[11px]">e.g. <span className="font-mono">XXBTZUSD</span>, <span className="font-mono">SOLUSD</span></FormDescription>
+                  <FormControl><Input placeholder={exchangeHint.pairPlaceholder} className="font-mono" disabled={isEdit} {...field} /></FormControl>
+                  <FormDescription className="text-[11px]">e.g. <span className="font-mono">{exchangeHint.pairExample}</span></FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
@@ -280,7 +313,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
               )} />
             </div>
 
-            <MarketRef pair={watchPair} tickSize={watchTick} maxBidPrice={watchMax} />
+            {isKraken && <MarketRef pair={watchPair} tickSize={watchTick} maxBidPrice={watchMax} />}
 
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>Batal</Button>
@@ -405,10 +438,14 @@ function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) 
     <div className={`border rounded-xl overflow-hidden transition-colors ${borderClass}`}>
       {/* Main row */}
       <div className="flex items-center gap-4 px-5 py-4 flex-wrap md:flex-nowrap">
-        {/* Pair + dot */}
+        {/* Pair + dot + exchange badge */}
         <div className="flex items-center gap-2.5 shrink-0 min-w-[120px]">
           <RunningDot running={status.running} />
           <span className="font-mono font-extrabold text-lg tracking-tight">{id}</span>
+          {config.exchange === "xt"
+            ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 border border-blue-500/40 text-blue-400 shrink-0">XT</span>
+            : <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-500/15 border border-violet-500/40 text-violet-400 shrink-0">K</span>
+          }
         </div>
 
         {/* Position chip */}

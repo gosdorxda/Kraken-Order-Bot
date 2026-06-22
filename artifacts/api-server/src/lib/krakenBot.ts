@@ -11,6 +11,7 @@ export interface BotConfig {
   checkIntervalMs: number;
   oneShotMode: boolean;
   maxConsecutiveErrors: number;
+  exchange?: "kraken" | "xt";
 }
 
 export interface BotLog {

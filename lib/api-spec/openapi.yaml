@@ -714,6 +714,10 @@ components:
         maxConsecutiveErrors:
           type: integer
           default: 5
+        exchange:
+          type: string
+          enum: [kraken, xt]
+          default: kraken
 
     BotConfigInput:
       type: object
@@ -736,6 +740,10 @@ components:
         maxConsecutiveErrors:
           type: integer
           default: 5
+        exchange:
+          type: string
+          enum: [kraken, xt]
+          default: kraken
 
     BotStatus:
       type: object

@@ -26,7 +26,7 @@ export async function fetchXtMarket(): Promise<MarketTicker[]> {
     const low       = parseFloat(t.l ?? "0");
     const bid       = parseFloat(t.bp ?? "0") || last;
     const ask       = parseFloat(t.ap ?? "0") || last;
-    const quoteVol  = parseFloat(t.q ?? "0");
+    const quoteVol  = parseFloat(t.v ?? "0");
     const spread    = ask > bid ? ask - bid : 0;
     const mid       = (bid + ask) / 2;
     const spreadPct = mid > 0 ? (spread / mid) * 100 : 0;

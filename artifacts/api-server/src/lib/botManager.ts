@@ -1,7 +1,10 @@
 import { KrakenBot, type BotConfig, cancelAllOpenBuyOrders } from "./krakenBot";
+import { XtBot } from "./xtBot";
 import { loadPersistedState, savePersistedState } from "./persistence";
 import { getTelegramEventConfig, setTelegramEventConfig, type TelegramEventConfig } from "./telegram";
 import { logger } from "./logger";
+
+export type AnyBot = KrakenBot | XtBot;
 
 export interface BotInstanceData {
   id: string;
@@ -10,7 +13,7 @@ export interface BotInstanceData {
 }
 
 class BotManager {
-  private bots = new Map<string, KrakenBot>();
+  private bots = new Map<string, AnyBot>();
 
   async initialize(): Promise<void> {
     const state = await loadPersistedState();
@@ -19,7 +22,8 @@ class BotManager {
       setTelegramEventConfig(state.telegramSettings);
     }
 
-    const botsToAutoStart: KrakenBot[] = [];
+    const krakenBotsToStart: KrakenBot[] = [];
+    const xtBotsToStart: XtBot[] = [];
 
     for (const p of state.bots) {
       try {
@@ -29,13 +33,14 @@ class BotManager {
           oneShotMode: p.config.oneShotMode ?? false,
           maxConsecutiveErrors: p.config.maxConsecutiveErrors ?? 5,
         };
-        const bot = new KrakenBot(p.id, config, () => this.persist());
+        const bot = this.instantiate(p.id, config);
         bot.loadFills(p.fills ?? [], p.fillIdCounter ?? 0);
         bot.loadLogs(p.logs ?? [], p.logIdCounter ?? 0);
         this.bots.set(p.id, bot);
         const isDev = process.env["NODE_ENV"] !== "production";
         if (p.running && !isDev) {
-          botsToAutoStart.push(bot);
+          if (bot instanceof XtBot) xtBotsToStart.push(bot);
+          else krakenBotsToStart.push(bot as KrakenBot);
         } else if (p.running && isDev) {
           logger.info({ botId: p.id }, "Dev mode: bot not auto-started (run published app or start manually)");
         }
@@ -44,17 +49,22 @@ class BotManager {
       }
     }
 
-    // Cancel ALL open buy orders for every configured pair ONCE before starting
-    // any bot. This prevents duplicate orders during rolling restarts/redeploys
-    // where multiple server instances overlap briefly.
-    if (botsToAutoStart.length > 0) {
-      const pairs = botsToAutoStart.map((b) => b.getConfig().pair);
+    // Cancel ALL open buy orders on Kraken ONCE before starting any Kraken bot.
+    // Prevents duplicate orders during rolling restarts/redeploys.
+    if (krakenBotsToStart.length > 0) {
+      const pairs = krakenBotsToStart.map((b) => b.getConfig().pair);
       await cancelAllOpenBuyOrders(pairs);
     }
 
-    for (const bot of botsToAutoStart) {
+    for (const bot of krakenBotsToStart) {
       bot.start().catch((err: unknown) => {
-        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start bot on restore");
+        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start Kraken bot on restore");
+      });
+    }
+
+    for (const bot of xtBotsToStart) {
+      bot.start().catch((err: unknown) => {
+        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start XT bot on restore");
       });
     }
 
@@ -93,16 +103,23 @@ class BotManager {
     }));
   }
 
-  get(id: string): KrakenBot | undefined {
+  get(id: string): AnyBot | undefined {
     return this.bots.get(id);
   }
 
-  create(config: BotConfig): KrakenBot {
+  private instantiate(id: string, config: BotConfig): AnyBot {
+    if (config.exchange === "xt") {
+      return new XtBot(id, config, () => this.persist());
+    }
+    return new KrakenBot(id, config, () => this.persist());
+  }
+
+  create(config: BotConfig): AnyBot {
     const id = config.pair;
     if (this.bots.has(id)) {
       throw new Error(`Bot for pair ${id} already exists`);
     }
-    const bot = new KrakenBot(id, config, () => this.persist());
+    const bot = this.instantiate(id, config);
     this.bots.set(id, bot);
     this.persist();
     return bot;

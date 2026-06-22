@@ -39,6 +39,14 @@ export interface ErrorResponse {
   error: string;
 }
 
+export type BotConfigExchange = typeof BotConfigExchange[keyof typeof BotConfigExchange];
+
+
+export const BotConfigExchange = {
+  kraken: 'kraken',
+  xt: 'xt',
+} as const;
+
 export interface BotConfig {
   pair: string;
   orderSize: string;
@@ -47,7 +55,16 @@ export interface BotConfig {
   checkIntervalMs: number;
   oneShotMode: boolean;
   maxConsecutiveErrors: number;
+  exchange?: BotConfigExchange;
 }
+
+export type BotConfigInputExchange = typeof BotConfigInputExchange[keyof typeof BotConfigInputExchange];
+
+
+export const BotConfigInputExchange = {
+  kraken: 'kraken',
+  xt: 'xt',
+} as const;
 
 export interface BotConfigInput {
   pair: string;
@@ -57,6 +74,7 @@ export interface BotConfigInput {
   checkIntervalMs?: number;
   oneShotMode?: boolean;
   maxConsecutiveErrors?: number;
+  exchange?: BotConfigInputExchange;
 }
 
 export type BotStatusTopBidOwner = typeof BotStatusTopBidOwner[keyof typeof BotStatusTopBidOwner];
