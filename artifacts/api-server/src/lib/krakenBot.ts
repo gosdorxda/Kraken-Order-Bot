@@ -269,7 +269,10 @@ export class KrakenBot {
     await this.cancelStaleOpenOrders();
     this.intervalHandle = setInterval(() => {
       this.runCycle().catch((err: unknown) => {
-        this.addLog("error", "Cycle error", err instanceof Error ? err.message : String(err));
+        const msg = err instanceof Error ? err.message : String(err);
+        this.addLog("error", "Cycle error (fatal)", msg);
+        void sendTelegramNotification(`⚠️ <b>[${this.id}]</b> Bot berhenti karena error tak terduga:\n${msg}`);
+        this.stop();
       });
     }, this.config.checkIntervalMs);
     await this.runCycle();
