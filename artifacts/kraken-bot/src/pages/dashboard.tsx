@@ -430,6 +430,17 @@ function BotRow({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance) 
             <span className="text-xs text-muted-foreground ml-2">Max</span>
             <span className="font-mono text-sm text-muted-foreground">{config.maxBidPrice}</span>
           </div>
+          {status.running && status.currentOrderPrice != null && (() => {
+            const price = parseFloat(status.currentOrderPrice);
+            const size = parseFloat(status.currentOrderVolume ?? config.orderSize);
+            if (isNaN(price) || isNaN(size)) return null;
+            const locked = (price * size).toFixed(2);
+            return (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[11px] text-amber-400/80 font-mono">~${locked} terkunci</span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Config pills */}
