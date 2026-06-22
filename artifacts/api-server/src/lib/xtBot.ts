@@ -274,6 +274,14 @@ export class XtBot {
         this.addLog("warn", `Saldo tidak cukup — siklus dilewati. Cek saldo akun XT.`);
         return;
       }
+      // SYMBOL_005 / ORDER_008: pair tidak mendukung OpenAPI trading (openapiEnabled: false)
+      if (/SYMBOL_005|ORDER_008/i.test(msg)) {
+        this.addLog("error", `Pair ${this.config.pair} tidak mendukung trading via XT OpenAPI. Ganti pair atau aktifkan openapiEnabled di XT.`);
+        this.circuitBreakerTripped = true;
+        this.setLastAction(`Bot berhenti — pair tidak didukung OpenAPI`);
+        this.stop();
+        return;
+      }
       this.addLog("error", `Cycle error: ${msg}`);
       this.consecutiveErrors++;
       const maxErrors = this.config.maxConsecutiveErrors ?? 5;

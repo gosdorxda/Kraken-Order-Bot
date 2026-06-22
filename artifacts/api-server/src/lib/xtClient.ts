@@ -258,11 +258,11 @@ export class XtClient {
   }
 
   async placeOrder(symbol: string, price: string, quantity: string): Promise<string> {
-    const result = await this.request<{ orderId: string }>(
+    const result = await this.requestAccount<{ orderId: string }>(
       "POST",
       "/v4/order",
       {},
-      { symbol, side: "BUY", type: "LIMIT", price, quantity, timeInForce: "GTC" }
+      { symbol, side: "BUY", type: "LIMIT", price, quantity, timeInForce: "GTC", bizType: "SPOT" }
     );
     if (!result.orderId) throw new Error("XT placeOrder: no orderId returned");
     return String(result.orderId);
@@ -270,10 +270,10 @@ export class XtClient {
 
   async cancelOrder(orderId: string): Promise<void> {
     try {
-      await this.request<unknown>("DELETE", "/v4/order", { orderId });
+      await this.requestAccount<unknown>("DELETE", "/v4/order", { orderId });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (/ORDER_NOT_FOUND|not.?found|CANCELLED/i.test(msg)) return;
+      if (/ORDER_NOT_FOUND|not.?found|CANCELLED|ORDER_005/i.test(msg)) return;
       throw err;
     }
   }
@@ -283,7 +283,7 @@ export class XtClient {
     reason?: "filled" | "canceled" | "unknown";
   }> {
     try {
-      const result = await this.request<{ state: string }>("GET", "/v4/order", { orderId });
+      const result = await this.requestAccount<{ state: string }>("GET", "/v4/order", { orderId });
       const state = (result.state ?? "").toUpperCase();
       if (state === "NEW" || state === "PARTIALLY_FILLED") return { isOpen: true };
       if (state === "CANCELED") return { isOpen: false, reason: "canceled" };
@@ -291,17 +291,17 @@ export class XtClient {
       return { isOpen: false, reason: "unknown" };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (/ORDER_NOT_FOUND|not.?found/i.test(msg)) return { isOpen: false, reason: "unknown" };
+      if (/ORDER_NOT_FOUND|not.?found|ORDER_005/i.test(msg)) return { isOpen: false, reason: "unknown" };
       throw err;
     }
   }
 
   async getOpenOrders(symbol: string): Promise<string[]> {
     try {
-      const orders = await this.request<Array<{ orderId: string | number; side?: string; type?: string }>>(
+      const orders = await this.requestAccount<Array<{ orderId: string | number; side?: string; type?: string }>>(
         "GET",
-        "/v4/order/open-orders",
-        { symbol }
+        "/v4/order",
+        { symbol, state: "NEW" }
       );
       if (!Array.isArray(orders)) return [];
       return orders.map((o) => String(o.orderId));
@@ -317,10 +317,10 @@ export class XtClient {
    */
   async cancelAllOpenBuyOrders(symbol: string): Promise<void> {
     try {
-      const orders = await this.request<Array<{ orderId: string | number; side?: string; type?: string }>>(
+      const orders = await this.requestAccount<Array<{ orderId: string | number; side?: string; type?: string }>>(
         "GET",
-        "/v4/order/open-orders",
-        { symbol }
+        "/v4/order",
+        { symbol, state: "NEW" }
       );
       if (!Array.isArray(orders) || orders.length === 0) return;
       const buyOrders = orders.filter(
