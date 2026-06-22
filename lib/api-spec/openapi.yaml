@@ -15,6 +15,8 @@ tags:
     description: Bot instances management
   - name: account
     description: Kraken account info
+  - name: settings
+    description: App-level settings
 paths:
   /auth/login:
     post:
@@ -473,6 +475,42 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get app-level settings
+      responses:
+        "200":
+          description: App settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSettings"
+    patch:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update app-level settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppSettingsPatch"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppSettings"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /account/balance:
     get:
       operationId: getAccountBalance
@@ -496,6 +534,30 @@ paths:
 
 components:
   schemas:
+    TelegramNotificationSettings:
+      type: object
+      required: [fill, circuitBreaker, botStartStop]
+      properties:
+        fill:
+          type: boolean
+        circuitBreaker:
+          type: boolean
+        botStartStop:
+          type: boolean
+
+    AppSettings:
+      type: object
+      required: [telegramNotifications]
+      properties:
+        telegramNotifications:
+          $ref: "#/components/schemas/TelegramNotificationSettings"
+
+    AppSettingsPatch:
+      type: object
+      properties:
+        telegramNotifications:
+          $ref: "#/components/schemas/TelegramNotificationSettings"
+
     LoginRequest:
       type: object
       required: [password]

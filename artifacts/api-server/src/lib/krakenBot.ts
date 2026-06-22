@@ -266,12 +266,13 @@ export class KrakenBot {
     this.currentOrderPrice = null;
     this.currentOrderVolume = null;
     this.addLog("info", `Bot started for pair ${this.config.pair}`, { config: this.config });
+    void sendTelegramNotification(`▶️ [${this.id}] Bot dimulai untuk pair ${this.config.pair}`, "botStartStop");
     await this.cancelStaleOpenOrders();
     this.intervalHandle = setInterval(() => {
       this.runCycle().catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         this.addLog("error", "Cycle error (fatal)", msg);
-        void sendTelegramNotification(`⚠️ <b>[${this.id}]</b> Bot berhenti karena error tak terduga:\n${msg}`);
+        void sendTelegramNotification(`⚠️ [${this.id}] Bot berhenti karena error tak terduga:\n${msg}`, "circuitBreaker");
         this.stop();
       });
     }, this.config.checkIntervalMs);
@@ -297,6 +298,7 @@ export class KrakenBot {
     this.topBidOwner = "none";
     this.topBidPrice = null;
     this.addLog("info", "Bot stopped");
+    void sendTelegramNotification(`⏹️ [${this.id}] Bot dihentikan`, "botStartStop");
     this.onPersist?.();
   }
 
@@ -419,7 +421,8 @@ export class KrakenBot {
         this.addLog("error", `🔌 Circuit breaker: ${maxErrors} errors in a row. Bot stopped.`);
         this.setLastAction(`Circuit breaker tripped after ${maxErrors} errors`);
         void sendTelegramNotification(
-          `🚨 <b>[${this.id}]</b> Circuit breaker aktif — ${maxErrors} error berturut-turut. Bot berhenti.\n\nError terakhir: ${msg}`
+          `🚨 [${this.id}] Circuit breaker aktif — ${maxErrors} error berturut-turut. Bot berhenti.\n\nError terakhir: ${msg}`,
+          "circuitBreaker"
         );
         this.stop();
       }
@@ -443,7 +446,8 @@ export class KrakenBot {
 
     const nilai = (parseFloat(price) * parseFloat(volume)).toFixed(2);
     void sendTelegramNotification(
-      `✅ <b>[${this.id}]</b> Order terisi — ${volume} ${this.config.pair.replace(/^X|ZUSD$|USD$/g, "")} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
+      `✅ [${this.id}] Order terisi — ${volume} ${this.config.pair.replace(/^X|ZUSD$|USD$/g, "")} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`,
+      "fill"
     );
   }
 

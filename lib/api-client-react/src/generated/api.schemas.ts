@@ -5,6 +5,20 @@
  * Kraken Top-of-Book Bot API
  * OpenAPI spec version: 0.1.0
  */
+export interface TelegramNotificationSettings {
+  fill: boolean;
+  circuitBreaker: boolean;
+  botStartStop: boolean;
+}
+
+export interface AppSettings {
+  telegramNotifications: TelegramNotificationSettings;
+}
+
+export interface AppSettingsPatch {
+  telegramNotifications?: TelegramNotificationSettings;
+}
+
 export interface LoginRequest {
   password: string;
 }

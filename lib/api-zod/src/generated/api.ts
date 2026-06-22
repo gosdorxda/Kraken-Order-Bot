@@ -446,6 +446,38 @@ export const GetMarketGateResponse = zod.array(GetMarketGateResponseItem)
 
 
 /**
+ * @summary Get app-level settings
+ */
+export const GetSettingsResponse = zod.object({
+  "telegramNotifications": zod.object({
+  "fill": zod.boolean(),
+  "circuitBreaker": zod.boolean(),
+  "botStartStop": zod.boolean()
+})
+})
+
+
+/**
+ * @summary Update app-level settings
+ */
+export const UpdateSettingsBody = zod.object({
+  "telegramNotifications": zod.object({
+  "fill": zod.boolean(),
+  "circuitBreaker": zod.boolean(),
+  "botStartStop": zod.boolean()
+}).optional()
+})
+
+export const UpdateSettingsResponse = zod.object({
+  "telegramNotifications": zod.object({
+  "fill": zod.boolean(),
+  "circuitBreaker": zod.boolean(),
+  "botStartStop": zod.boolean()
+})
+})
+
+
+/**
  * @summary Get Kraken account balance
  */
 export const GetAccountBalanceResponseItem = zod.object({

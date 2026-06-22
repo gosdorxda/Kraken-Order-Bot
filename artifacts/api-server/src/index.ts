@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { botManager } from "./lib/botManager";
+import { loadAppSettings } from "./lib/appSettings";
 
 const rawPort = process.env["PORT"];
 
@@ -16,7 +17,7 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-botManager.initialize().then(() => {
+Promise.all([botManager.initialize(), loadAppSettings()]).then(() => {
   app.listen(port, (err) => {
     if (err) {
       logger.error({ err }, "Error listening on port");
