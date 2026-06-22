@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { botManager } from "../lib/botManager";
 import { fetchOrderBook, fetchMarket } from "../lib/krakenBot";
+import { fetchXtOrderBook } from "../lib/xtClient";
 import { fetchGateMarket } from "../lib/gateMarket";
 import { fetchLbankMarket } from "../lib/lbankMarket";
 import { fetchAscendexMarket } from "../lib/ascendexMarket";
@@ -184,8 +185,11 @@ router.get("/bots/:botId/orderbook", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const pair = bot.getConfig().pair;
-    const book = await fetchOrderBook(pair);
+    const config = bot.getConfig();
+    const pair = config.pair;
+    const book = config.exchange === "xt"
+      ? await fetchXtOrderBook(pair)
+      : await fetchOrderBook(pair);
     res.json(
       GetBotOrderBookResponse.parse({
         pair,

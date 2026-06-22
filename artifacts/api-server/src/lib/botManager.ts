@@ -1,5 +1,6 @@
 import { KrakenBot, type BotConfig, cancelAllOpenBuyOrders } from "./krakenBot";
 import { XtBot } from "./xtBot";
+import { XtClient } from "./xtClient";
 import { loadPersistedState, savePersistedState } from "./persistence";
 import { getTelegramEventConfig, setTelegramEventConfig, type TelegramEventConfig } from "./telegram";
 import { logger } from "./logger";
@@ -49,11 +50,25 @@ class BotManager {
       }
     }
 
-    // Cancel ALL open buy orders on Kraken ONCE before starting any Kraken bot.
+    // Cancel ALL open Kraken buy orders ONCE before starting any Kraken bot.
     // Prevents duplicate orders during rolling restarts/redeploys.
     if (krakenBotsToStart.length > 0) {
       const pairs = krakenBotsToStart.map((b) => b.getConfig().pair);
       await cancelAllOpenBuyOrders(pairs);
+    }
+
+    // Cancel ALL open XT buy orders ONCE (manager-level, analogous to Kraken).
+    // Each symbol is cleaned up before any XT bot starts trading.
+    if (xtBotsToStart.length > 0) {
+      const xtClient = new XtClient(
+        process.env["XT_API_KEY"] ?? "",
+        process.env["XT_API_SECRET"] ?? ""
+      );
+      const xtPairs = xtBotsToStart.map((b) => b.getConfig().pair);
+      logger.info({ pairs: xtPairs }, "BotManager: cancelling stale XT open orders before autostart");
+      for (const pair of xtPairs) {
+        await xtClient.cancelAllOpenOrders(pair);
+      }
     }
 
     for (const bot of krakenBotsToStart) {

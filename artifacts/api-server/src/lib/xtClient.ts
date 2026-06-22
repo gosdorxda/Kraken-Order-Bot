@@ -1,5 +1,6 @@
 import { createHmac } from "crypto";
 import { logger } from "./logger";
+import { xtRateLimiter } from "./xtRateLimiter";
 
 const BASE_URL = "https://sapi.xt.com";
 
@@ -37,6 +38,29 @@ export async function fetchXtOrderBook(
   };
 }
 
+/**
+ * Fetch price and quantity precision for a symbol from XT public API.
+ * Returns decimal places for price and quantity formatting.
+ * Falls back to {pricePrecision: 8, quantityPrecision: 8} on error.
+ */
+export async function fetchXtSymbolPrecision(
+  symbol: string
+): Promise<{ pricePrecision: number; quantityPrecision: number }> {
+  try {
+    const url = `${BASE_URL}/v4/public/symbol?symbol=${encodeURIComponent(symbol)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return { pricePrecision: 8, quantityPrecision: 8 };
+    const json = (await resp.json()) as any;
+    const s = json.result;
+    return {
+      pricePrecision: typeof s?.pricePrecision === "number" ? s.pricePrecision : 8,
+      quantityPrecision: typeof s?.quantityPrecision === "number" ? s.quantityPrecision : 8,
+    };
+  } catch {
+    return { pricePrecision: 8, quantityPrecision: 8 };
+  }
+}
+
 export class XtClient {
   private apiKey: string;
   private apiSecret: string;
@@ -46,7 +70,7 @@ export class XtClient {
     this.apiSecret = apiSecret;
   }
 
-  private async request<T>(
+  private async rawRequest<T>(
     method: "GET" | "POST" | "DELETE",
     path: string,
     queryParams: Record<string, string> = {},
@@ -54,9 +78,11 @@ export class XtClient {
   ): Promise<T> {
     const timestamp = Date.now();
     const paramsToSign =
-      method === "POST" ? (Object.keys(bodyParams).length > 0 ? Object.fromEntries(
-        Object.entries(bodyParams).map(([k, v]) => [k, String(v)])
-      ) : {}) : queryParams;
+      method === "POST"
+        ? Object.keys(bodyParams).length > 0
+          ? Object.fromEntries(Object.entries(bodyParams).map(([k, v]) => [k, String(v)]))
+          : {}
+        : queryParams;
     const signature = signMessage(this.apiSecret, timestamp, paramsToSign);
 
     const headers: Record<string, string> = {
@@ -91,6 +117,19 @@ export class XtClient {
     }
 
     return json.result as T;
+  }
+
+  /** All private API calls go through the shared rate limiter. */
+  private request<T>(
+    method: "GET" | "POST" | "DELETE",
+    path: string,
+    queryParams?: Record<string, string>,
+    bodyParams?: Record<string, unknown>
+  ): Promise<T> {
+    return xtRateLimiter.enqueue(
+      () => this.rawRequest<T>(method, path, queryParams, bodyParams),
+      `${method} ${path}`
+    );
   }
 
   async placeOrder(symbol: string, price: string, quantity: string): Promise<string> {
@@ -132,24 +171,30 @@ export class XtClient {
     }
   }
 
-  async cancelAllOpenOrders(symbol: string): Promise<void> {
+  async getOpenOrders(symbol: string): Promise<string[]> {
     try {
-      const orders = await this.request<Array<{ orderId: string }>>(
+      const orders = await this.request<Array<{ orderId: string | number }>>(
         "GET",
         "/v4/order/open-orders",
         { symbol }
       );
-      if (!Array.isArray(orders) || orders.length === 0) return;
-      logger.info({ symbol, count: orders.length }, "XT: cancelling stale open orders on startup");
-      for (const order of orders) {
-        try {
-          await this.cancelOrder(String(order.orderId));
-        } catch {
-          // best effort
-        }
-      }
+      if (!Array.isArray(orders)) return [];
+      return orders.map((o) => String(o.orderId));
     } catch {
-      // best effort — startup cleanup, non-fatal
+      return [];
+    }
+  }
+
+  async cancelAllOpenOrders(symbol: string): Promise<void> {
+    const orderIds = await this.getOpenOrders(symbol);
+    if (orderIds.length === 0) return;
+    logger.info({ symbol, count: orderIds.length }, "XT: cancelling stale open orders");
+    for (const orderId of orderIds) {
+      try {
+        await this.cancelOrder(orderId);
+      } catch {
+        // best effort
+      }
     }
   }
 }

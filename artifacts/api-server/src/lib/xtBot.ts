@@ -1,4 +1,4 @@
-import { fetchXtOrderBook, XtClient } from "./xtClient";
+import { fetchXtOrderBook, fetchXtSymbolPrecision, XtClient } from "./xtClient";
 import { sendTelegramEvent } from "./telegram.js";
 import type { BotConfig, BotLog, BotStatus, FillRecord } from "./krakenBot";
 
@@ -25,6 +25,10 @@ export class XtBot {
   private consecutiveErrors = 0;
   private circuitBreakerTripped = false;
 
+  // Exchange-driven precision (fetched once on first cycle)
+  private pricePrecision: number | null = null;
+  private quantityPrecision: number | null = null;
+
   constructor(id: string, config: BotConfig, onPersist?: () => void) {
     this.id = id;
     this.config = { ...config };
@@ -42,6 +46,9 @@ export class XtBot {
 
   setConfig(cfg: BotConfig): void {
     this.config = { ...cfg };
+    // Reset cached precision when config changes (pair may have changed)
+    this.pricePrecision = null;
+    this.quantityPrecision = null;
   }
 
   getStatus(): BotStatus {
@@ -101,9 +108,6 @@ export class XtBot {
     this.addLog("info", `XT Bot started for pair ${this.config.pair}`, { config: this.config });
     void sendTelegramEvent("startStop", `▶️ <b>[XT:${this.id}]</b> Bot dimulai untuk pair <b>${this.config.pair}</b>`);
 
-    // Cancel any stale open orders before starting
-    await this.client.cancelAllOpenOrders(this.config.pair);
-
     this.intervalHandle = setInterval(() => {
       this.runCycle().catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
@@ -145,6 +149,14 @@ export class XtBot {
     this.cycleCount++;
 
     try {
+      // Bootstrap: fetch exchange-driven precision on the first cycle
+      if (this.pricePrecision === null) {
+        const prec = await fetchXtSymbolPrecision(this.config.pair);
+        this.pricePrecision = prec.pricePrecision;
+        this.quantityPrecision = prec.quantityPrecision;
+        this.addLog("info", `Symbol precision loaded: price=${this.pricePrecision}, qty=${this.quantityPrecision}`);
+      }
+
       const book = await fetchXtOrderBook(this.config.pair);
       const topBid = book.bids[0];
       if (!topBid) {
@@ -207,7 +219,7 @@ export class XtBot {
           const secondBidNum = parseFloat(secondBid.price);
           const optimalPrice = secondBidNum + tickNum;
           if (myPrice > optimalPrice + tickNum * 0.5) {
-            const formattedOptimal = optimalPrice.toFixed(this.decimalPlaces(this.config.tickSize));
+            const formattedOptimal = optimalPrice.toFixed(this.effectivePriceDecimals());
             await this.client.cancelOrder(this.currentOrderId);
             this.addLog("info", `Step-down: bid turun dari ${this.currentOrderPrice} ke ${formattedOptimal}`);
             const orderId = await this.client.placeOrder(this.config.pair, formattedOptimal, this.config.orderSize);
@@ -241,13 +253,12 @@ export class XtBot {
 
       if (this.currentOrderId) {
         await this.client.cancelOrder(this.currentOrderId);
-        const dp = this.decimalPlaces(this.config.tickSize);
-        this.addLog("info", `Cancelled order at ${this.currentOrderPrice} — re-placing at ${targetPrice.toFixed(dp)}`);
+        this.addLog("info", `Cancelled order at ${this.currentOrderPrice} — re-placing at ${targetPrice.toFixed(this.effectivePriceDecimals())}`);
         this.currentOrderId = null;
         this.currentOrderPrice = null;
       }
 
-      const formattedPrice = targetPrice.toFixed(this.decimalPlaces(this.config.tickSize));
+      const formattedPrice = targetPrice.toFixed(this.effectivePriceDecimals());
       const orderId = await this.client.placeOrder(this.config.pair, formattedPrice, this.config.orderSize);
       this.currentOrderId = orderId;
       this.currentOrderPrice = formattedPrice;
@@ -280,6 +291,15 @@ export class XtBot {
   }
 
   // ─── Private helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Returns decimal places for price formatting.
+   * Prefers exchange-reported pricePrecision; falls back to tickSize decimals.
+   */
+  private effectivePriceDecimals(): number {
+    if (this.pricePrecision !== null) return this.pricePrecision;
+    return this.decimalPlaces(this.config.tickSize);
+  }
 
   private recordFill(orderId: string, price: string, volume: string): void {
     const fill: FillRecord = {
