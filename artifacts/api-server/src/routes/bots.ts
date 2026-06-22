@@ -223,6 +223,7 @@ router.get("/orderbook", async (req, res): Promise<void> => {
       })
     );
   } catch (err) {
+    req.log.error({ err }, "orderbook fetch failed");
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });

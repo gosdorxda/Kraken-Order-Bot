@@ -79,9 +79,12 @@ export async function fetchXtOrderBook(
   }
   const json = (await resp.json()) as any;
   if (!json.result) throw new Error("XT depth API: missing result");
+  const raw = json.result as { bids?: [string, string][]; asks?: [string, string][]; b?: [string, string][]; a?: [string, string][] };
+  const bidsRaw = raw.bids ?? raw.b ?? [];
+  const asksRaw = raw.asks ?? raw.a ?? [];
   return {
-    bids: (json.result.b as [string, string][]).map(([price, volume]) => ({ price, volume })),
-    asks: (json.result.a as [string, string][]).map(([price, volume]) => ({ price, volume })),
+    bids: bidsRaw.map(([price, volume]) => ({ price, volume })),
+    asks: asksRaw.map(([price, volume]) => ({ price, volume })),
   };
 }
 
