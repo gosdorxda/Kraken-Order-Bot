@@ -345,13 +345,19 @@ export class KrakenBot {
               return;
             }
           } else {
-            // Order was canceled, expired, or not found — NOT a fill.
-            // Clear tracking state and let the next cycle re-place the order.
-            const reasonLabel =
-              orderStatus.reason === "canceled" ? "dibatalkan Kraken" :
-              orderStatus.reason === "expired"  ? "expired di Kraken" :
-                                                  "tidak ditemukan di Kraken";
-            this.addLog("warn", `Order ${this.currentOrderId} ${reasonLabel} — akan re-place di siklus berikutnya`);
+            // Order is not open (canceled, expired, or not found on Kraken).
+            // For "unknown": the order may still be open (e.g. QueryOrders
+            // returned null for a freshly-placed order). Cancel it first to
+            // prevent duplicate open orders before clearing our tracking state.
+            // For "canceled"/"expired": Kraken already closed it; no cancel needed.
+            const staleId = this.currentOrderId;
+            if (orderStatus.reason === "unknown") {
+              this.addLog("warn", `Order ${staleId} tidak ditemukan di Kraken — mencoba cancel untuk keamanan sebelum re-place`);
+              await this.cancelOrder(staleId); // no-op if already gone
+            } else {
+              const reasonLabel = orderStatus.reason === "canceled" ? "dibatalkan Kraken" : "expired di Kraken";
+              this.addLog("warn", `Order ${staleId} ${reasonLabel} — akan re-place di siklus berikutnya`);
+            }
             this.currentOrderId = null;
             this.currentOrderPrice = null;
             this.currentOrderVolume = null;

@@ -1,0 +1,57 @@
+22/06/26, 13.39.50	TOKEUSD	success	Placed buy order{"orderId":"OIK47W-6ENUJ-66RQTJ","price":"0.0248","volume":"2650"}
+22/06/26, 13.39.50	TOKEUSD	info	Cancelled order at 0.0246 — re-placing at 0.0248
+22/06/26, 13.39.39	TOKEUSD	success	Placed buy order{"orderId":"OTV5O6-R5KVT-65HD2B","price":"0.0246","volume":"2650"}
+22/06/26, 13.39.39	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0246
+22/06/26, 13.39.32	TOKEUSD	success	Placed buy order{"orderId":"OKGMAV-43AD3-5NFQH4","price":"0.0243","volume":"2650"}
+22/06/26, 13.39.31	TOKEUSD	success	Placed buy order{"orderId":"ONJLRB-4BAHA-3YCIVV","price":"0.0245","volume":"2650"}
+22/06/26, 13.39.28	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.39.09	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.38.59	TOKEUSD	success	Placed buy order{"orderId":"ORQTV2-W3GL2-CVZSYK","price":"0.0245","volume":"2650"}
+22/06/26, 13.38.59	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.38.49	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.38.39	TOKEUSD	success	Placed buy order{"orderId":"OIV2UQ-TKGYH-EFDRCZ","price":"0.0245","volume":"2650"}
+22/06/26, 13.38.38	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.38.28	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.38.19	TOKEUSD	success	Placed buy order{"orderId":"OA2RRH-UQA5Q-FT6YYD","price":"0.0245","volume":"2650"}
+22/06/26, 13.38.18	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.38.09	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.38.00	TOKEUSD	success	Placed buy order{"orderId":"O6VNYE-2EHQ2-OK5ZXN","price":"0.0245","volume":"2650"}
+22/06/26, 13.37.59	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.37.49	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.37.39	TOKEUSD	success	Placed buy order{"orderId":"OPHWT2-W4JVP-6RFTD3","price":"0.0245","volume":"2650"}
+22/06/26, 13.37.38	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.37.29	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.37.20	TOKEUSD	success	Placed buy order{"orderId":"OBD4VF-ZFOVZ-JDN7A2","price":"0.0245","volume":"2650"}
+22/06/26, 13.37.19	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.37.08	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.36.59	TOKEUSD	success	Placed buy order{"orderId":"OLIBIM-OSO56-F6MHNI","price":"0.0245","volume":"2650"}
+22/06/26, 13.36.58	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.36.49	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.36.46	TOKEUSD	success	Placed buy order{"orderId":"OZH3RA-ECWRJ-JYOHBU","price":"0.0245","volume":"2650"}
+22/06/26, 13.36.44	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.36.27	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.36.22	TOKEUSD	success	Placed buy order{"orderId":"ONNTXQ-EVAHQ-CJTUAI","price":"0.0245","volume":"2650"}
+22/06/26, 13.36.20	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.36.08	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.35.58	TOKEUSD	success	Placed buy order{"orderId":"OYW3G7-MAGV5-S7YV6B","price":"0.0245","volume":"2650"}
+22/06/26, 13.35.57	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.35.47	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.35.38	TOKEUSD	success	Placed buy order{"orderId":"OYFPYT-BMJPA-NPTNXO","price":"0.0245","volume":"2650"}
+22/06/26, 13.35.37	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.35.27	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.35.18	TOKEUSD	success	Placed buy order{"orderId":"OQWPRV-ZDE4L-V2YOFL","price":"0.0245","volume":"2650"}
+22/06/26, 13.35.18	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.35.07	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.34.58	TOKEUSD	success	Placed buy order{"orderId":"ODYVEJ-AT3N4-HFJL3Y","price":"0.0245","volume":"2650"}
+22/06/26, 13.34.57	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.34.47	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.34.38	TOKEUSD	success	Placed buy order{"orderId":"OYG6F5-YNZ7I-2X5UH2","price":"0.0245","volume":"2650"}
+22/06/26, 13.34.37	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.34.27	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.34.18	TOKEUSD	success	Placed buy order{"orderId":"OCO4NT-347EK-J3ZTTK","price":"0.0245","volume":"2650"}
+22/06/26, 13.34.17	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.34.07	TOKEUSD	info	Step-down: bid turun dari 0.0245 ke 0.0243 (bid kedua: 0.02420)
+22/06/26, 13.33.58	TOKEUSD	success	Placed buy order{"orderId":"OZLNZX-GHJKF-WBO6ZO","price":"0.0245","volume":"2650"}
+22/06/26, 13.33.57	TOKEUSD	info	Cancelled order at 0.0243 — re-placing at 0.0245
+22/06/26, 13.33.47	TOKEUSD	success	Placed buy order{"orderId":"O6COBJ-7ZRH7-5SPQLP","price":"0.0243","volume":"2650"}
+22/06/26, 13.33.46	TOKEUSD	info	Bot started for pair TOKEUSD{"config":{"pair":"TOKEUSD","orderSize":"2650","maxBidPrice":"0.0288","tickSize":"0.0001","checkIntervalMs":10000,"oneShotMode":true,"maxConsecutiveErrors":2}}
