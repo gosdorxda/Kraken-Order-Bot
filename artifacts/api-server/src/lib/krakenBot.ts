@@ -362,13 +362,18 @@ export class KrakenBot {
     this.running = false;
     if (this.currentOrderId) {
       try {
-        await this.cancelOrder(this.currentOrderId);
-        this.addLog("info", `Cancelled order ${this.currentOrderId} on stop`);
+        const wasFilled = await this.cancelTrackedOrder();
+        if (wasFilled) {
+          this.addLog("info", "Order terisi saat bot dihentikan — fill telah dicatat.");
+        } else {
+          this.addLog("info", `Cancelled order ${this.currentOrderId} on stop`);
+        }
       } catch (err) {
         this.addLog("warn", `Could not cancel order on stop: ${err instanceof Error ? err.message : String(err)}`);
       }
       this.currentOrderId = null;
       this.currentOrderPrice = null;
+      this.currentOrderVolume = null;
     }
     await this.cancelStaleOpenOrders();
     this.topBidOwner = "none";
@@ -467,8 +472,17 @@ export class KrakenBot {
           const gapInTicks = Math.round((myPrice - optimalPrice) / tickNum);
           if (gapInTicks >= 4) {
             const formattedOptimal = optimalPrice.toFixed(this.decimalPlaces(this.config.tickSize));
-            await this.cancelOrder(this.currentOrderId);
-            this.addLog("info", `Step-down: bid turun dari ${this.currentOrderPrice} ke ${formattedOptimal} (bid kedua: ${secondBid.price})`);
+            const prevPrice = this.currentOrderPrice;
+            const wasFilled = await this.cancelTrackedOrder();
+            this.currentOrderId = null;
+            this.currentOrderPrice = null;
+            this.currentOrderVolume = null;
+            if (wasFilled) {
+              this.setLastAction(`Order terisi saat step-down — fill dicatat`);
+              this.consecutiveErrors = 0;
+              return;
+            }
+            this.addLog("info", `Step-down: bid turun dari ${prevPrice} ke ${formattedOptimal} (bid kedua: ${secondBid.price})`);
             const volume = await this.calculateVolume(optimalPrice);
             const orderId = await this.placeOrder(this.config.pair, formattedOptimal, volume);
             this.currentOrderId = orderId;
@@ -487,11 +501,17 @@ export class KrakenBot {
       if (targetPrice > maxPriceNum) {
         this.topBidOwner = "other";
         if (this.currentOrderId) {
-          await this.cancelOrder(this.currentOrderId);
-          this.addLog("warn", `Max price reached (${maxPriceNum}), order cancelled, bot paused`);
+          const prevPrice = this.currentOrderPrice;
+          const wasFilled = await this.cancelTrackedOrder();
           this.currentOrderId = null;
           this.currentOrderPrice = null;
-          this.setLastAction(`Max bid price ${maxPriceNum} reached — paused`);
+          this.currentOrderVolume = null;
+          if (wasFilled) {
+            this.setLastAction(`Order terisi saat max price — fill dicatat`);
+          } else {
+            this.addLog("warn", `Max price reached (${maxPriceNum}), order ${prevPrice} dibatalkan, bot pause`);
+            this.setLastAction(`Max bid price ${maxPriceNum} reached — paused`);
+          }
         } else {
           this.addLog("warn", `Top bid ${topBidPriceNum} + tick ${tickNum} = ${targetPrice} exceeds max ${maxPriceNum}. Not placing order.`);
         }
@@ -500,11 +520,18 @@ export class KrakenBot {
       }
 
       if (this.currentOrderId) {
-        await this.cancelOrder(this.currentOrderId);
+        const prevPrice = this.currentOrderPrice;
         const dp = this.decimalPlaces(this.config.tickSize);
-        this.addLog("info", `Cancelled order at ${this.currentOrderPrice} — re-placing at ${targetPrice.toFixed(dp)}`);
+        const wasFilled = await this.cancelTrackedOrder();
         this.currentOrderId = null;
         this.currentOrderPrice = null;
+        this.currentOrderVolume = null;
+        if (wasFilled) {
+          this.setLastAction(`Order terisi saat outbid — fill dicatat`);
+          this.consecutiveErrors = 0;
+          return;
+        }
+        this.addLog("info", `Cancelled order at ${prevPrice} — re-placing at ${targetPrice.toFixed(dp)}`);
       }
 
       const formattedPrice = targetPrice.toFixed(this.decimalPlaces(this.config.tickSize));
@@ -602,20 +629,43 @@ export class KrakenBot {
     }
   }
 
-  private async cancelOrder(orderId: string): Promise<void> {
+  private async cancelOrder(orderId: string): Promise<"cancelled" | "already_gone"> {
     try {
-      await krakenRateLimiter.enqueue(
+      const resp: any = await krakenRateLimiter.enqueue(
         () => (sharedClient as any).api("CancelOrder", { txid: orderId }),
         `CancelOrder(${orderId})`
       );
+      // count > 0 means Kraken actually cancelled something; 0 means already gone
+      return (resp.result?.count ?? 0) > 0 ? "cancelled" : "already_gone";
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (/unknown order/i.test(msg)) {
-        // Order already gone — nothing to cancel, not an error
-        return;
-      }
+      if (/unknown order/i.test(msg)) return "already_gone";
       throw err;
     }
+  }
+
+  /**
+   * Cancel the currently-tracked order and check if it was filled before we
+   * could cancel it.  Returns true if a fill was detected (and recorded).
+   * Does NOT mutate currentOrderId/Price/Volume — callers must clear state.
+   */
+  private async cancelTrackedOrder(): Promise<boolean> {
+    if (!this.currentOrderId) return false;
+    const orderId  = this.currentOrderId;
+    const price    = this.currentOrderPrice  ?? "0";
+    const volume   = this.currentOrderVolume ?? this.config.orderSize;
+
+    const result = await this.cancelOrder(orderId);
+    if (result === "already_gone") {
+      // Order vanished before we could cancel — query final state
+      const finalStatus = await this.checkOrderOpen(orderId);
+      if (!finalStatus.isOpen && finalStatus.reason === "filled") {
+        this.addLog("success", `Order ${orderId} terisi (terdeteksi saat cancel)`, { price });
+        this.recordFill(orderId, price, volume);
+        return true;
+      }
+    }
+    return false;
   }
 
   private async checkOrderOpen(

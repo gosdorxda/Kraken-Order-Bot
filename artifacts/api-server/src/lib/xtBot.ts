@@ -127,13 +127,18 @@ export class XtBot {
     this.running = false;
     if (this.currentOrderId) {
       try {
-        await this.client.cancelOrder(this.currentOrderId);
-        this.addLog("info", `Cancelled order ${this.currentOrderId} on stop`);
+        const wasFilled = await this.cancelTrackedOrder();
+        if (wasFilled) {
+          this.addLog("info", "Order terisi saat bot dihentikan — fill telah dicatat.");
+        } else {
+          this.addLog("info", `Cancelled order ${this.currentOrderId} on stop`);
+        }
       } catch (err) {
         this.addLog("warn", `Could not cancel order on stop: ${err instanceof Error ? err.message : String(err)}`);
       }
       this.currentOrderId = null;
       this.currentOrderPrice = null;
+      this.currentOrderVolume = null;
     }
     this.topBidOwner = "none";
     this.topBidPrice = null;
@@ -220,8 +225,17 @@ export class XtBot {
           const optimalPrice = secondBidNum + tickNum;
           if (myPrice > optimalPrice + tickNum * 0.5) {
             const formattedOptimal = optimalPrice.toFixed(this.effectivePriceDecimals());
-            await this.client.cancelOrder(this.currentOrderId);
-            this.addLog("info", `Step-down: bid turun dari ${this.currentOrderPrice} ke ${formattedOptimal}`);
+            const prevPrice = this.currentOrderPrice;
+            const wasFilled = await this.cancelTrackedOrder();
+            this.currentOrderId = null;
+            this.currentOrderPrice = null;
+            this.currentOrderVolume = null;
+            if (wasFilled) {
+              this.setLastAction(`Order terisi saat step-down — fill dicatat`);
+              this.consecutiveErrors = 0;
+              return;
+            }
+            this.addLog("info", `Step-down: bid turun dari ${prevPrice} ke ${formattedOptimal}`);
             const orderId = await this.client.placeOrder(this.config.pair, formattedOptimal, this.config.orderSize);
             this.currentOrderId = orderId;
             this.currentOrderPrice = formattedOptimal;
@@ -239,11 +253,17 @@ export class XtBot {
       if (targetPrice > maxPriceNum) {
         this.topBidOwner = "other";
         if (this.currentOrderId) {
-          await this.client.cancelOrder(this.currentOrderId);
-          this.addLog("warn", `Max price reached (${maxPriceNum}), order cancelled, bot paused`);
+          const prevPrice = this.currentOrderPrice;
+          const wasFilled = await this.cancelTrackedOrder();
           this.currentOrderId = null;
           this.currentOrderPrice = null;
-          this.setLastAction(`Max bid price ${maxPriceNum} reached — paused`);
+          this.currentOrderVolume = null;
+          if (wasFilled) {
+            this.setLastAction(`Order terisi saat max price — fill dicatat`);
+          } else {
+            this.addLog("warn", `Max price reached (${maxPriceNum}), order ${prevPrice} dibatalkan, bot pause`);
+            this.setLastAction(`Max bid price ${maxPriceNum} reached — paused`);
+          }
         } else {
           this.addLog("warn", `Top bid ${topBidPriceNum} + tick ${tickNum} = ${targetPrice} exceeds max ${maxPriceNum}. Not placing order.`);
         }
@@ -252,10 +272,17 @@ export class XtBot {
       }
 
       if (this.currentOrderId) {
-        await this.client.cancelOrder(this.currentOrderId);
-        this.addLog("info", `Cancelled order at ${this.currentOrderPrice} — re-placing at ${targetPrice.toFixed(this.effectivePriceDecimals())}`);
+        const prevPrice = this.currentOrderPrice;
+        const wasFilled = await this.cancelTrackedOrder();
         this.currentOrderId = null;
         this.currentOrderPrice = null;
+        this.currentOrderVolume = null;
+        if (wasFilled) {
+          this.setLastAction(`Order terisi saat outbid — fill dicatat`);
+          this.consecutiveErrors = 0;
+          return;
+        }
+        this.addLog("info", `Cancelled order at ${prevPrice} — re-placing at ${targetPrice.toFixed(this.effectivePriceDecimals())}`);
       }
 
       const formattedPrice = targetPrice.toFixed(this.effectivePriceDecimals());
@@ -299,6 +326,30 @@ export class XtBot {
   }
 
   // ─── Private helpers ────────────────────────────────────────────────────────
+
+  /**
+   * Cancel the currently-tracked order and check if it was filled before we
+   * could cancel it.  Checks status BEFORE cancelling; if already filled,
+   * records the fill and returns true without issuing a cancel.
+   * Does NOT mutate currentOrderId/Price/Volume — callers must clear state.
+   */
+  private async cancelTrackedOrder(): Promise<boolean> {
+    if (!this.currentOrderId) return false;
+    const orderId  = this.currentOrderId;
+    const price    = this.currentOrderPrice  ?? "0";
+    const volume   = this.currentOrderVolume ?? this.config.orderSize;
+
+    // Check status first — if already filled, skip cancel and record fill
+    const status = await this.client.getOrder(orderId);
+    if (!status.isOpen && status.reason === "filled") {
+      this.addLog("success", `Order ${orderId} terisi (terdeteksi saat cancel)`, { price });
+      this.recordFill(orderId, price, volume);
+      return true;
+    }
+    // Order still open — cancel it
+    await this.client.cancelOrder(orderId);
+    return false;
+  }
 
   /**
    * Returns decimal places for price formatting.
