@@ -102,10 +102,20 @@ function isPausedAtMax(bot: BotInstance): boolean {
   );
 }
 
+function isHoldingAtMax(bot: BotInstance): boolean {
+  return (
+    bot.status.running &&
+    bot.status.topBidOwner === "other" &&
+    bot.status.currentOrderId !== null &&
+    (bot.config.holdAtMax ?? false)
+  );
+}
+
 // ─── Position chip ────────────────────────────────────────────────────────────
 
 function PositionChip({ bot }: { bot: BotInstance }) {
   const paused = isPausedAtMax(bot);
+  const holding = isHoldingAtMax(bot);
   const cb = bot.status.circuitBreakerTripped;
   const { running, topBidOwner } = bot.status;
 
@@ -113,6 +123,7 @@ function PositionChip({ bot }: { bot: BotInstance }) {
   if (cb)               return <span className={`${base} bg-red-500/15 border-red-500/40 text-red-400`}>🔌 Circuit Breaker</span>;
   if (!running)         return <span className={`${base} bg-muted/60 border-border text-muted-foreground`}>⏹ Stopped</span>;
   if (paused)           return <span className={`${base} bg-orange-500/15 border-orange-500/40 text-orange-400`}>⏸ Batas Maks</span>;
+  if (holding)          return <span className={`${base} bg-blue-500/15 border-blue-500/40 text-blue-400`}>📌 Hold at Max</span>;
   if (topBidOwner === "bot")   return <span className={`${base} bg-emerald-500/15 border-emerald-500/40 text-emerald-400`}>🏆 At Top</span>;
   if (topBidOwner === "other") return <span className={`${base} bg-amber-500/15 border-amber-500/40 text-amber-400`}>📉 Outbid</span>;
   return <span className={`${base} bg-blue-500/15 border-blue-500/40 text-blue-400`}>⏳ No Order</span>;
@@ -129,7 +140,7 @@ function RunningDot({ running }: { running: boolean }) {
 
 // ─── Live market reference ────────────────────────────────────────────────────
 
-function MarketRef({ pair, exchange, tickSize, maxBidPrice }: { pair: string; exchange: "kraken" | "xt"; tickSize: string; maxBidPrice: string }) {
+function MarketRef({ pair, exchange, tickSize, maxBidPrice, holdAtMax }: { pair: string; exchange: "kraken" | "xt"; tickSize: string; maxBidPrice: string; holdAtMax?: boolean }) {
   const { data: book, isLoading } = useGetOrderBook(
     { pair, exchange },
     { query: { refetchInterval: 2000, enabled: pair.length > 0, queryKey: getGetOrderBookQueryKey({ pair, exchange }) } }
@@ -159,7 +170,10 @@ function MarketRef({ pair, exchange, tickSize, maxBidPrice }: { pair: string; ex
       </div>
       {exceedsMax && (
         <p className="flex items-center gap-1 text-red-400 text-[10px]">
-          <AlertTriangle className="w-3 h-3 shrink-0" /> Target melebihi Max Bid — bot akan langsung pause
+          <AlertTriangle className="w-3 h-3 shrink-0" />
+          {holdAtMax
+            ? "Target melebihi Max Bid — bot akan hold order di harga maks"
+            : "Target melebihi Max Bid — bot akan langsung pause"}
         </p>
       )}
     </div>
@@ -342,7 +356,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
               )} />
             </div>
 
-            <MarketRef pair={watchPair} exchange={watchExchange} tickSize={watchTick} maxBidPrice={watchMax} />
+            <MarketRef pair={watchPair} exchange={watchExchange} tickSize={watchTick} maxBidPrice={watchMax} holdAtMax={form.watch("holdAtMax")} />
 
             <div className="flex justify-end gap-2 pt-2 border-t border-border">
               <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>Batal</Button>
