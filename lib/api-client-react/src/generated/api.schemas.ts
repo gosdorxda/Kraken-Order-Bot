@@ -54,6 +54,7 @@ export interface BotConfig {
   tickSize: string;
   checkIntervalMs: number;
   oneShotMode: boolean;
+  /** Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause). */
   holdAtMax?: boolean;
   maxConsecutiveErrors: number;
   exchange?: BotConfigExchange;
@@ -74,6 +75,7 @@ export interface BotConfigInput {
   tickSize: string;
   checkIntervalMs?: number;
   oneShotMode?: boolean;
+  /** Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause). */
   holdAtMax?: boolean;
   maxConsecutiveErrors?: number;
   exchange?: BotConfigInputExchange;

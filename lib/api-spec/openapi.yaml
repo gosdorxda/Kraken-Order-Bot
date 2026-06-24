@@ -742,6 +742,7 @@ components:
         holdAtMax:
           type: boolean
           default: false
+          description: Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).
         maxConsecutiveErrors:
           type: integer
           default: 5
@@ -771,6 +772,7 @@ components:
         holdAtMax:
           type: boolean
           default: false
+          description: Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).
         maxConsecutiveErrors:
           type: integer
           default: 5

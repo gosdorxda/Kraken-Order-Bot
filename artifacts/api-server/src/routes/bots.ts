@@ -47,6 +47,7 @@ router.post("/bots", async (req, res): Promise<void> => {
     tickSize: parsed.data.tickSize,
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
     oneShotMode: parsed.data.oneShotMode ?? false,
+    holdAtMax: parsed.data.holdAtMax ?? false,
     maxConsecutiveErrors: parsed.data.maxConsecutiveErrors ?? 5,
     exchange: parsed.data.exchange,
   };
@@ -130,6 +131,7 @@ router.put("/bots/:botId/config", async (req, res): Promise<void> => {
     tickSize: parsed.data.tickSize,
     checkIntervalMs: parsed.data.checkIntervalMs ?? 3000,
     oneShotMode: parsed.data.oneShotMode ?? false,
+    holdAtMax: parsed.data.holdAtMax ?? false,
     maxConsecutiveErrors: parsed.data.maxConsecutiveErrors ?? 5,
     exchange: parsed.data.exchange,
   });
