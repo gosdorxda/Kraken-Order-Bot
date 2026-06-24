@@ -252,6 +252,38 @@ export class XtBot {
 
       if (targetPrice > maxPriceNum) {
         this.topBidOwner = "other";
+
+        if (this.config.holdAtMax) {
+          const holdFormatted = maxPriceNum.toFixed(this.effectivePriceDecimals());
+
+          if (this.currentOrderId && this.currentOrderPrice === holdFormatted) {
+            this.setLastAction(`Hold at max ${holdFormatted} (saingan lebih tinggi)`);
+            this.consecutiveErrors = 0;
+            return;
+          }
+
+          if (this.currentOrderId) {
+            const wasFilled = await this.cancelTrackedOrder();
+            this.currentOrderId = null;
+            this.currentOrderPrice = null;
+            this.currentOrderVolume = null;
+            if (wasFilled) {
+              this.setLastAction(`Order terisi saat hold-at-max — fill dicatat`);
+              this.consecutiveErrors = 0;
+              return;
+            }
+          }
+
+          const orderId = await this.client.placeOrder(this.config.pair, holdFormatted, this.config.orderSize);
+          this.currentOrderId = orderId;
+          this.currentOrderPrice = holdFormatted;
+          this.currentOrderVolume = this.config.orderSize;
+          this.addLog("info", `Hold at max: order di ${holdFormatted}`, { orderId, price: holdFormatted, volume: this.config.orderSize });
+          this.setLastAction(`Hold at max — order di ${holdFormatted}`);
+          this.consecutiveErrors = 0;
+          return;
+        }
+
         if (this.currentOrderId) {
           const prevPrice = this.currentOrderPrice;
           const wasFilled = await this.cancelTrackedOrder();

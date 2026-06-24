@@ -54,6 +54,7 @@ export interface BotConfig {
   tickSize: string;
   checkIntervalMs: number;
   oneShotMode: boolean;
+  holdAtMax?: boolean;
   maxConsecutiveErrors: number;
   exchange?: BotConfigExchange;
 }
@@ -73,6 +74,7 @@ export interface BotConfigInput {
   tickSize: string;
   checkIntervalMs?: number;
   oneShotMode?: boolean;
+  holdAtMax?: boolean;
   maxConsecutiveErrors?: number;
   exchange?: BotConfigInputExchange;
 }

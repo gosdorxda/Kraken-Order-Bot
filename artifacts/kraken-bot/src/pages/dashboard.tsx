@@ -58,6 +58,7 @@ const configSchema = z.object({
   tickSize: z.string().min(1, "Tick size is required"),
   checkIntervalMs: z.coerce.number().min(500, "Interval minimal 500ms"),
   oneShotMode: z.boolean().default(false),
+  holdAtMax: z.boolean().default(false),
   maxConsecutiveErrors: z.coerce.number().min(1).max(20).default(5),
 });
 type ConfigForm = z.infer<typeof configSchema>;
@@ -70,6 +71,7 @@ const DEFAULT_VALUES: ConfigForm = {
   tickSize: "0.1",
   checkIntervalMs: 3000,
   oneShotMode: false,
+  holdAtMax: false,
   maxConsecutiveErrors: 5,
 };
 
@@ -184,6 +186,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
           tickSize: editBot.config.tickSize,
           checkIntervalMs: editBot.config.checkIntervalMs ?? 3000,
           oneShotMode: editBot.config.oneShotMode ?? false,
+          holdAtMax: editBot.config.holdAtMax ?? false,
           maxConsecutiveErrors: editBot.config.maxConsecutiveErrors ?? 5,
         }
       : DEFAULT_VALUES,
@@ -306,6 +309,18 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
                     <div>
                       <FormLabel className="text-sm font-medium cursor-pointer">🎯 One-Shot Mode</FormLabel>
                       <FormDescription className="text-[11px]">Berhenti otomatis setelah order pertama terisi</FormDescription>
+                    </div>
+                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  </div>
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="holdAtMax" render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+                    <div>
+                      <FormLabel className="text-sm font-medium cursor-pointer">📌 Tetap di Harga Maks</FormLabel>
+                      <FormDescription className="text-[11px]">Tetap pasang order di harga maks saat saingan outbid (tidak pause)</FormDescription>
                     </div>
                     <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                   </div>
@@ -519,9 +534,10 @@ function BotCard({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance)
       )}
 
       {/* Badges row */}
-      {(config.oneShotMode || cb) && (
+      {(config.oneShotMode || config.holdAtMax || cb) && (
         <div className="px-4 pb-3 flex flex-wrap gap-1.5">
           {config.oneShotMode && <span className="px-2 py-0.5 rounded-md bg-violet-500/15 text-violet-300 border border-violet-500/40 text-[11px] font-semibold">🎯 one-shot</span>}
+          {config.holdAtMax && <span className="px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/40 text-[11px] font-semibold">📌 hold-at-max</span>}
           {cb && <span className="px-2 py-0.5 rounded-md bg-red-500/15 text-red-300 border border-red-500/40 text-[11px] font-semibold">🔌 {status.consecutiveErrors} err</span>}
         </div>
       )}

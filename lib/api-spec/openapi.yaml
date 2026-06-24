@@ -739,6 +739,9 @@ components:
         oneShotMode:
           type: boolean
           default: false
+        holdAtMax:
+          type: boolean
+          default: false
         maxConsecutiveErrors:
           type: integer
           default: 5
@@ -763,6 +766,9 @@ components:
           type: integer
           default: 3000
         oneShotMode:
+          type: boolean
+          default: false
+        holdAtMax:
           type: boolean
           default: false
         maxConsecutiveErrors:

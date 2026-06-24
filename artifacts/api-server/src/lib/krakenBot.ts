@@ -10,6 +10,7 @@ export interface BotConfig {
   tickSize: string;
   checkIntervalMs: number;
   oneShotMode: boolean;
+  holdAtMax?: boolean;
   maxConsecutiveErrors: number;
   exchange?: "kraken" | "xt";
 }
@@ -500,6 +501,40 @@ export class KrakenBot {
 
       if (targetPrice > maxPriceNum) {
         this.topBidOwner = "other";
+        const dp = this.decimalPlaces(this.config.tickSize);
+
+        if (this.config.holdAtMax) {
+          const holdFormatted = maxPriceNum.toFixed(dp);
+
+          if (this.currentOrderId && this.currentOrderPrice === holdFormatted) {
+            this.setLastAction(`Hold at max ${holdFormatted} (saingan lebih tinggi)`);
+            this.consecutiveErrors = 0;
+            return;
+          }
+
+          if (this.currentOrderId) {
+            const wasFilled = await this.cancelTrackedOrder();
+            this.currentOrderId = null;
+            this.currentOrderPrice = null;
+            this.currentOrderVolume = null;
+            if (wasFilled) {
+              this.setLastAction(`Order terisi saat hold-at-max — fill dicatat`);
+              this.consecutiveErrors = 0;
+              return;
+            }
+          }
+
+          const volume = await this.calculateVolume(maxPriceNum);
+          const orderId = await this.placeOrder(this.config.pair, holdFormatted, volume);
+          this.currentOrderId = orderId;
+          this.currentOrderPrice = holdFormatted;
+          this.currentOrderVolume = volume;
+          this.addLog("info", `Hold at max: order di ${holdFormatted}`, { orderId, price: holdFormatted, volume });
+          this.setLastAction(`Hold at max — order di ${holdFormatted}`);
+          this.consecutiveErrors = 0;
+          return;
+        }
+
         if (this.currentOrderId) {
           const prevPrice = this.currentOrderPrice;
           const wasFilled = await this.cancelTrackedOrder();

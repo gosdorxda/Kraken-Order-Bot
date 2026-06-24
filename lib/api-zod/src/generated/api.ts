@@ -54,6 +54,7 @@ export const GetServerInfoResponse = zod.object({
  */
 export const listBotsResponseConfigCheckIntervalMsDefault = 3000;
 export const listBotsResponseConfigOneShotModeDefault = false;
+export const listBotsResponseConfigHoldAtMaxDefault = false;
 export const listBotsResponseConfigMaxConsecutiveErrorsDefault = 5;
 export const listBotsResponseConfigExchangeDefault = `kraken`;
 
@@ -66,6 +67,7 @@ export const ListBotsResponseItem = zod.object({
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(listBotsResponseConfigCheckIntervalMsDefault),
   "oneShotMode": zod.boolean().default(listBotsResponseConfigOneShotModeDefault),
+  "holdAtMax": zod.boolean().default(listBotsResponseConfigHoldAtMaxDefault),
   "maxConsecutiveErrors": zod.number().default(listBotsResponseConfigMaxConsecutiveErrorsDefault),
   "exchange": zod.enum(['kraken', 'xt']).default(listBotsResponseConfigExchangeDefault)
 }),
@@ -91,6 +93,7 @@ export const ListBotsResponse = zod.array(ListBotsResponseItem)
  */
 export const createBotBodyCheckIntervalMsDefault = 3000;
 export const createBotBodyOneShotModeDefault = false;
+export const createBotBodyHoldAtMaxDefault = false;
 export const createBotBodyMaxConsecutiveErrorsDefault = 5;
 export const createBotBodyExchangeDefault = `kraken`;
 
@@ -101,6 +104,7 @@ export const CreateBotBody = zod.object({
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(createBotBodyCheckIntervalMsDefault),
   "oneShotMode": zod.boolean().default(createBotBodyOneShotModeDefault),
+  "holdAtMax": zod.boolean().default(createBotBodyHoldAtMaxDefault),
   "maxConsecutiveErrors": zod.number().default(createBotBodyMaxConsecutiveErrorsDefault),
   "exchange": zod.enum(['kraken', 'xt']).default(createBotBodyExchangeDefault)
 })
@@ -115,6 +119,7 @@ export const GetBotParams = zod.object({
 
 export const getBotResponseConfigCheckIntervalMsDefault = 3000;
 export const getBotResponseConfigOneShotModeDefault = false;
+export const getBotResponseConfigHoldAtMaxDefault = false;
 export const getBotResponseConfigMaxConsecutiveErrorsDefault = 5;
 export const getBotResponseConfigExchangeDefault = `kraken`;
 
@@ -127,6 +132,7 @@ export const GetBotResponse = zod.object({
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(getBotResponseConfigCheckIntervalMsDefault),
   "oneShotMode": zod.boolean().default(getBotResponseConfigOneShotModeDefault),
+  "holdAtMax": zod.boolean().default(getBotResponseConfigHoldAtMaxDefault),
   "maxConsecutiveErrors": zod.number().default(getBotResponseConfigMaxConsecutiveErrorsDefault),
   "exchange": zod.enum(['kraken', 'xt']).default(getBotResponseConfigExchangeDefault)
 }),
@@ -163,6 +169,7 @@ export const StartBotParams = zod.object({
 
 export const startBotResponseConfigCheckIntervalMsDefault = 3000;
 export const startBotResponseConfigOneShotModeDefault = false;
+export const startBotResponseConfigHoldAtMaxDefault = false;
 export const startBotResponseConfigMaxConsecutiveErrorsDefault = 5;
 export const startBotResponseConfigExchangeDefault = `kraken`;
 
@@ -175,6 +182,7 @@ export const StartBotResponse = zod.object({
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(startBotResponseConfigCheckIntervalMsDefault),
   "oneShotMode": zod.boolean().default(startBotResponseConfigOneShotModeDefault),
+  "holdAtMax": zod.boolean().default(startBotResponseConfigHoldAtMaxDefault),
   "maxConsecutiveErrors": zod.number().default(startBotResponseConfigMaxConsecutiveErrorsDefault),
   "exchange": zod.enum(['kraken', 'xt']).default(startBotResponseConfigExchangeDefault)
 }),
@@ -203,6 +211,7 @@ export const StopBotParams = zod.object({
 
 export const stopBotResponseConfigCheckIntervalMsDefault = 3000;
 export const stopBotResponseConfigOneShotModeDefault = false;
+export const stopBotResponseConfigHoldAtMaxDefault = false;
 export const stopBotResponseConfigMaxConsecutiveErrorsDefault = 5;
 export const stopBotResponseConfigExchangeDefault = `kraken`;
 
@@ -215,6 +224,7 @@ export const StopBotResponse = zod.object({
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(stopBotResponseConfigCheckIntervalMsDefault),
   "oneShotMode": zod.boolean().default(stopBotResponseConfigOneShotModeDefault),
+  "holdAtMax": zod.boolean().default(stopBotResponseConfigHoldAtMaxDefault),
   "maxConsecutiveErrors": zod.number().default(stopBotResponseConfigMaxConsecutiveErrorsDefault),
   "exchange": zod.enum(['kraken', 'xt']).default(stopBotResponseConfigExchangeDefault)
 }),
@@ -243,6 +253,7 @@ export const UpdateBotConfigParams = zod.object({
 
 export const updateBotConfigBodyCheckIntervalMsDefault = 3000;
 export const updateBotConfigBodyOneShotModeDefault = false;
+export const updateBotConfigBodyHoldAtMaxDefault = false;
 export const updateBotConfigBodyMaxConsecutiveErrorsDefault = 5;
 export const updateBotConfigBodyExchangeDefault = `kraken`;
 
@@ -253,12 +264,14 @@ export const UpdateBotConfigBody = zod.object({
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(updateBotConfigBodyCheckIntervalMsDefault),
   "oneShotMode": zod.boolean().default(updateBotConfigBodyOneShotModeDefault),
+  "holdAtMax": zod.boolean().default(updateBotConfigBodyHoldAtMaxDefault),
   "maxConsecutiveErrors": zod.number().default(updateBotConfigBodyMaxConsecutiveErrorsDefault),
   "exchange": zod.enum(['kraken', 'xt']).default(updateBotConfigBodyExchangeDefault)
 })
 
 export const updateBotConfigResponseConfigCheckIntervalMsDefault = 3000;
 export const updateBotConfigResponseConfigOneShotModeDefault = false;
+export const updateBotConfigResponseConfigHoldAtMaxDefault = false;
 export const updateBotConfigResponseConfigMaxConsecutiveErrorsDefault = 5;
 export const updateBotConfigResponseConfigExchangeDefault = `kraken`;
 
@@ -271,6 +284,7 @@ export const UpdateBotConfigResponse = zod.object({
   "tickSize": zod.string(),
   "checkIntervalMs": zod.number().default(updateBotConfigResponseConfigCheckIntervalMsDefault),
   "oneShotMode": zod.boolean().default(updateBotConfigResponseConfigOneShotModeDefault),
+  "holdAtMax": zod.boolean().default(updateBotConfigResponseConfigHoldAtMaxDefault),
   "maxConsecutiveErrors": zod.number().default(updateBotConfigResponseConfigMaxConsecutiveErrorsDefault),
   "exchange": zod.enum(['kraken', 'xt']).default(updateBotConfigResponseConfigExchangeDefault)
 }),
