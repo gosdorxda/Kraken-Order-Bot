@@ -6,6 +6,8 @@ import { fetchGateMarket } from "../lib/gateMarket";
 import { fetchLbankMarket } from "../lib/lbankMarket";
 import { fetchAscendexMarket } from "../lib/ascendexMarket";
 import { fetchXtMarket } from "../lib/xtMarket";
+import { fetchBitmartMarket } from "../lib/bitmartMarket";
+import { fetchBiconomyMarket } from "../lib/biconomyMarket";
 import {
   CreateBotBody,
   UpdateBotConfigBody,
@@ -283,6 +285,24 @@ router.get("/market/ascendex", async (_req, res): Promise<void> => {
 router.get("/market/xt", async (_req, res): Promise<void> => {
   try {
     const tickers = await fetchXtMarket();
+    res.json(tickers);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+router.get("/market/bitmart", async (_req, res): Promise<void> => {
+  try {
+    const tickers = await fetchBitmartMarket();
+    res.json(tickers);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+router.get("/market/biconomy", async (_req, res): Promise<void> => {
+  try {
+    const tickers = await fetchBiconomyMarket();
     res.json(tickers);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

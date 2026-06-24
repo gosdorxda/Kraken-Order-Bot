@@ -539,6 +539,46 @@ export const GetMarketXtResponse = zod.array(GetMarketXtResponseItem)
 
 
 /**
+ * @summary Get all USDT spot pairs from BitMart with ticker data
+ */
+export const GetMarketBitmartResponseItem = zod.object({
+  "pair": zod.string(),
+  "displayName": zod.string(),
+  "bid": zod.string(),
+  "ask": zod.string(),
+  "last": zod.string(),
+  "open24h": zod.string(),
+  "change24h": zod.number(),
+  "spread": zod.string(),
+  "spreadPct": zod.number(),
+  "volume24h": zod.string(),
+  "high24h": zod.string(),
+  "low24h": zod.string()
+})
+export const GetMarketBitmartResponse = zod.array(GetMarketBitmartResponseItem)
+
+
+/**
+ * @summary Get all USDT spot pairs from Biconomy with ticker data
+ */
+export const GetMarketBiconomyResponseItem = zod.object({
+  "pair": zod.string(),
+  "displayName": zod.string(),
+  "bid": zod.string(),
+  "ask": zod.string(),
+  "last": zod.string(),
+  "open24h": zod.string(),
+  "change24h": zod.number(),
+  "spread": zod.string(),
+  "spreadPct": zod.number(),
+  "volume24h": zod.string(),
+  "high24h": zod.string(),
+  "low24h": zod.string()
+})
+export const GetMarketBiconomyResponse = zod.array(GetMarketBiconomyResponseItem)
+
+
+/**
  * @summary Get app-level settings
  */
 export const GetSettingsResponse = zod.object({

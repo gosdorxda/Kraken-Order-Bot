@@ -545,6 +545,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /market/bitmart:
+    get:
+      operationId: getMarketBitmart
+      tags: [bots]
+      summary: Get all USDT spot pairs from BitMart with ticker data
+      responses:
+        "200":
+          description: BitMart market tickers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketTicker"
+        "500":
+          description: BitMart API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/biconomy:
+    get:
+      operationId: getMarketBiconomy
+      tags: [bots]
+      summary: Get all USDT spot pairs from Biconomy with ticker data
+      responses:
+        "200":
+          description: Biconomy market tickers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketTicker"
+        "500":
+          description: Biconomy API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /settings:
     get:
       operationId: getSettings

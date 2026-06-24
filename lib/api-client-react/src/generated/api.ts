@@ -1759,6 +1759,160 @@ export function useGetMarketXt<TData = Awaited<ReturnType<typeof getMarketXt>>, 
 
 
 
+export const getGetMarketBitmartUrl = () => {
+
+
+
+
+  return `/api/market/bitmart`
+}
+
+/**
+ * @summary Get all USDT spot pairs from BitMart with ticker data
+ */
+export const getMarketBitmart = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+
+  return customFetch<MarketTicker[]>(getGetMarketBitmartUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketBitmartQueryKey = () => {
+    return [
+    `/api/market/bitmart`
+    ] as const;
+    }
+
+
+export const getGetMarketBitmartQueryOptions = <TData = Awaited<ReturnType<typeof getMarketBitmart>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketBitmart>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketBitmartQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketBitmart>>> = ({ signal }) => getMarketBitmart({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketBitmart>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketBitmartQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketBitmart>>>
+export type GetMarketBitmartQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get all USDT spot pairs from BitMart with ticker data
+ */
+
+export function useGetMarketBitmart<TData = Awaited<ReturnType<typeof getMarketBitmart>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketBitmart>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketBitmartQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMarketBiconomyUrl = () => {
+
+
+
+
+  return `/api/market/biconomy`
+}
+
+/**
+ * @summary Get all USDT spot pairs from Biconomy with ticker data
+ */
+export const getMarketBiconomy = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+
+  return customFetch<MarketTicker[]>(getGetMarketBiconomyUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketBiconomyQueryKey = () => {
+    return [
+    `/api/market/biconomy`
+    ] as const;
+    }
+
+
+export const getGetMarketBiconomyQueryOptions = <TData = Awaited<ReturnType<typeof getMarketBiconomy>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketBiconomy>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketBiconomyQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketBiconomy>>> = ({ signal }) => getMarketBiconomy({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketBiconomy>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketBiconomyQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketBiconomy>>>
+export type GetMarketBiconomyQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get all USDT spot pairs from Biconomy with ticker data
+ */
+
+export function useGetMarketBiconomy<TData = Awaited<ReturnType<typeof getMarketBiconomy>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketBiconomy>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketBiconomyQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getGetSettingsUrl = () => {
 
 
