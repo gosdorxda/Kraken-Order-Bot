@@ -617,6 +617,8 @@ export default function Dashboard() {
   const [editBot, setEditBot] = useState<BotInstance | null>(null);
   const [emergencyOpen, setEmergencyOpen] = useState(false);
   const [emergencyBusy, setEmergencyBusy] = useState(false);
+  const [krakenOpen, setKrakenOpen] = useState(false);
+  const [xtOpen, setXtOpen] = useState(false);
 
   const openAdd = () => { setEditBot(null); setDialogOpen(true); };
   const openEdit = (bot: BotInstance) => { setEditBot(bot); setDialogOpen(true); };
@@ -687,112 +689,165 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Balance cards — Kraken & XT side by side */}
+      {/* Balance cards — Kraken & XT collapsible */}
       {(krakenBalances?.length || xtBalances?.length) ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
           {/* ── Kraken ── */}
-          {krakenBalances && krakenBalances.length > 0 && (
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-border" style={{ background: "color-mix(in srgb, #7c3aed 6%, transparent)" }}>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm text-white" style={{ background: "color-mix(in srgb, #7c3aed 80%, #4f46e5)" }}>
-                  K
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold leading-none">Kraken</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Saldo akun</p>
-                </div>
-                <div className="ml-auto flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_1px_#34d39980]" />
-                  <span className="text-[10px] text-emerald-500 font-medium">Terhubung</span>
-                </div>
-              </div>
-              <div className="divide-y divide-border/50">
-                {krakenBalances.map((a) => {
-                  const isUSD = a.asset === "ZUSD";
-                  const label = isUSD ? "USD" : a.asset.replace(/^X/, "").replace(/^Z/, "");
-                  const bal   = parseFloat(a.balance);
-                  const free  = a.free  != null ? parseFloat(a.free)  : null;
-                  const used  = a.used  != null ? parseFloat(a.used)  : null;
-                  const dp    = isUSD ? 2 : bal < 0.01 ? 6 : 4;
-                  return (
-                    <div key={a.asset} className="flex items-center justify-between px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
-                          <span className="text-[9px] font-bold text-muted-foreground">{label.slice(0, 3)}</span>
-                        </div>
-                        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+          {krakenBalances && krakenBalances.length > 0 && (() => {
+            const usd   = krakenBalances.find((a) => a.asset === "ZUSD");
+            const free  = usd?.free  != null ? parseFloat(usd.free)    : null;
+            const used  = usd?.used  != null ? parseFloat(usd.used)    : null;
+            const total = usd ? parseFloat(usd.balance) : null;
+            const freePct = (total && total > 0 && free != null) ? (free / total) * 100 : 100;
+            return (
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {/* Clickable header */}
+                <button
+                  type="button"
+                  onClick={() => setKrakenOpen((v) => !v)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-center gap-3 px-4 py-3" style={{ background: "color-mix(in srgb, #7c3aed 6%, transparent)" }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm text-white" style={{ background: "color-mix(in srgb, #7c3aed 80%, #4f46e5)" }}>K</div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-none">Kraken</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Saldo akun</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {total != null && (
+                        <span className="font-mono text-sm font-semibold tabular-nums">
+                          <span className="text-[10px] text-muted-foreground">$</span>
+                          {total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      )}
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_1px_#34d39980]" />
+                      {krakenOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                  </div>
+                  {/* Progress bar — always visible */}
+                  {total != null && (
+                    <div className="px-4 pb-3 pt-1" style={{ background: "color-mix(in srgb, #7c3aed 6%, transparent)" }}>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${freePct}%` }} />
                       </div>
-                      <div className="text-right">
-                        <p className="font-mono text-sm font-semibold tabular-nums">
-                          {isUSD ? <span className="text-[10px] text-muted-foreground mr-0.5">$</span> : null}
-                          {bal.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp })}
-                        </p>
-                        {isUSD && free !== null && used !== null && (
-                          <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                            <span className="text-[10px] text-emerald-500 font-medium">bebas ${free.toFixed(2)}</span>
-                            {used > 0 && <><span className="text-[10px] text-border">·</span><span className="text-[10px] text-amber-500 font-medium">pakai ${used.toFixed(2)}</span></>}
-                          </div>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[10px] text-emerald-500 font-medium">bebas {free != null ? `$${free.toFixed(2)}` : "—"}</span>
+                        {used != null && used > 0 && (
+                          <><span className="text-[10px] text-muted-foreground/50">·</span>
+                          <span className="text-[10px] text-amber-500 font-medium">pakai ${used.toFixed(2)}</span></>
                         )}
                       </div>
                     </div>
-                  );
-                })}
+                  )}
+                </button>
+                {/* Collapsible detail */}
+                {krakenOpen && (
+                  <div className="divide-y divide-border/50 border-t border-border">
+                    {krakenBalances.map((a) => {
+                      const isUSD = a.asset === "ZUSD";
+                      const label = isUSD ? "USD" : a.asset.replace(/^X/, "").replace(/^Z/, "");
+                      const bal   = parseFloat(a.balance);
+                      const dp    = isUSD ? 2 : bal < 0.01 ? 6 : 4;
+                      return (
+                        <div key={a.asset} className="flex items-center justify-between px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
+                              <span className="text-[9px] font-bold text-muted-foreground">{label.slice(0, 3)}</span>
+                            </div>
+                            <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                          </div>
+                          <p className="font-mono text-sm font-semibold tabular-nums">
+                            {isUSD ? <span className="text-[10px] text-muted-foreground mr-0.5">$</span> : null}
+                            {bal.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp })}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ── XT.com ── */}
-          {xtBalances && xtBalances.length > 0 && (
-            <div className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-border" style={{ background: "color-mix(in srgb, #0ea5e9 6%, transparent)" }}>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm text-white" style={{ background: "color-mix(in srgb, #0ea5e9 85%, #0284c7)" }}>
-                  XT
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold leading-none">XT.com</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Saldo akun</p>
-                </div>
-                <div className="ml-auto flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_1px_#34d39980]" />
-                  <span className="text-[10px] text-emerald-500 font-medium">Terhubung</span>
-                </div>
-              </div>
-              <div className="divide-y divide-border/50">
-                {xtBalances.map((a) => {
-                  const isUSDT  = a.currency.toUpperCase() === "USDT";
-                  const avail   = parseFloat(a.available);
-                  const frozen  = parseFloat(a.frozen);
-                  const total   = avail + frozen;
-                  const dp      = isUSDT ? 2 : total < 0.01 ? 6 : 4;
-                  const label   = a.currency.toUpperCase();
-                  return (
-                    <div key={a.currency} className="flex items-center justify-between px-4 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
-                          <span className="text-[9px] font-bold text-muted-foreground">{label.slice(0, 3)}</span>
-                        </div>
-                        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+          {xtBalances && xtBalances.length > 0 && (() => {
+            const usdt    = xtBalances.find((a) => a.currency.toUpperCase() === "USDT");
+            const avail   = usdt ? parseFloat(usdt.available) : null;
+            const frozen  = usdt ? parseFloat(usdt.frozen)    : null;
+            const total   = avail != null && frozen != null ? avail + frozen : null;
+            const freePct = (total && total > 0 && avail != null) ? (avail / total) * 100 : 100;
+            return (
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                {/* Clickable header */}
+                <button
+                  type="button"
+                  onClick={() => setXtOpen((v) => !v)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-center gap-3 px-4 py-3" style={{ background: "color-mix(in srgb, #0ea5e9 6%, transparent)" }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm text-white" style={{ background: "color-mix(in srgb, #0ea5e9 85%, #0284c7)" }}>XT</div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-none">XT.com</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Saldo akun</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {total != null && (
+                        <span className="font-mono text-sm font-semibold tabular-nums">
+                          <span className="text-[10px] text-muted-foreground">$</span>
+                          {total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      )}
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_1px_#34d39980]" />
+                      {xtOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                  </div>
+                  {/* Progress bar — always visible */}
+                  {total != null && (
+                    <div className="px-4 pb-3 pt-1" style={{ background: "color-mix(in srgb, #0ea5e9 6%, transparent)" }}>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${freePct}%` }} />
                       </div>
-                      <div className="text-right">
-                        <p className="font-mono text-sm font-semibold tabular-nums">
-                          {isUSDT ? <span className="text-[10px] text-muted-foreground mr-0.5">$</span> : null}
-                          {total.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp })}
-                        </p>
-                        {frozen > 0 && (
-                          <div className="flex items-center justify-end gap-1.5 mt-0.5">
-                            <span className="text-[10px] text-emerald-500 font-medium">bebas ${avail.toFixed(2)}</span>
-                            <span className="text-[10px] text-border">·</span>
-                            <span className="text-[10px] text-amber-500 font-medium">frozen ${frozen.toFixed(2)}</span>
-                          </div>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[10px] text-emerald-500 font-medium">bebas {avail != null ? `$${avail.toFixed(2)}` : "—"}</span>
+                        {frozen != null && frozen > 0 && (
+                          <><span className="text-[10px] text-muted-foreground/50">·</span>
+                          <span className="text-[10px] text-amber-500 font-medium">frozen ${frozen.toFixed(2)}</span></>
                         )}
                       </div>
                     </div>
-                  );
-                })}
+                  )}
+                </button>
+                {/* Collapsible detail */}
+                {xtOpen && (
+                  <div className="divide-y divide-border/50 border-t border-border">
+                    {xtBalances.map((a) => {
+                      const isUSDT  = a.currency.toUpperCase() === "USDT";
+                      const av      = parseFloat(a.available);
+                      const fr      = parseFloat(a.frozen);
+                      const tot     = av + fr;
+                      const dp      = isUSDT ? 2 : tot < 0.01 ? 6 : 4;
+                      const label   = a.currency.toUpperCase();
+                      return (
+                        <div key={a.currency} className="flex items-center justify-between px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
+                              <span className="text-[9px] font-bold text-muted-foreground">{label.slice(0, 3)}</span>
+                            </div>
+                            <span className="text-xs font-medium text-muted-foreground">{label}</span>
+                          </div>
+                          <p className="font-mono text-sm font-semibold tabular-nums">
+                            {isUSDT ? <span className="text-[10px] text-muted-foreground mr-0.5">$</span> : null}
+                            {tot.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp })}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
         </div>
       ) : null}
