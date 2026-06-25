@@ -137,6 +137,13 @@ export class BitmartBot {
       this.intervalHandle = null;
     }
     this.running = false;
+    // Wait for any in-flight cycle to finish — prevents race condition where
+    // stop() runs while cycle is mid-await and currentOrderId is still null,
+    // then the cycle places an order after the cancel block has already passed.
+    const deadline = Date.now() + 5000;
+    while (this.cycleRunning && Date.now() < deadline) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    }
     if (this.currentOrderId) {
       try {
         const wasFilled = await this.cancelTrackedOrder();
