@@ -206,6 +206,8 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
 
   const form = useForm<ConfigForm>({
     resolver: zodResolver(configSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     values: isEdit
       ? {
           exchange: (editBot.config.exchange as "kraken" | "xt" | "bitmart") ?? "kraken",
@@ -510,6 +512,8 @@ function BotCard({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance)
           <span className="font-mono font-extrabold text-base tracking-tight truncate">{id}</span>
           {config.exchange === "xt"
             ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 border border-blue-500/40 text-blue-400 shrink-0">XT</span>
+            : config.exchange === "bitmart"
+            ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/15 border border-cyan-500/40 text-cyan-400 shrink-0">BM</span>
             : <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-500/15 border border-violet-500/40 text-violet-400 shrink-0">K</span>
           }
         </div>
