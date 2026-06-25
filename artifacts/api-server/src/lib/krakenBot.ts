@@ -55,6 +55,44 @@ const sharedClient: KrakenClient = (() => {
   return new KrakenClient(apiKey, apiSecret);
 })();
 
+// ─── Shared OpenOrders cache ──────────────────────────────────────────────────
+// One OpenOrders API call is shared across all KrakenBot instances, refreshed
+// every 5 seconds. Eliminates per-bot QueryOrders calls during normal polling:
+// N calls per cycle → 1 shared call regardless of how many bots are running.
+
+const OPEN_ORDERS_CACHE_TTL_MS = 5_000;
+
+const openOrdersCache = {
+  orders: {} as Record<string, unknown>,
+  fetchedAt: 0,
+  inFlight: null as Promise<Record<string, unknown>> | null,
+};
+
+function invalidateOpenOrdersCache(): void {
+  openOrdersCache.fetchedAt = 0;
+}
+
+async function getOpenOrdersCached(): Promise<Record<string, unknown>> {
+  const now = Date.now();
+  if (now - openOrdersCache.fetchedAt < OPEN_ORDERS_CACHE_TTL_MS) {
+    return openOrdersCache.orders;
+  }
+  if (openOrdersCache.inFlight) return openOrdersCache.inFlight;
+  openOrdersCache.inFlight = krakenRateLimiter
+    .enqueue(() => (sharedClient as any).api("OpenOrders", {}), "OpenOrders(cache)")
+    .then((resp: any) => {
+      openOrdersCache.orders = (resp.result?.open ?? {}) as Record<string, unknown>;
+      openOrdersCache.fetchedAt = Date.now();
+      openOrdersCache.inFlight = null;
+      return openOrdersCache.orders;
+    })
+    .catch((err: unknown) => {
+      openOrdersCache.inFlight = null;
+      throw err;
+    });
+  return openOrdersCache.inFlight;
+}
+
 export async function fetchOrderBook(
   pair: string
 ): Promise<{ bids: { price: string; volume: string }[]; asks: { price: string; volume: string }[] }> {
@@ -688,7 +726,8 @@ export class KrakenBot {
         () => (sharedClient as any).api("CancelOrder", { txid: orderId }),
         `CancelOrder(${orderId})`
       );
-      // count > 0 means Kraken actually cancelled something; 0 means already gone
+      // Invalidate cache so the post-cancel checkOrderOpen fetches fresh data
+      invalidateOpenOrdersCache();
       return (resp.result?.count ?? 0) > 0 ? "cancelled" : "already_gone";
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -737,6 +776,16 @@ export class KrakenBot {
     orderId: string
   ): Promise<{ isOpen: true; executedQty?: string } | { isOpen: false; reason: "filled" | "canceled" | "expired" | "unknown"; executedQty?: string }> {
     try {
+      // Fast path: shared OpenOrders cache (one API call serves all bots)
+      const openOrders = await getOpenOrdersCached();
+      const cached = openOrders[orderId] as any | undefined;
+      if (cached) {
+        const rawExec = cached.vol_exec;
+        const executedQty = rawExec != null && parseFloat(String(rawExec)) > 0 ? String(rawExec) : undefined;
+        return { isOpen: true, executedQty };
+      }
+
+      // Not in open orders — call QueryOrders to get exact status (filled/cancelled/expired)
       const resp: any = await krakenRateLimiter.enqueue(
         () => (sharedClient as any).api("QueryOrders", { txid: orderId, trades: false }),
         `QueryOrders(${orderId})`
@@ -748,7 +797,6 @@ export class KrakenBot {
       if (["open", "pending"].includes(order.status)) return { isOpen: true, executedQty };
       if (order.status === "canceled") return { isOpen: false, reason: "canceled", executedQty };
       if (order.status === "expired") return { isOpen: false, reason: "expired", executedQty };
-      // "closed" = fully or partially filled
       return { isOpen: false, reason: "filled", executedQty };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

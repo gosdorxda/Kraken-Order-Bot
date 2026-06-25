@@ -1,0 +1,104 @@
+Trading rate limits
+Last updated: December 11, 2025
+Our REST and WebSocket APIs use trading rate limits to protect the APIs against malicious usage, and to protect our markets against order book manipulation.
+
+Our trading rate limits are designed to keep our markets fair for all market participants, while providing the resources needed by different types of traders (investors, active traders, automated trading bots, and so on).
+
+Most traders will never encounter the trading rate limits, but for those that are placing/cancelling orders at higher than usual frequencies or placing/cancelling higher numbers of orders, the rate limits might be reached resulting in an EOrder:Rate limit exceeded error.
+
+Note that the trading rate limits apply separately per currency pair, so reaching the rate limits for one currency pair (XBT/USD for example) does not affect trading on any other currency pair (LTC/EUR for example).
+
+
+Rate Limit Basics
+For many traders, knowing the specific details of the trading rate limit algorithms is not necessary; it is sufficient to know approximately how many order events can happen within a certain amount of time (essentially answering the question "How many orders can I place/cancel per minute?").
+
+As there are potentially unlimited combinations of order events (placing, executing, cancelling) and order lifetimes (how long an order remains posted to the order book), it is not possible to provide a single exact value, but the following chart provides examples for several typical combinations.
+
+The Intermediate and Pro columns indicate the account verification level, along with the maximum number of order events that can occur per minute on a consistent basis without reaching the trading rate limits.
+
+ 
+
+Rate limits combinations
+As shown above, verifying an account to a higher level, increasing the order fill rate, or increasing the order lifetime will all significantly decrease the rate limit usage, thereby allowing a higher sustained number of order events per minute.
+
+
+Rate Limit Details (Advanced)
+Our trading rate limits are based upon a counter that increases as orders are placed and cancelled, and decreases over time at a fixed decay rate. The rate limits are reached whenever this counter exceeds a maximum value (which varies depending upon the account verification level).The maximum counter values (the rate limit reached values) for each account type are as follows:
+
+•
+Standard verification (Formerly known as Intermediate) = 125
+
+•
+Verified with higher limits (Formerly known as Pro) = 180
+
+The decay rate (the rate at which the counter decreases) is also based upon the account verification level. The following are the decay rates for each account type:
+
+•
+Standard verification (Formerly known as Intermediate) = 2.34 per second
+
+•
+Verified with higher limits (Formerly known as Pro) = 3.75 per second
+
+The rate limit counter increases as each order event (placing or cancelling) occurs, with order cancellations causing the largest increase. The following chart shows the amount of counter increase (known as the penalty) for each type of order event:
+
+Rate Limits
+Notes:
+
+•
+1 For the batch order penalty, n = the number of orders in the batch.
+
+•
+2 Editing an order also incurs the 1 point order placing penalty.
+
+•
+3 Orders that are automatically cancelled as failed IOC orders do not incur any cancellation penalty.
+
+•
+4 Amending an order also incurs the 1 point order placing penalty.
+
+•
+5 Rejected post only orders are initially accepted but subsequently automatically cancelled, the placing does incur a 1 point penalty and the cancellation does incur an 8 point penalty (for a total of 9 points).
+
+The following is an example of how the maximum counter value, the counter increase due to order events, and the counter decrease due to the decay rate combine together to implement the trading rate limits for a pro level account.
+
+Placing 20 limit orders and cancelling each order after 3 seconds, would incur a penalty of 9 points per order, or a cumulative total of 180 points:
+
+•
+(20 orders x 1 order placing point) + (20 orders x 8 order cancellation points) = 180 points
+
+The 180 point penalty would then be reduced by 3.75 points per second, hence it would take only 1 second before three new orders could be placed (as each new order would incur 1 order placing penalty), but it would take 48 seconds for the rate limits to be cleared entirely (back to zero):
+
+•
+180 points / 3.75 points per second = 48 seconds
+
+The following calculations show how to determine the maximum number of order events per minute that can be sustained without reaching the rate limits:
+
+•
+Order penalty = (Penalty points * Fill rate) + (Penalty points * Fill rate) ... (up to 100%)
+
+•
+Order events per minute = 60 seconds / (Order penalty / Decay rate)
+
+As an example for a pro level account placing limit orders, 60% of which were filled after 3 seconds, and 40% of which were cancelled after 8 seconds:
+
+•
+Order penalty = (1 * 60%) + (7 * 40%) = 3.4 points
+
+•
+Order events per minute = 60 / (3.4 / 3.75) = 66 events
+
+
+Chronological Example
+As a real world example of the trading rate limits, the following is a chronological transcript of how the penalty counter increases and decreases as orders are placed/cancelled.
+
+In this example, the account type is a pro level account (hence a maximum counter value of 180 with a decay rate of 3.75 per second), and the order activity is placing 3 orders (at a rate of 1 order every 0.5 seconds) and then cancelling 3 orders (using a FIFO so that the oldest order is cancelled first).
+
+API_ChronologicalExample_10022020.png
+
+Rate Limit Calculator (Google Sheet)
+In addition to the examples shown above, our trading rate limit calculator allows the maximum number of order events to be determined for any combination of order fill rate and order lifetime. With only a few variables (such as account verification level), order events can be specified as a percentage or as an absolute quantity, and the calculator will indicate whether the desired combination fits within the trading rate limits or not.
+
+Further Questions
+
+Rate limits are one of several tools Kraken uses to improve platform security and availability for all clients. Few clients should encounter rate limiting problems. If you receive rate limit errors, please first ensure that your software is operating correctly. If your trading frequency requires a rate limiting exception, Kraken can evaluate clients on a case-by-case basis to ensure that an exception will not pose platform security or availability risks. Contact your Account Manager or reach out to our API support team with any questions or to request an evaluation.
+
