@@ -163,18 +163,26 @@ export class BitmartClient {
   async getOrder(orderId: string): Promise<{
     isOpen: boolean;
     reason?: "filled" | "canceled" | "unknown";
+    executedQty?: string;
   }> {
     try {
-      const data = await this.request<{ orderId: string; state: string } | null>(
+      const data = await this.request<{
+        orderId: string;
+        state: string;
+        filledSize?: string;
+        filled_size?: string;
+      } | null>(
         "POST", "/spot/v4/query/order",
         {},
         { orderId }
       );
       const state = data?.state ?? "";
-      if (state === "new" || state === "partially_filled") return { isOpen: true };
-      if (state === "filled")                              return { isOpen: false, reason: "filled" };
-      if (state === "canceled" || state === "partially_canceled") return { isOpen: false, reason: "canceled" };
-      return { isOpen: false, reason: "unknown" };
+      const filledRaw = data?.filledSize ?? data?.filled_size;
+      const executedQty = filledRaw != null && parseFloat(filledRaw) > 0 ? filledRaw : undefined;
+      if (state === "new" || state === "partially_filled") return { isOpen: true, executedQty };
+      if (state === "filled")                              return { isOpen: false, reason: "filled", executedQty };
+      if (state === "canceled" || state === "partially_canceled") return { isOpen: false, reason: "canceled", executedQty };
+      return { isOpen: false, reason: "unknown", executedQty };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       // 50005 = no data (order not found), 50008 = order not exist

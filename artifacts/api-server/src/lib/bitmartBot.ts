@@ -376,23 +376,41 @@ export class BitmartBot {
 
   /**
    * Cancel the currently-tracked order and detect if it was filled first.
+   * Returns true if a FULL fill was detected; false otherwise (re-place order).
+   * Partial fills are recorded but still return false.
    * Does NOT mutate currentOrderId/Price/Volume — callers must clear state.
    */
   private async cancelTrackedOrder(): Promise<boolean> {
     if (!this.currentOrderId) return false;
-    const orderId = this.currentOrderId;
-    const price   = this.currentOrderPrice  ?? "0";
-    const volume  = this.currentOrderVolume ?? this.config.orderSize;
+    const orderId      = this.currentOrderId;
+    const price        = this.currentOrderPrice  ?? "0";
+    const configVolume = this.currentOrderVolume ?? this.config.orderSize;
 
-    // Check status first — if already filled, skip cancel
+    // Check status first
     const status = await this.client.getOrder(orderId);
+
     if (!status.isOpen && status.reason === "filled") {
-      this.addLog("success", `Order ${orderId} terisi (terdeteksi saat cancel)`, { price });
-      this.recordFill(orderId, price, volume);
+      const actualVolume = status.executedQty ?? configVolume;
+      const isPartial    = parseFloat(actualVolume) < parseFloat(configVolume) * 0.9995;
+      this.addLog("success", `Order ${orderId} ${isPartial ? "partial fill" : "terisi"} (terdeteksi saat cancel)`, { price, executedQty: actualVolume });
+      this.recordFill(orderId, price, actualVolume, isPartial);
       return true;
     }
-    // Still open — cancel it (BitMart cancel requires symbol)
+
+    // Already cancelled externally with partial fill
+    if (!status.isOpen && status.reason === "canceled" && status.executedQty) {
+      this.addLog("success", `Order ${orderId} partial fill ${status.executedQty} sebelum dibatalkan`, { price });
+      this.recordFill(orderId, price, status.executedQty, true);
+      return false;
+    }
+
+    // Open (new or partially_filled) — cancel it; capture partial qty before it's gone
+    const partialQty = status.executedQty;
     await this.client.cancelOrder(this.config.pair, orderId);
+    if (partialQty) {
+      this.addLog("success", `Order ${orderId} partial fill ${partialQty} sebelum dibatalkan`, { price });
+      this.recordFill(orderId, price, partialQty, true);
+    }
     return false;
   }
 
@@ -401,7 +419,7 @@ export class BitmartBot {
     return this.decimalPlaces(this.config.tickSize);
   }
 
-  private recordFill(orderId: string, price: string, volume: string): void {
+  private recordFill(orderId: string, price: string, volume: string, partial = false): void {
     const fill: FillRecord = {
       id: ++this.fillIdCounter,
       pair: this.config.pair,
@@ -409,15 +427,18 @@ export class BitmartBot {
       price,
       volume,
       timestamp: new Date().toISOString(),
+      partial: partial || undefined,
     };
     this.fills.unshift(fill);
     if (this.fills.length > 500) this.fills = this.fills.slice(0, 500);
     this.onPersist?.();
 
     const nilai = (parseFloat(price) * parseFloat(volume)).toFixed(2);
+    const icon  = partial ? "🔶" : "✅";
+    const label = partial ? "Partial fill" : "Order terisi";
     void sendTelegramEvent(
       "fill",
-      `✅ <b>[BM:${this.id}]</b> Order terisi — ${volume} ${this.config.pair.toUpperCase()} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
+      `${icon} <b>[BM:${this.id}]</b> ${label} — ${volume} ${this.config.pair.toUpperCase()} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
     );
   }
 

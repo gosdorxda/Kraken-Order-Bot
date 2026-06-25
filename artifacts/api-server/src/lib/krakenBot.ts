@@ -30,6 +30,7 @@ export interface FillRecord {
   price: string;
   volume: string;
   timestamp: string;
+  partial?: boolean;
 }
 
 export interface BotStatus {
@@ -619,7 +620,7 @@ export class KrakenBot {
 
   // ─── Private helpers ────────────────────────────────────────────────────────
 
-  private recordFill(orderId: string, price: string, volume: string): void {
+  private recordFill(orderId: string, price: string, volume: string, partial = false): void {
     const fill: FillRecord = {
       id: ++this.fillIdCounter,
       pair: this.config.pair,
@@ -627,15 +628,19 @@ export class KrakenBot {
       price,
       volume,
       timestamp: new Date().toISOString(),
+      partial: partial || undefined,
     };
     this.fills.unshift(fill);
     if (this.fills.length > 500) this.fills = this.fills.slice(0, 500);
     this.onPersist?.();
 
-    const nilai = (parseFloat(price) * parseFloat(volume)).toFixed(2);
+    const nilai  = (parseFloat(price) * parseFloat(volume)).toFixed(2);
+    const symbol = this.config.pair.replace(/^X|ZUSD$|USD$/g, "");
+    const icon   = partial ? "🔶" : "✅";
+    const label  = partial ? "Partial fill" : "Order terisi";
     void sendTelegramEvent(
       "fill",
-      `✅ <b>[${this.id}]</b> Order terisi — ${volume} ${this.config.pair.replace(/^X|ZUSD$|USD$/g, "")} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
+      `${icon} <b>[${this.id}]</b> ${label} — ${volume} ${symbol} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
     );
   }
 
@@ -685,31 +690,45 @@ export class KrakenBot {
 
   /**
    * Cancel the currently-tracked order and check if it was filled before we
-   * could cancel it.  Returns true if a fill was detected (and recorded).
+   * could cancel it.  Returns true if a FULL fill was detected (and recorded).
+   * Partial fills are recorded but still return false (bot re-places order).
    * Does NOT mutate currentOrderId/Price/Volume — callers must clear state.
    */
   private async cancelTrackedOrder(): Promise<boolean> {
     if (!this.currentOrderId) return false;
-    const orderId  = this.currentOrderId;
-    const price    = this.currentOrderPrice  ?? "0";
-    const volume   = this.currentOrderVolume ?? this.config.orderSize;
+    const orderId      = this.currentOrderId;
+    const price        = this.currentOrderPrice  ?? "0";
+    const configVolume = this.currentOrderVolume ?? this.config.orderSize;
 
-    const result = await this.cancelOrder(orderId);
-    if (result === "already_gone") {
-      // Order vanished before we could cancel — query final state
-      const finalStatus = await this.checkOrderOpen(orderId);
-      if (!finalStatus.isOpen && finalStatus.reason === "filled") {
-        this.addLog("success", `Order ${orderId} terisi (terdeteksi saat cancel)`, { price });
-        this.recordFill(orderId, price, volume);
-        return true;
-      }
+    const cancelResult = await this.cancelOrder(orderId);
+
+    // Always query final state to detect full or partial fills
+    const finalStatus = await this.checkOrderOpen(orderId);
+
+    if (!finalStatus.isOpen && finalStatus.reason === "filled") {
+      const actualVolume = finalStatus.executedQty ?? configVolume;
+      const configQty   = parseFloat(configVolume);
+      const actualQty   = parseFloat(actualVolume);
+      const isPartial   = actualQty < configQty * 0.9995;
+      this.addLog("success", `Order ${orderId} ${isPartial ? "partial fill" : "terisi"} (terdeteksi saat cancel)`, { price, executedQty: actualVolume });
+      this.recordFill(orderId, price, actualVolume, isPartial);
+      return true;
     }
+
+    // Cancelled (or unknown) — check for partial fill
+    if (finalStatus.executedQty) {
+      this.addLog("success", `Order ${orderId} partial fill ${finalStatus.executedQty} sebelum dibatalkan`, { price });
+      this.recordFill(orderId, price, finalStatus.executedQty, true);
+    }
+
+    // Suppress unused-variable warning when cancelResult is not checked explicitly
+    void cancelResult;
     return false;
   }
 
   private async checkOrderOpen(
     orderId: string
-  ): Promise<{ isOpen: true } | { isOpen: false; reason: "filled" | "canceled" | "expired" | "unknown" }> {
+  ): Promise<{ isOpen: true; executedQty?: string } | { isOpen: false; reason: "filled" | "canceled" | "expired" | "unknown"; executedQty?: string }> {
     try {
       const resp: any = await krakenRateLimiter.enqueue(
         () => (sharedClient as any).api("QueryOrders", { txid: orderId, trades: false }),
@@ -717,11 +736,13 @@ export class KrakenBot {
       );
       const order = resp.result?.[orderId];
       if (!order) return { isOpen: false, reason: "unknown" };
-      if (["open", "pending"].includes(order.status)) return { isOpen: true };
-      if (order.status === "canceled") return { isOpen: false, reason: "canceled" };
-      if (order.status === "expired") return { isOpen: false, reason: "expired" };
+      const rawExec = order.vol_exec;
+      const executedQty = rawExec != null && parseFloat(String(rawExec)) > 0 ? String(rawExec) : undefined;
+      if (["open", "pending"].includes(order.status)) return { isOpen: true, executedQty };
+      if (order.status === "canceled") return { isOpen: false, reason: "canceled", executedQty };
+      if (order.status === "expired") return { isOpen: false, reason: "expired", executedQty };
       // "closed" = fully or partially filled
-      return { isOpen: false, reason: "filled" };
+      return { isOpen: false, reason: "filled", executedQty };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/unknown order/i.test(msg)) {

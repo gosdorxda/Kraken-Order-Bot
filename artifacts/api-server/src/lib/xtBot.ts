@@ -378,25 +378,41 @@ export class XtBot {
 
   /**
    * Cancel the currently-tracked order and check if it was filled before we
-   * could cancel it.  Checks status BEFORE cancelling; if already filled,
-   * records the fill and returns true without issuing a cancel.
+   * could cancel it.  Returns true if a FULL fill was detected; false otherwise.
+   * Partial fills are recorded but still return false (bot re-places order).
    * Does NOT mutate currentOrderId/Price/Volume — callers must clear state.
    */
   private async cancelTrackedOrder(): Promise<boolean> {
     if (!this.currentOrderId) return false;
-    const orderId  = this.currentOrderId;
-    const price    = this.currentOrderPrice  ?? "0";
-    const volume   = this.currentOrderVolume ?? this.config.orderSize;
+    const orderId      = this.currentOrderId;
+    const price        = this.currentOrderPrice  ?? "0";
+    const configVolume = this.currentOrderVolume ?? this.config.orderSize;
 
-    // Check status first — if already filled, skip cancel and record fill
+    // Check status first
     const status = await this.client.getOrder(orderId);
+
     if (!status.isOpen && status.reason === "filled") {
-      this.addLog("success", `Order ${orderId} terisi (terdeteksi saat cancel)`, { price });
-      this.recordFill(orderId, price, volume);
+      const actualVolume = status.executedQty ?? configVolume;
+      const isPartial    = parseFloat(actualVolume) < parseFloat(configVolume) * 0.9995;
+      this.addLog("success", `Order ${orderId} ${isPartial ? "partial fill" : "terisi"} (terdeteksi saat cancel)`, { price, executedQty: actualVolume });
+      this.recordFill(orderId, price, actualVolume, isPartial);
       return true;
     }
-    // Order still open — cancel it
+
+    // Already cancelled externally with partial fill
+    if (!status.isOpen && status.reason === "canceled" && status.executedQty) {
+      this.addLog("success", `Order ${orderId} partial fill ${status.executedQty} sebelum dibatalkan`, { price });
+      this.recordFill(orderId, price, status.executedQty, true);
+      return false;
+    }
+
+    // Open (new or partially_filled) — cancel it; capture partial qty before it's gone
+    const partialQty = status.executedQty;
     await this.client.cancelOrder(orderId);
+    if (partialQty) {
+      this.addLog("success", `Order ${orderId} partial fill ${partialQty} sebelum dibatalkan`, { price });
+      this.recordFill(orderId, price, partialQty, true);
+    }
     return false;
   }
 
@@ -409,7 +425,7 @@ export class XtBot {
     return this.decimalPlaces(this.config.tickSize);
   }
 
-  private recordFill(orderId: string, price: string, volume: string): void {
+  private recordFill(orderId: string, price: string, volume: string, partial = false): void {
     const fill: FillRecord = {
       id: ++this.fillIdCounter,
       pair: this.config.pair,
@@ -417,15 +433,18 @@ export class XtBot {
       price,
       volume,
       timestamp: new Date().toISOString(),
+      partial: partial || undefined,
     };
     this.fills.unshift(fill);
     if (this.fills.length > 500) this.fills = this.fills.slice(0, 500);
     this.onPersist?.();
 
     const nilai = (parseFloat(price) * parseFloat(volume)).toFixed(2);
+    const icon  = partial ? "🔶" : "✅";
+    const label = partial ? "Partial fill" : "Order terisi";
     void sendTelegramEvent(
       "fill",
-      `✅ <b>[XT:${this.id}]</b> Order terisi — ${volume} ${this.config.pair.toUpperCase()} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
+      `${icon} <b>[XT:${this.id}]</b> ${label} — ${volume} ${this.config.pair.toUpperCase()} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
     );
   }
 

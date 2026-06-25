@@ -281,14 +281,21 @@ export class XtClient {
   async getOrder(orderId: string): Promise<{
     isOpen: boolean;
     reason?: "filled" | "canceled" | "unknown";
+    executedQty?: string;
   }> {
     try {
-      const result = await this.requestAccount<{ state: string }>("GET", `/v4/order/${orderId}`);
+      const result = await this.requestAccount<{
+        state: string;
+        executedQty?: string | number;
+        filledQty?: string | number;
+      }>("GET", `/v4/order/${orderId}`);
       const state = (result.state ?? "").toUpperCase();
-      if (state === "NEW" || state === "PARTIALLY_FILLED") return { isOpen: true };
-      if (state === "CANCELED") return { isOpen: false, reason: "canceled" };
-      if (state === "CLOSED" || state === "FILLED") return { isOpen: false, reason: "filled" };
-      return { isOpen: false, reason: "unknown" };
+      const rawExec = result.executedQty ?? result.filledQty;
+      const executedQty = rawExec != null && parseFloat(String(rawExec)) > 0 ? String(rawExec) : undefined;
+      if (state === "NEW" || state === "PARTIALLY_FILLED") return { isOpen: true, executedQty };
+      if (state === "CANCELED") return { isOpen: false, reason: "canceled", executedQty };
+      if (state === "CLOSED" || state === "FILLED") return { isOpen: false, reason: "filled", executedQty };
+      return { isOpen: false, reason: "unknown", executedQty };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/ORDER_NOT_FOUND|not.?found|ORDER_005/i.test(msg)) return { isOpen: false, reason: "unknown" };
