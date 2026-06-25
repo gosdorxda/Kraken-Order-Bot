@@ -205,6 +205,9 @@ export interface ServerInfo {
   xtConnected: boolean;
   /** @nullable */
   xtError: string | null;
+  bitmartConnected: boolean;
+  /** @nullable */
+  bitmartError: string | null;
 }
 
 export interface AssetBalance {

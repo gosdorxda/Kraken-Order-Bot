@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { fetchBalance } from "../lib/krakenBot";
 import { XtClient } from "../lib/xtClient";
+import { BitmartClient } from "../lib/bitmartClient";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -20,16 +21,24 @@ router.get("/info", async (req, res): Promise<void> => {
   let krakenError: string | null = null;
   let xtConnected = false;
   let xtError: string | null = null;
+  let bitmartConnected = false;
+  let bitmartError: string | null = null;
 
   const xtClient = new XtClient(
     process.env["XT_API_KEY"] ?? "",
     process.env["XT_API_SECRET"] ?? ""
   );
 
-  const [ipResult, krakenResult, xtResult] = await Promise.allSettled([
+  const bitmartKey = process.env["BITMART_API_KEY"] ?? "";
+  const bitmartSecret = process.env["BITMART_API_SECRET"] ?? "";
+  const bitmartMemo = process.env["BITMART_MEMO"] ?? "";
+  const bitmartClient = new BitmartClient(bitmartKey, bitmartSecret, bitmartMemo);
+
+  const [ipResult, krakenResult, xtResult, bitmartResult] = await Promise.allSettled([
     fetchPublicIp(),
     fetchBalance(),
     xtClient.getBalance(),
+    bitmartKey && bitmartSecret ? bitmartClient.getBalance() : Promise.reject(new Error("Kredensial BitMart belum dikonfigurasi")),
   ]);
 
   if (ipResult.status === "fulfilled") {
@@ -59,7 +68,17 @@ router.get("/info", async (req, res): Promise<void> => {
     req.log.warn({ err: xtError }, "XT connection test failed");
   }
 
-  res.json({ publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError });
+  if (bitmartResult.status === "fulfilled") {
+    bitmartConnected = true;
+  } else {
+    bitmartError =
+      bitmartResult.reason instanceof Error
+        ? bitmartResult.reason.message
+        : String(bitmartResult.reason);
+    req.log.warn({ err: bitmartError }, "BitMart connection test failed");
+  }
+
+  res.json({ publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError, bitmartConnected, bitmartError });
 });
 
 export default router;

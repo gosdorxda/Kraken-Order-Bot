@@ -45,7 +45,9 @@ export const GetServerInfoResponse = zod.object({
   "krakenConnected": zod.boolean(),
   "krakenError": zod.string().nullable(),
   "xtConnected": zod.boolean(),
-  "xtError": zod.string().nullable()
+  "xtError": zod.string().nullable(),
+  "bitmartConnected": zod.boolean(),
+  "bitmartError": zod.string().nullable()
 })
 
 

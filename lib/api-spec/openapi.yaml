@@ -993,7 +993,7 @@ components:
 
     ServerInfo:
       type: object
-      required: [publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError]
+      required: [publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError, bitmartConnected, bitmartError]
       properties:
         publicIp:
           type: ["string", "null"]
@@ -1006,6 +1006,10 @@ components:
         xtConnected:
           type: boolean
         xtError:
+          type: ["string", "null"]
+        bitmartConnected:
+          type: boolean
+        bitmartError:
           type: ["string", "null"]
 
     AssetBalance:

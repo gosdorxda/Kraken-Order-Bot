@@ -57,7 +57,7 @@ function ConnectionPanel() {
             <Skeleton className="h-20 w-full" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Kraken API status */}
             <div className="rounded-lg border border-border bg-background p-4 space-y-2">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Kraken API</p>
@@ -89,6 +89,23 @@ function ConnectionPanel() {
               )}
               <p className="text-[11px] text-muted-foreground">
                 {info?.xtConnected ? "API key valid & terautentikasi" : (info?.xtError ?? "Periksa kredensial API key")}
+              </p>
+            </div>
+
+            {/* BitMart API status */}
+            <div className="rounded-lg border border-border bg-background p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">BitMart API</p>
+              {info?.bitmartConnected ? (
+                <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
+                  <CheckCircle2 className="w-4 h-4" /> Terhubung
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-red-400 font-medium text-sm">
+                  <XCircle className="w-4 h-4" /> Gagal
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                {info?.bitmartConnected ? "API key valid & terautentikasi" : (info?.bitmartError ?? "Periksa kredensial API key")}
               </p>
             </div>
 

@@ -16,8 +16,8 @@ export interface BitmartOrderBookLevel {
 
 /**
  * Fetch public order book from BitMart.
- * Response data.buys = bids (desc), data.sells = asks (asc).
- * Each entry: [price, size, timestamp]
+ * Response data.bids = bids (desc), data.asks = asks (asc).
+ * Each entry: [price, size]
  */
 export async function fetchBitmartOrderBook(
   symbol: string,
@@ -34,11 +34,11 @@ export async function fetchBitmartOrderBook(
   const json = (await resp.json()) as any;
   if (json.code !== 1000) throw new Error(`BitMart order book: code=${json.code} ${json.message}`);
   const data = json?.data ?? {};
-  const buys: string[][] = data.buys ?? [];
-  const sells: string[][] = data.sells ?? [];
+  const bids: string[][] = data.bids ?? [];
+  const asks: string[][] = data.asks ?? [];
   return {
-    bids: buys.map(([price, vol]) => ({ price, volume: vol })),
-    asks: sells.map(([price, vol]) => ({ price, volume: vol })),
+    bids: bids.map(([price, vol]) => ({ price, volume: vol })),
+    asks: asks.map(([price, vol]) => ({ price, volume: vol })),
   };
 }
 
