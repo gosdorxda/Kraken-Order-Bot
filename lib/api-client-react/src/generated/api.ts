@@ -41,6 +41,7 @@ import type {
   MarketTicker,
   OrderBook,
   ServerInfo,
+  SystemStats,
   TelegramSettings,
   TelegramSettingsInput,
   VerifyResponse,
@@ -349,6 +350,83 @@ export function useGetServerInfo<TData = Awaited<ReturnType<typeof getServerInfo
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetServerInfoQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetSystemStatsUrl = () => {
+
+
+
+
+  return `/api/system/stats`
+}
+
+/**
+ * @summary Get server system resource usage (CPU, memory, uptime)
+ */
+export const getSystemStats = async ( options?: RequestInit): Promise<SystemStats> => {
+
+  return customFetch<SystemStats>(getGetSystemStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSystemStatsQueryKey = () => {
+    return [
+    `/api/system/stats`
+    ] as const;
+    }
+
+
+export const getGetSystemStatsQueryOptions = <TData = Awaited<ReturnType<typeof getSystemStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSystemStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSystemStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSystemStats>>> = ({ signal }) => getSystemStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSystemStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSystemStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getSystemStats>>>
+export type GetSystemStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get server system resource usage (CPU, memory, uptime)
+ */
+
+export function useGetSystemStats<TData = Awaited<ReturnType<typeof getSystemStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSystemStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSystemStatsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

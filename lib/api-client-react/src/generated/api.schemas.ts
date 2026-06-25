@@ -194,6 +194,20 @@ export interface OrderBook {
   timestamp: string;
 }
 
+export interface SystemStats {
+  /** Average CPU usage across all cores (0-100) */
+  cpuPercent: number;
+  memUsedMb: number;
+  memTotalMb: number;
+  memPercent: number;
+  uptimeSeconds: number;
+  heapUsedMb: number;
+  heapTotalMb: number;
+  loadAvg1m: number;
+  loadAvg5m: number;
+  loadAvg15m: number;
+}
+
 export interface ServerInfo {
   /** @nullable */
   publicIp: string | null;

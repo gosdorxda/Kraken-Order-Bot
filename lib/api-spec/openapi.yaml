@@ -88,6 +88,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ServerInfo"
 
+  /system/stats:
+    get:
+      operationId: getSystemStats
+      tags: [health]
+      summary: Get server system resource usage (CPU, memory, uptime)
+      responses:
+        "200":
+          description: System stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStats"
+
   /bots:
     get:
       operationId: listBots
@@ -990,6 +1003,32 @@ components:
           type: string
         volume:
           type: string
+
+    SystemStats:
+      type: object
+      required: [cpuPercent, memUsedMb, memTotalMb, memPercent, uptimeSeconds, heapUsedMb, heapTotalMb, loadAvg1m, loadAvg5m, loadAvg15m]
+      properties:
+        cpuPercent:
+          type: number
+          description: Average CPU usage across all cores (0-100)
+        memUsedMb:
+          type: number
+        memTotalMb:
+          type: number
+        memPercent:
+          type: number
+        uptimeSeconds:
+          type: number
+        heapUsedMb:
+          type: number
+        heapTotalMb:
+          type: number
+        loadAvg1m:
+          type: number
+        loadAvg5m:
+          type: number
+        loadAvg15m:
+          type: number
 
     ServerInfo:
       type: object

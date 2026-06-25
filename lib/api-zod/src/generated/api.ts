@@ -52,6 +52,23 @@ export const GetServerInfoResponse = zod.object({
 
 
 /**
+ * @summary Get server system resource usage (CPU, memory, uptime)
+ */
+export const GetSystemStatsResponse = zod.object({
+  "cpuPercent": zod.number().describe('Average CPU usage across all cores (0-100)'),
+  "memUsedMb": zod.number(),
+  "memTotalMb": zod.number(),
+  "memPercent": zod.number(),
+  "uptimeSeconds": zod.number(),
+  "heapUsedMb": zod.number(),
+  "heapTotalMb": zod.number(),
+  "loadAvg1m": zod.number(),
+  "loadAvg5m": zod.number(),
+  "loadAvg15m": zod.number()
+})
+
+
+/**
  * @summary List all bot instances
  */
 export const listBotsResponseConfigCheckIntervalMsDefault = 3000;

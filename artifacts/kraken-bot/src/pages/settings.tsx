@@ -3,17 +3,19 @@ import {
   useGetAccountBalance,
   useGetXtBalance,
   useGetServerInfo,
+  useGetSystemStats,
   useGetTelegramSettings,
   useUpdateTelegramSettings,
   getGetTelegramSettingsQueryKey,
   getGetServerInfoQueryKey,
   getGetXtBalanceQueryKey,
+  getGetSystemStatsQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Shield, CheckCircle2, XCircle, Copy, Check, RefreshCw, Loader2, Bell, BellOff, LayoutDashboard } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Copy, Check, RefreshCw, Loader2, Bell, BellOff, LayoutDashboard, Cpu } from "lucide-react";
 import { useEnabledExchanges, type ExchangeId } from "@/lib/preferences";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -272,6 +274,101 @@ function TelegramNotificationPanel() {
   );
 }
 
+// ─── System Stats Panel ───────────────────────────────────────────────────────
+
+function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (d > 0) return `${d}h ${h}j ${m}m`;
+  if (h > 0) return `${h}j ${m}m`;
+  return `${m}m`;
+}
+
+function StatBar({ percent, color }: { percent: number; color: string }) {
+  return (
+    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+      <div
+        className="h-full rounded-full transition-all duration-500"
+        style={{ width: `${Math.min(100, percent)}%`, background: color }}
+      />
+    </div>
+  );
+}
+
+function SystemStatsPanel() {
+  const queryClient = useQueryClient();
+  const { data, isLoading, isFetching } = useGetSystemStats({
+    query: {
+      queryKey: getGetSystemStatsQueryKey(),
+      refetchInterval: 5000,
+    },
+  });
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: getGetSystemStatsQueryKey() });
+
+  const cpuColor  = (data?.cpuPercent ?? 0) > 80 ? "#ef4444" : (data?.cpuPercent ?? 0) > 50 ? "#f59e0b" : "#10b981";
+  const memColor  = (data?.memPercent ?? 0) > 80 ? "#ef4444" : (data?.memPercent ?? 0) > 60 ? "#f59e0b" : "#3b82f6";
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <Cpu className="w-4 h-4" /> Server Load
+          </CardTitle>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={refresh} disabled={isFetching}>
+            <RefreshCw className={`w-3.5 h-3.5 ${isFetching ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+        <CardDescription className="text-xs">
+          Penggunaan CPU, RAM, dan heap Node.js. Auto-refresh tiap 5 detik.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* CPU */}
+            <div className="rounded-lg border border-border bg-background p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">CPU</p>
+              <p className="text-2xl font-bold tabular-nums">{data?.cpuPercent.toFixed(1)}<span className="text-sm font-normal text-muted-foreground">%</span></p>
+              <StatBar percent={data?.cpuPercent ?? 0} color={cpuColor} />
+              <p className="text-[10px] text-muted-foreground">Load {data?.loadAvg1m.toFixed(2)} / {data?.loadAvg5m.toFixed(2)} / {data?.loadAvg15m.toFixed(2)}</p>
+            </div>
+
+            {/* RAM */}
+            <div className="rounded-lg border border-border bg-background p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">RAM Sistem</p>
+              <p className="text-2xl font-bold tabular-nums">{data?.memPercent.toFixed(1)}<span className="text-sm font-normal text-muted-foreground">%</span></p>
+              <StatBar percent={data?.memPercent ?? 0} color={memColor} />
+              <p className="text-[10px] text-muted-foreground">{data?.memUsedMb} / {data?.memTotalMb} MB</p>
+            </div>
+
+            {/* Heap */}
+            <div className="rounded-lg border border-border bg-background p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Node.js Heap</p>
+              <p className="text-2xl font-bold tabular-nums">{data?.heapUsedMb}<span className="text-sm font-normal text-muted-foreground"> MB</span></p>
+              <StatBar percent={data ? (data.heapUsedMb / data.heapTotalMb) * 100 : 0} color="#8b5cf6" />
+              <p className="text-[10px] text-muted-foreground">Total {data?.heapTotalMb} MB</p>
+            </div>
+
+            {/* Uptime */}
+            <div className="rounded-lg border border-border bg-background p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Uptime Server</p>
+              <p className="text-xl font-bold tabular-nums leading-tight">{data ? formatUptime(data.uptimeSeconds) : "—"}</p>
+              <p className="text-[10px] text-muted-foreground pt-1">{data ? `${data.uptimeSeconds.toLocaleString()} detik` : ""}</p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Exchange Visibility Panel ────────────────────────────────────────────────
 
 const EXCHANGE_DEFS: { id: ExchangeId; label: string; color: string; badge: string }[] = [
@@ -337,6 +434,8 @@ export default function Settings() {
       </header>
 
       <ConnectionPanel />
+
+      <SystemStatsPanel />
 
       <TelegramNotificationPanel />
 
