@@ -46,3 +46,35 @@ export function useFont() {
 
   return { font, setFont: setFontState, options: FONT_OPTIONS };
 }
+
+// ─── Exchange visibility ──────────────────────────────────────────────────────
+
+const DISABLED_EXCHANGES_KEY = "krkn-disabled-exchanges";
+
+export type ExchangeId = "kraken" | "xt" | "bitmart";
+
+export function useEnabledExchanges() {
+  const [disabled, setDisabled] = useState<Set<ExchangeId>>(() => {
+    try {
+      const stored = localStorage.getItem(DISABLED_EXCHANGES_KEY);
+      if (!stored) return new Set<ExchangeId>();
+      return new Set<ExchangeId>(JSON.parse(stored) as ExchangeId[]);
+    } catch {
+      return new Set<ExchangeId>();
+    }
+  });
+
+  const toggle = (exchange: ExchangeId) => {
+    setDisabled((prev) => {
+      const next = new Set(prev);
+      if (next.has(exchange)) next.delete(exchange);
+      else next.add(exchange);
+      localStorage.setItem(DISABLED_EXCHANGES_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const isEnabled = (exchange: ExchangeId) => !disabled.has(exchange);
+
+  return { isEnabled, toggle };
+}

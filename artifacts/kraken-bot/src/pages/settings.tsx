@@ -13,7 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Shield, CheckCircle2, XCircle, Copy, Check, RefreshCw, Loader2, Bell, BellOff } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Copy, Check, RefreshCw, Loader2, Bell, BellOff, LayoutDashboard } from "lucide-react";
+import { useEnabledExchanges, type ExchangeId } from "@/lib/preferences";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -271,6 +272,59 @@ function TelegramNotificationPanel() {
   );
 }
 
+// ─── Exchange Visibility Panel ────────────────────────────────────────────────
+
+const EXCHANGE_DEFS: { id: ExchangeId; label: string; color: string; badge: string }[] = [
+  { id: "kraken",  label: "Kraken",  color: "#7c3aed", badge: "K"  },
+  { id: "xt",      label: "XT.com",  color: "#0ea5e9", badge: "XT" },
+  { id: "bitmart", label: "BitMart", color: "#1A6FAF", badge: "BM" },
+];
+
+function ExchangeVisibilityPanel() {
+  const { isEnabled, toggle } = useEnabledExchanges();
+
+  return (
+    <Card className="bg-card border-border">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+          <LayoutDashboard className="w-4 h-4" /> Tampilan Dashboard
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Sembunyikan exchange dari dashboard. Bot yang dinonaktifkan tetap ada tapi tidak tampil.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {EXCHANGE_DEFS.map(({ id, label, color, badge }) => (
+          <div
+            key={id}
+            className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3 gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 font-black text-[11px] text-white"
+                style={{ background: `color-mix(in srgb, ${color} 80%, #000)` }}
+              >
+                {badge}
+              </div>
+              <div>
+                <Label htmlFor={`ex-${id}`} className="text-sm font-medium cursor-pointer">{label}</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  {isEnabled(id) ? "Tampil di dashboard" : "Disembunyikan dari dashboard"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id={`ex-${id}`}
+              checked={isEnabled(id)}
+              onCheckedChange={() => toggle(id)}
+            />
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function Settings() {
   const { data: balances, isLoading: balLoading } = useGetAccountBalance();
   const { data: xtBalances, isLoading: xtBalLoading } = useGetXtBalance({ query: { retry: false, queryKey: getGetXtBalanceQueryKey() } });
@@ -285,6 +339,8 @@ export default function Settings() {
       <ConnectionPanel />
 
       <TelegramNotificationPanel />
+
+      <ExchangeVisibilityPanel />
 
       {/* Account balances */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

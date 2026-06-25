@@ -36,8 +36,9 @@ import { getToken } from "@/lib/auth";
 import {
   Play, Square, Plus, Trash2, Settings2, AlertCircle, CheckCircle2, Info,
   Loader2, TrendingUp, ArrowUpDown, AlertTriangle, ChevronDown, ChevronUp,
-  ShieldAlert, OctagonX,
+  ShieldAlert, OctagonX, Search, X,
 } from "lucide-react";
+import { useEnabledExchanges } from "@/lib/preferences";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -634,6 +635,8 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { isEnabled } = useEnabledExchanges();
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editBot, setEditBot] = useState<BotInstance | null>(null);
   const [emergencyOpen, setEmergencyOpen] = useState(false);
@@ -641,6 +644,10 @@ export default function Dashboard() {
   const [krakenOpen, setKrakenOpen] = useState(false);
   const [xtOpen, setXtOpen] = useState(false);
   const [bitmartOpen, setBitmartOpen] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "running" | "stopped">("all");
+  const [exchangeFilter, setExchangeFilter] = useState<"all" | "kraken" | "xt" | "bitmart">("all");
 
   const openAdd = () => { setEditBot(null); setDialogOpen(true); };
   const openEdit = (bot: BotInstance) => { setEditBot(bot); setDialogOpen(true); };
@@ -679,6 +686,21 @@ export default function Dashboard() {
   const pausedCount = bots?.filter(isPausedAtMax).length ?? 0;
   const cbCount = bots?.filter((b) => b.status.circuitBreakerTripped).length ?? 0;
 
+  const visibleBots = (bots ?? []).filter((b) => {
+    const exc = (b.config.exchange ?? "kraken") as "kraken" | "xt" | "bitmart";
+    if (!isEnabled(exc)) return false;
+    if (exchangeFilter !== "all" && exc !== exchangeFilter) return false;
+    if (statusFilter === "running" && !b.status.running) return false;
+    if (statusFilter === "stopped" && b.status.running) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      if (!b.id.toLowerCase().includes(q) && !(b.config.pair ?? "").toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const hasFilter = search.trim() !== "" || statusFilter !== "all" || exchangeFilter !== "all";
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -712,12 +734,75 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Filter + Search bar */}
+      {(bots?.length ?? 0) > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1 min-w-[160px] max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Cari bot atau pair…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-8 pl-8 pr-7 rounded-md border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Status filter */}
+          {(["all", "running", "stopped"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setStatusFilter(v)}
+              className={`h-8 px-3 rounded-md text-xs font-medium border transition-colors ${
+                statusFilter === v
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+              }`}
+            >
+              {v === "all" ? "Semua" : v === "running" ? "Running" : "Stopped"}
+            </button>
+          ))}
+
+          {/* Exchange filter */}
+          <div className="w-px h-5 bg-border/60 hidden sm:block" />
+          {(["all", "kraken", "xt", "bitmart"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => setExchangeFilter(v)}
+              className={`h-8 px-3 rounded-md text-xs font-medium border transition-colors ${
+                exchangeFilter === v
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
+              }`}
+            >
+              {v === "all" ? "Exchange" : v === "kraken" ? "Kraken" : v === "xt" ? "XT" : "BitMart"}
+            </button>
+          ))}
+
+          {/* Clear */}
+          {hasFilter && (
+            <button
+              onClick={() => { setSearch(""); setStatusFilter("all"); setExchangeFilter("all"); }}
+              className="h-8 px-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent transition-colors flex items-center gap-1"
+            >
+              <X className="w-3 h-3" /> Reset
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Balance cards — Kraken, XT & BitMart collapsible */}
       {(krakenBalances?.length || xtBalances?.length || bitmartBalances?.length) ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
           {/* ── Kraken ── */}
-          {krakenBalances && krakenBalances.length > 0 && (() => {
+          {isEnabled("kraken") && krakenBalances && krakenBalances.length > 0 && (() => {
             const usd   = krakenBalances.find((a) => a.asset === "ZUSD");
             const free  = usd?.free  != null ? parseFloat(usd.free)    : null;
             const used  = usd?.used  != null ? parseFloat(usd.used)    : null;
@@ -794,7 +879,7 @@ export default function Dashboard() {
           })()}
 
           {/* ── XT.com ── */}
-          {xtBalances && xtBalances.length > 0 && (() => {
+          {isEnabled("xt") && xtBalances && xtBalances.length > 0 && (() => {
             const usdt    = xtBalances.find((a) => a.currency.toUpperCase() === "USDT");
             const avail   = usdt ? parseFloat(usdt.available) : null;
             const frozen  = usdt ? parseFloat(usdt.frozen)    : null;
@@ -873,7 +958,7 @@ export default function Dashboard() {
           })()}
 
           {/* ── BitMart ── */}
-          {bitmartBalances && bitmartBalances.length > 0 && (() => {
+          {isEnabled("bitmart") && bitmartBalances && bitmartBalances.length > 0 && (() => {
             const usdt    = bitmartBalances.find((a) => a.currency.toUpperCase() === "USDT");
             const avail   = usdt ? parseFloat(usdt.available) : null;
             const frozen  = usdt ? parseFloat(usdt.frozen)    : null;
@@ -965,9 +1050,23 @@ export default function Dashboard() {
           </div>
           <Button onClick={openAdd}><Plus className="w-4 h-4 mr-2" /> Add Bot</Button>
         </div>
+      ) : visibleBots.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center space-y-3 border border-dashed border-border rounded-xl">
+          <Search className="w-8 h-8 text-muted-foreground/40" />
+          <div>
+            <h3 className="font-semibold">Tidak ada bot yang cocok</h3>
+            <p className="text-muted-foreground text-sm mt-1">Coba ubah filter atau kata kunci pencarian.</p>
+          </div>
+          <button
+            onClick={() => { setSearch(""); setStatusFilter("all"); setExchangeFilter("all"); }}
+            className="text-sm text-primary hover:underline"
+          >
+            Reset filter
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[...bots].sort((a, b) => {
+          {[...visibleBots].sort((a, b) => {
             const score = (bot: typeof a) => {
               if (bot.status.running && !bot.status.circuitBreakerTripped) return 0;
               if (bot.status.circuitBreakerTripped) return 2;

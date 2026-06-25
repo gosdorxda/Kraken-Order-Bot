@@ -53,7 +53,7 @@ function tradeUrl(exchange: Exchange, pair: string, displayName: string) {
   if (exchange === "ascendex") return `https://ascendex.com/en/cashtrade-spottrading/usdt/${pair.replace("/USDT","").toLowerCase()}`;
   if (exchange === "xt")       return `https://www.xt.com/en/trade/${pair.toLowerCase()}`;
   if (exchange === "bitmart")  return `https://www.bitmart.com/trade/en-US?symbol=${pair}`;
-  if (exchange === "biconomy") return `https://www.biconomy.com/exchange?symbol=${pair}`;
+  if (exchange === "biconomy") return `https://www.biconomy.com/exchange/${pair}`;
   return `https://pro.kraken.com/app/trade/${displayName.toLowerCase().replace("/", "-")}`;
 }
 
