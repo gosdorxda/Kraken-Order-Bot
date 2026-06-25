@@ -24,6 +24,7 @@ export class BitmartBot {
   private intervalHandle: ReturnType<typeof setInterval> | null = null;
   private consecutiveErrors = 0;
   private circuitBreakerTripped = false;
+  private cycleRunning = false;
 
   // Exchange-driven precision (fetched once on first cycle)
   private pricePrecision: number | null = null;
@@ -145,6 +146,14 @@ export class BitmartBot {
       this.currentOrderPrice = null;
       this.currentOrderVolume = null;
     }
+    // Safety net: cancel ALL open buy orders for this pair on BitMart.
+    // Guards against race condition where currentOrderId was null when stop() ran
+    // but an order was placed by the in-flight cycle just before it was cleared.
+    try {
+      await this.client.cancelAllOpenBuyOrders(this.config.pair);
+    } catch (err) {
+      this.addLog("warn", `Safety-net cancel failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
     this.topBidOwner = "none";
     this.topBidPrice = null;
     this.addLog("info", "BitMart Bot stopped");
@@ -156,6 +165,8 @@ export class BitmartBot {
 
   private async runCycle(): Promise<void> {
     if (!this.running) return;
+    if (this.cycleRunning) return;
+    this.cycleRunning = true;
     this.cycleCount++;
 
     try {
@@ -350,6 +361,8 @@ export class BitmartBot {
         );
         this.stop();
       }
+    } finally {
+      this.cycleRunning = false;
     }
   }
 
