@@ -10,6 +10,7 @@ Kraken top-of-book buy bot with real-time web dashboard. Automatically stays at 
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - Required env: `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` — Kraken API credentials
+- Optional env (BitMart): `BITMART_API_KEY`, `BITMART_API_SECRET`, `BITMART_MEMO` (memo biasanya kosong)
 
 ## Stack
 

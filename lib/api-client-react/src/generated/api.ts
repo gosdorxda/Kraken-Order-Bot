@@ -23,6 +23,7 @@ import type {
   AppSettings,
   AppSettingsPatch,
   AssetBalance,
+  BitmartAssetBalance,
   BotConfigInput,
   BotInstance,
   BotLog,
@@ -2274,6 +2275,83 @@ export function useGetXtBalance<TData = Awaited<ReturnType<typeof getXtBalance>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetXtBalanceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetBitmartBalanceUrl = () => {
+
+
+
+
+  return `/api/account/bitmart-balance`
+}
+
+/**
+ * @summary Get BitMart account balance
+ */
+export const getBitmartBalance = async ( options?: RequestInit): Promise<BitmartAssetBalance[]> => {
+
+  return customFetch<BitmartAssetBalance[]>(getGetBitmartBalanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBitmartBalanceQueryKey = () => {
+    return [
+    `/api/account/bitmart-balance`
+    ] as const;
+    }
+
+
+export const getGetBitmartBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getBitmartBalance>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBitmartBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBitmartBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBitmartBalance>>> = ({ signal }) => getBitmartBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBitmartBalance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBitmartBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getBitmartBalance>>>
+export type GetBitmartBalanceQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get BitMart account balance
+ */
+
+export function useGetBitmartBalance<TData = Awaited<ReturnType<typeof getBitmartBalance>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBitmartBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBitmartBalanceQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

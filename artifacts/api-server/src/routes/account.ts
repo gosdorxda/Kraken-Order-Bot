@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { fetchBalance, fetchLockedZusd } from "../lib/krakenBot";
 import { XtClient } from "../lib/xtClient";
+import { BitmartClient } from "../lib/bitmartClient";
 import { GetAccountBalanceResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -45,6 +46,22 @@ router.get("/account/xt-balance", async (req, res): Promise<void> => {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     req.log.warn({ err: msg }, "XT balance fetch failed (returning empty)");
+    res.json([]);
+  }
+});
+
+router.get("/account/bitmart-balance", async (req, res): Promise<void> => {
+  try {
+    const bitmartClient = new BitmartClient(
+      process.env["BITMART_API_KEY"] ?? "",
+      process.env["BITMART_API_SECRET"] ?? "",
+      process.env["BITMART_MEMO"] ?? ""
+    );
+    const balances = await bitmartClient.getBalance();
+    res.json(balances);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    req.log.warn({ err: msg }, "BitMart balance fetch failed (returning empty)");
     res.json([]);
   }
 });

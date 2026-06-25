@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { botManager } from "../lib/botManager";
 import { fetchOrderBook, fetchMarket, emergencyCancelAllKrakenBuyOrders } from "../lib/krakenBot";
 import { fetchXtOrderBook, XtClient } from "../lib/xtClient";
+import { fetchBitmartOrderBook, BitmartClient } from "../lib/bitmartClient";
 import { fetchGateMarket } from "../lib/gateMarket";
 import { fetchLbankMarket } from "../lib/lbankMarket";
 import { fetchAscendexMarket } from "../lib/ascendexMarket";
@@ -193,7 +194,9 @@ router.get("/bots/:botId/orderbook", async (req, res): Promise<void> => {
     const pair = config.pair;
     const book = config.exchange === "xt"
       ? await fetchXtOrderBook(pair)
-      : await fetchOrderBook(pair);
+      : config.exchange === "bitmart"
+        ? await fetchBitmartOrderBook(pair)
+        : await fetchOrderBook(pair);
     res.json(
       GetBotOrderBookResponse.parse({
         pair,
@@ -214,10 +217,11 @@ router.get("/orderbook", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const isXt = qp.data.exchange === "xt";
-    const book = isXt
+    const book = qp.data.exchange === "xt"
       ? await fetchXtOrderBook(qp.data.pair)
-      : await fetchOrderBook(qp.data.pair);
+      : qp.data.exchange === "bitmart"
+        ? await fetchBitmartOrderBook(qp.data.pair)
+        : await fetchOrderBook(qp.data.pair);
     res.json(
       GetOrderBookResponse.parse({
         pair: qp.data.pair,
@@ -315,10 +319,11 @@ router.get("/market/biconomy", async (_req, res): Promise<void> => {
  * Does NOT delete bots — just stops them and wipes open orders.
  */
 router.post("/emergency-stop", async (req, res): Promise<void> => {
-  const results: { botsTopped: number; krakenCancelled: number; xtCancelled: number; errors: string[] } = {
+  const results: { botsTopped: number; krakenCancelled: number; xtCancelled: number; bitmartCancelled: number; errors: string[] } = {
     botsTopped: 0,
     krakenCancelled: 0,
     xtCancelled: 0,
+    bitmartCancelled: 0,
     errors: [],
   };
 
@@ -365,6 +370,30 @@ router.post("/emergency-stop", async (req, res): Promise<void> => {
       }
     } catch (err) {
       results.errors.push(`XT client init: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  // 4. Cancel all BitMart buy orders for every configured BitMart pair
+  const bitmartPairs = allBots
+    .filter((b) => b.config.exchange === "bitmart")
+    .map((b) => b.config.pair);
+  if (bitmartPairs.length > 0) {
+    try {
+      const bitmartClient = new BitmartClient(
+        process.env["BITMART_API_KEY"] ?? "",
+        process.env["BITMART_API_SECRET"] ?? "",
+        process.env["BITMART_MEMO"] ?? ""
+      );
+      for (const pair of bitmartPairs) {
+        try {
+          await bitmartClient.cancelAllOpenBuyOrders(pair);
+          results.bitmartCancelled++;
+        } catch (err) {
+          results.errors.push(`BitMart cancel ${pair}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    } catch (err) {
+      results.errors.push(`BitMart client init: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

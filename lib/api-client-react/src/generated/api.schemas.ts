@@ -45,6 +45,7 @@ export type BotConfigExchange = typeof BotConfigExchange[keyof typeof BotConfigE
 export const BotConfigExchange = {
   kraken: 'kraken',
   xt: 'xt',
+  bitmart: 'bitmart',
 } as const;
 
 export interface BotConfig {
@@ -66,6 +67,7 @@ export type BotConfigInputExchange = typeof BotConfigInputExchange[keyof typeof 
 export const BotConfigInputExchange = {
   kraken: 'kraken',
   xt: 'xt',
+  bitmart: 'bitmart',
 } as const;
 
 export interface BotConfigInput {
@@ -218,6 +220,12 @@ export interface XtAssetBalance {
   frozen: string;
 }
 
+export interface BitmartAssetBalance {
+  currency: string;
+  available: string;
+  frozen: string;
+}
+
 export interface TelegramSettings {
   configured: boolean;
   notifyOnFill: boolean;
@@ -258,5 +266,6 @@ export type GetOrderBookExchange = typeof GetOrderBookExchange[keyof typeof GetO
 export const GetOrderBookExchange = {
   kraken: 'kraken',
   xt: 'xt',
+  bitmart: 'bitmart',
 } as const;
 

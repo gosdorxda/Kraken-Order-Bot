@@ -418,7 +418,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [kraken, xt]
+            enum: [kraken, xt, bitmart]
             default: kraken
       responses:
         "200":
@@ -681,6 +681,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /account/bitmart-balance:
+    get:
+      operationId: getBitmartBalance
+      tags: [account]
+      summary: Get BitMart account balance
+      responses:
+        "200":
+          description: BitMart account balances
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BitmartAssetBalance"
+        "500":
+          description: BitMart API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /account/balance:
     get:
       operationId: getAccountBalance
@@ -790,7 +811,7 @@ components:
           default: 5
         exchange:
           type: string
-          enum: [kraken, xt]
+          enum: [kraken, xt, bitmart]
           default: kraken
 
     BotConfigInput:
@@ -820,7 +841,7 @@ components:
           default: 5
         exchange:
           type: string
-          enum: [kraken, xt]
+          enum: [kraken, xt, bitmart]
           default: kraken
 
     BotStatus:
@@ -1001,6 +1022,17 @@ components:
           type: string
 
     XtAssetBalance:
+      type: object
+      required: [currency, available, frozen]
+      properties:
+        currency:
+          type: string
+        available:
+          type: string
+        frozen:
+          type: string
+
+    BitmartAssetBalance:
       type: object
       required: [currency, available, frozen]
       properties:

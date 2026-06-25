@@ -1,11 +1,13 @@
 import { KrakenBot, type BotConfig, cancelAllOpenBuyOrders } from "./krakenBot";
 import { XtBot } from "./xtBot";
 import { XtClient } from "./xtClient";
+import { BitmartBot } from "./bitmartBot";
+import { BitmartClient } from "./bitmartClient";
 import { loadPersistedState, savePersistedState } from "./persistence";
 import { getTelegramEventConfig, setTelegramEventConfig, type TelegramEventConfig } from "./telegram";
 import { logger } from "./logger";
 
-export type AnyBot = KrakenBot | XtBot;
+export type AnyBot = KrakenBot | XtBot | BitmartBot;
 
 export interface BotInstanceData {
   id: string;
@@ -25,6 +27,7 @@ class BotManager {
 
     const krakenBotsToStart: KrakenBot[] = [];
     const xtBotsToStart: XtBot[] = [];
+    const bitmartBotsToStart: BitmartBot[] = [];
 
     for (const p of state.bots) {
       try {
@@ -41,6 +44,7 @@ class BotManager {
         const isDev = process.env["NODE_ENV"] !== "production";
         if (p.running && !isDev) {
           if (bot instanceof XtBot) xtBotsToStart.push(bot);
+          else if (bot instanceof BitmartBot) bitmartBotsToStart.push(bot);
           else krakenBotsToStart.push(bot as KrakenBot);
         } else if (p.running && isDev) {
           logger.info({ botId: p.id }, "Dev mode: bot not auto-started (run published app or start manually)");
@@ -58,7 +62,6 @@ class BotManager {
     }
 
     // Cancel ALL open XT buy orders ONCE (manager-level, analogous to Kraken).
-    // Each symbol is cleaned up before any XT bot starts trading.
     if (xtBotsToStart.length > 0) {
       const xtClient = new XtClient(
         process.env["XT_API_KEY"] ?? "",
@@ -71,6 +74,20 @@ class BotManager {
       }
     }
 
+    // Cancel ALL open BitMart buy orders ONCE before starting any BitMart bot.
+    if (bitmartBotsToStart.length > 0) {
+      const bitmartClient = new BitmartClient(
+        process.env["BITMART_API_KEY"] ?? "",
+        process.env["BITMART_API_SECRET"] ?? "",
+        process.env["BITMART_MEMO"] ?? ""
+      );
+      const bitmartPairs = bitmartBotsToStart.map((b) => b.getConfig().pair);
+      logger.info({ pairs: bitmartPairs }, "BotManager: cancelling stale BitMart open buy orders before autostart");
+      for (const pair of bitmartPairs) {
+        await bitmartClient.cancelAllOpenBuyOrders(pair);
+      }
+    }
+
     for (const bot of krakenBotsToStart) {
       bot.start().catch((err: unknown) => {
         logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start Kraken bot on restore");
@@ -80,6 +97,12 @@ class BotManager {
     for (const bot of xtBotsToStart) {
       bot.start().catch((err: unknown) => {
         logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start XT bot on restore");
+      });
+    }
+
+    for (const bot of bitmartBotsToStart) {
+      bot.start().catch((err: unknown) => {
+        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start BitMart bot on restore");
       });
     }
 
@@ -122,9 +145,18 @@ class BotManager {
     return this.bots.get(id);
   }
 
+  toInstance(id: string): BotInstanceData | null {
+    const bot = this.bots.get(id);
+    if (!bot) return null;
+    return { id, config: bot.getConfig(), status: bot.getStatus() };
+  }
+
   private instantiate(id: string, config: BotConfig): AnyBot {
     if (config.exchange === "xt") {
       return new XtBot(id, config, () => this.persist());
+    }
+    if (config.exchange === "bitmart") {
+      return new BitmartBot(id, config, () => this.persist());
     }
     return new KrakenBot(id, config, () => this.persist());
   }
@@ -149,12 +181,6 @@ class BotManager {
     this.bots.delete(id);
     this.persist();
     return true;
-  }
-
-  toInstance(id: string): BotInstanceData | null {
-    const bot = this.bots.get(id);
-    if (!bot) return null;
-    return { id, config: bot.getConfig(), status: bot.getStatus() };
   }
 }
 
