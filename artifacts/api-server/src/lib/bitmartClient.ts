@@ -157,26 +157,28 @@ export class BitmartClient {
 
   /**
    * Get order status.
-   * Uses /spot/v2/order_detail.
-   * Status codes: 1=new, 2=canceled, 3=partially_filled, 4=fully_filled, 5=partially_canceled
+   * Uses /spot/v4/query/order (replaces deprecated /spot/v2/order_detail).
+   * State field (string): new|partially_filled = open; filled = filled; canceled|partially_canceled = canceled.
    */
   async getOrder(orderId: string): Promise<{
     isOpen: boolean;
     reason?: "filled" | "canceled" | "unknown";
   }> {
     try {
-      const data = await this.request<{ order_id: string; status: number }>(
-        "GET", "/spot/v2/order_detail",
-        { order_id: orderId }
+      const data = await this.request<{ orderId: string; state: string } | null>(
+        "POST", "/spot/v4/query/order",
+        {},
+        { orderId }
       );
-      const status = data?.status ?? 0;
-      if (status === 1 || status === 3) return { isOpen: true };
-      if (status === 4)               return { isOpen: false, reason: "filled" };
-      if (status === 2 || status === 5) return { isOpen: false, reason: "canceled" };
+      const state = data?.state ?? "";
+      if (state === "new" || state === "partially_filled") return { isOpen: true };
+      if (state === "filled")                              return { isOpen: false, reason: "filled" };
+      if (state === "canceled" || state === "partially_canceled") return { isOpen: false, reason: "canceled" };
       return { isOpen: false, reason: "unknown" };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (/50008|not.?exist|not.?found/i.test(msg)) return { isOpen: false, reason: "unknown" };
+      // 50005 = no data (order not found), 50008 = order not exist
+      if (/50005|50008|not.?exist|not.?found/i.test(msg)) return { isOpen: false, reason: "unknown" };
       throw err;
     }
   }
