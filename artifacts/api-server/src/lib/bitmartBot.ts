@@ -98,10 +98,8 @@ export class BitmartBot {
 
     // Guard: credentials required
     if (!process.env["BITMART_API_KEY"] || !process.env["BITMART_API_SECRET"]) {
-      throw new Error(
-        "BITMART_API_KEY dan BITMART_API_SECRET wajib diisi sebelum menjalankan BitMart bot. " +
-        "Tambahkan kedua secret tersebut di Replit Secrets."
-      );
+      this.addLog("error", "BITMART_API_KEY dan BITMART_API_SECRET wajib diisi. Tambahkan di Replit Secrets lalu restart server.");
+      return;
     }
 
     this.running = true;

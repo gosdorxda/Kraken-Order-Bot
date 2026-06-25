@@ -97,6 +97,10 @@ export class XtBot {
 
   async start(): Promise<void> {
     if (this.running) return;
+    if (!process.env["XT_API_KEY"] || !process.env["XT_API_SECRET"]) {
+      this.addLog("error", "XT_API_KEY dan XT_API_SECRET wajib diisi. Tambahkan di Replit Secrets lalu restart server.");
+      return;
+    }
     this.running = true;
     this.circuitBreakerTripped = false;
     this.consecutiveErrors = 0;

@@ -334,6 +334,10 @@ export class KrakenBot {
 
   async start(): Promise<void> {
     if (this.running) return;
+    if (!process.env["KRAKEN_API_KEY"] || !process.env["KRAKEN_API_SECRET"]) {
+      this.addLog("error", "KRAKEN_API_KEY dan KRAKEN_API_SECRET wajib diisi. Tambahkan di Replit Secrets lalu restart server.");
+      return;
+    }
     this.running = true;
     this.circuitBreakerTripped = false;
     this.consecutiveErrors = 0;
