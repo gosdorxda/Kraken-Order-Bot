@@ -114,6 +114,12 @@ export class BitmartBot {
     this.addLog("info", `BitMart Bot started for pair ${this.config.pair}`, { config: this.config });
     void sendTelegramEvent("startStop", `▶️ <b>[BM:${this.id}]</b> Bot dimulai untuk pair <b>${this.config.pair}</b>`);
 
+    const jitter = Math.floor(Math.random() * this.config.checkIntervalMs);
+    if (jitter > 0) {
+      this.addLog("info", `Stagger: menunggu ${jitter}ms sebelum cycle pertama`);
+      await new Promise<void>((resolve) => setTimeout(resolve, jitter));
+    }
+    if (!this.running) return;
     this.intervalHandle = setInterval(() => {
       this.runCycle().catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
