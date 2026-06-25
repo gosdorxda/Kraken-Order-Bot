@@ -52,9 +52,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // ─── Config form schema ───────────────────────────────────────────────────────
 
+const PAIR_RULES: Record<string, { pattern: RegExp; hint: string }> = {
+  kraken:  { pattern: /^[A-Z0-9]{4,12}$/, hint: "Huruf besar tanpa pemisah, mis. XXBTZUSD" },
+  xt:      { pattern: /^[a-z0-9]+_[a-z0-9]+$/, hint: "Huruf kecil dengan garis bawah, mis. btc_usdt" },
+  bitmart: { pattern: /^[A-Z0-9]+_[A-Z0-9]+$/, hint: "Huruf besar dengan garis bawah, mis. BTC_USDT" },
+};
+
 const configSchema = z.object({
   exchange: z.enum(["kraken", "xt", "bitmart"]).default("kraken"),
-  pair: z.string().min(1, "Trading pair is required"),
+  pair: z.string().min(1, "Trading pair wajib diisi"),
   orderSize: z.string().min(1, "Order size is required"),
   maxBidPrice: z.string().min(1, "Max bid price is required"),
   tickSize: z.string().min(1, "Tick size is required"),
@@ -62,6 +68,12 @@ const configSchema = z.object({
   oneShotMode: z.boolean().default(false),
   holdAtMax: z.boolean().default(false),
   maxConsecutiveErrors: z.coerce.number().min(1).max(20).default(5),
+}).superRefine((data, ctx) => {
+  if (!data.pair) return;
+  const rule = PAIR_RULES[data.exchange];
+  if (rule && !rule.pattern.test(data.pair)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: rule.hint, path: ["pair"] });
+  }
 });
 type ConfigForm = z.infer<typeof configSchema>;
 
