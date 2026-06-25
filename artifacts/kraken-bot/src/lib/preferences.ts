@@ -41,6 +41,7 @@ export function useFont() {
 
   useEffect(() => {
     document.documentElement.style.setProperty("--app-font-sans", font);
+    document.documentElement.style.setProperty("--app-font-mono", font);
     document.documentElement.style.fontFamily = font;
     localStorage.setItem(FONT_KEY, font);
   }, [font]);
