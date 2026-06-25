@@ -95,6 +95,15 @@ export class BitmartBot {
 
   async start(): Promise<void> {
     if (this.running) return;
+
+    // Guard: credentials required
+    if (!process.env["BITMART_API_KEY"] || !process.env["BITMART_API_SECRET"]) {
+      throw new Error(
+        "BITMART_API_KEY dan BITMART_API_SECRET wajib diisi sebelum menjalankan BitMart bot. " +
+        "Tambahkan kedua secret tersebut di Replit Secrets."
+      );
+    }
+
     this.running = true;
     this.circuitBreakerTripped = false;
     this.consecutiveErrors = 0;
