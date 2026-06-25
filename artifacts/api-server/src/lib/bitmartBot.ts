@@ -348,6 +348,12 @@ export class BitmartBot {
         this.addLog("warn", `Saldo tidak cukup — siklus dilewati. Cek saldo akun BitMart.`);
         return;
       }
+      // 51011: size * price < minimum order value ($5 at BitMart).
+      // Transient market condition — skip silently, do not count toward circuit breaker.
+      if (/51011/i.test(msg)) {
+        this.addLog("warn", `Order terlalu kecil (nilai minimum $5) — harga terlalu rendah untuk ukuran order ini. Naikkan orderSize atau tunggu harga naik.`);
+        return;
+      }
       this.addLog("error", `Cycle error: ${msg}`);
       this.consecutiveErrors++;
       const maxErrors = this.config.maxConsecutiveErrors ?? 5;
