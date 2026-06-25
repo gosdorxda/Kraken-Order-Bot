@@ -255,7 +255,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? `Edit Bot — ${editBot.config.pair}` : "Tambah Bot Baru"}</DialogTitle>
           <DialogDescription>
