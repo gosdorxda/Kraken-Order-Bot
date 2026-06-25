@@ -425,12 +425,14 @@ export class KrakenBot {
         const orderStatus = await this.checkOrderOpen(this.currentOrderId);
         if (!orderStatus.isOpen) {
           if (orderStatus.reason === "filled") {
-            const filledOrderId = this.currentOrderId;
-            const filledPrice = this.currentOrderPrice ?? "0";
-            const filledVolume = this.currentOrderVolume ?? this.config.orderSize;
+            const filledOrderId  = this.currentOrderId;
+            const filledPrice    = this.currentOrderPrice ?? "0";
+            const configVolume   = this.currentOrderVolume ?? this.config.orderSize;
+            const actualVolume   = orderStatus.executedQty ?? configVolume;
+            const isPartial      = parseFloat(actualVolume) < parseFloat(configVolume) * 0.9995;
 
-            this.addLog("success", `Order ${filledOrderId} was filled!`, { price: filledPrice });
-            this.recordFill(filledOrderId, filledPrice, filledVolume);
+            this.addLog("success", `Order ${filledOrderId} ${isPartial ? "partial fill" : "was filled!"}`, { price: filledPrice, executedQty: actualVolume });
+            this.recordFill(filledOrderId, filledPrice, actualVolume, isPartial);
 
             this.currentOrderId = null;
             this.currentOrderPrice = null;
@@ -634,13 +636,14 @@ export class KrakenBot {
     if (this.fills.length > 500) this.fills = this.fills.slice(0, 500);
     this.onPersist?.();
 
-    const nilai  = (parseFloat(price) * parseFloat(volume)).toFixed(2);
-    const symbol = this.config.pair.replace(/^X|ZUSD$|USD$/g, "");
-    const icon   = partial ? "🔶" : "✅";
-    const label  = partial ? "Partial fill" : "Order terisi";
+    const nilai      = (parseFloat(price) * parseFloat(volume)).toFixed(2);
+    const symbol     = this.config.pair.replace(/^X|ZUSD$|USD$/g, "");
+    const icon       = partial ? "🔶" : "✅";
+    const label      = partial ? "Partial fill" : "Order terisi";
+    const volDisplay = partial ? `${volume}/${this.config.orderSize}` : volume;
     void sendTelegramEvent(
       "fill",
-      `${icon} <b>[${this.id}]</b> ${label} — ${volume} ${symbol} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
+      `${icon} <b>[${this.id}]</b> ${label} — ${volDisplay} ${symbol} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
     );
   }
 
@@ -707,12 +710,10 @@ export class KrakenBot {
 
     if (!finalStatus.isOpen && finalStatus.reason === "filled") {
       const actualVolume = finalStatus.executedQty ?? configVolume;
-      const configQty   = parseFloat(configVolume);
-      const actualQty   = parseFloat(actualVolume);
-      const isPartial   = actualQty < configQty * 0.9995;
+      const isPartial   = parseFloat(actualVolume) < parseFloat(configVolume) * 0.9995;
       this.addLog("success", `Order ${orderId} ${isPartial ? "partial fill" : "terisi"} (terdeteksi saat cancel)`, { price, executedQty: actualVolume });
       this.recordFill(orderId, price, actualVolume, isPartial);
-      return true;
+      return !isPartial;
     }
 
     // Cancelled (or unknown) — check for partial fill
