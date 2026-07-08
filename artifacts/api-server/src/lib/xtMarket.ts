@@ -3,12 +3,37 @@ import type { MarketTicker } from "./krakenBot.js";
 const CACHE_TTL_MS = 10_000;
 let cache: { data: MarketTicker[]; fetchedAt: number } | null = null;
 
+const SYMBOL_CACHE_TTL_MS = 5 * 60_000;
+let symbolCache: { openapiEnabled: Set<string>; fetchedAt: number } | null = null;
+
+async function fetchOpenapiEnabledSymbols(): Promise<Set<string>> {
+  if (symbolCache && Date.now() - symbolCache.fetchedAt < SYMBOL_CACHE_TTL_MS) {
+    return symbolCache.openapiEnabled;
+  }
+
+  const resp = await fetch("https://sapi.xt.com/v4/public/symbol", {
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!resp.ok) throw new Error(`XT.com API error: ${resp.status}`);
+
+  const json: any = await resp.json();
+  const symbols: any[] = Array.isArray(json.result?.symbols) ? json.result.symbols : [];
+
+  const openapiEnabled = new Set<string>(
+    symbols.filter((s: any) => s.openapiEnabled === true).map((s: any) => (s.symbol as string).toLowerCase()),
+  );
+
+  symbolCache = { openapiEnabled, fetchedAt: Date.now() };
+  return openapiEnabled;
+}
+
 export async function fetchXtMarket(): Promise<MarketTicker[]> {
   if (cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.data;
 
-  const resp = await fetch("https://sapi.xt.com/v4/public/ticker", {
-    signal: AbortSignal.timeout(10_000),
-  });
+  const [resp, openapiEnabled] = await Promise.all([
+    fetch("https://sapi.xt.com/v4/public/ticker", { signal: AbortSignal.timeout(10_000) }),
+    fetchOpenapiEnabledSymbols(),
+  ]);
   if (!resp.ok) throw new Error(`XT.com API error: ${resp.status}`);
 
   const json: any = await resp.json();
@@ -17,7 +42,9 @@ export async function fetchXtMarket(): Promise<MarketTicker[]> {
     : Array.isArray(json.result) ? json.result
     : [];
 
-  const usdt = tickers.filter((t: any) => (t.s ?? "").endsWith("_usdt"));
+  const usdt = tickers.filter(
+    (t: any) => (t.s ?? "").endsWith("_usdt") && openapiEnabled.has((t.s ?? "").toLowerCase()),
+  );
 
   const result: MarketTicker[] = usdt.map((t: any) => {
     const last      = parseFloat(t.c ?? "0");
