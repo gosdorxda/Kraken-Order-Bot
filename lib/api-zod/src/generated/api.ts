@@ -598,6 +598,26 @@ export const GetMarketBiconomyResponse = zod.array(GetMarketBiconomyResponseItem
 
 
 /**
+ * @summary Get all USDT spot pairs from Bitrue with ticker data
+ */
+export const GetMarketBitrueResponseItem = zod.object({
+  "pair": zod.string(),
+  "displayName": zod.string(),
+  "bid": zod.string(),
+  "ask": zod.string(),
+  "last": zod.string(),
+  "open24h": zod.string(),
+  "change24h": zod.number(),
+  "spread": zod.string(),
+  "spreadPct": zod.number(),
+  "volume24h": zod.string(),
+  "high24h": zod.string(),
+  "low24h": zod.string()
+})
+export const GetMarketBitrueResponse = zod.array(GetMarketBitrueResponseItem)
+
+
+/**
  * @summary Get app-level settings
  */
 export const GetSettingsResponse = zod.object({

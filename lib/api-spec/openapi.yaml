@@ -600,6 +600,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /market/bitrue:
+    get:
+      operationId: getMarketBitrue
+      tags: [bots]
+      summary: Get all USDT spot pairs from Bitrue with ticker data
+      responses:
+        "200":
+          description: Bitrue market tickers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketTicker"
+        "500":
+          description: Bitrue API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /settings:
     get:
       operationId: getSettings

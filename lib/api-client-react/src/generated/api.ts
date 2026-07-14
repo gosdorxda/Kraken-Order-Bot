@@ -1992,6 +1992,83 @@ export function useGetMarketBiconomy<TData = Awaited<ReturnType<typeof getMarket
 
 
 
+export const getGetMarketBitrueUrl = () => {
+
+
+
+
+  return `/api/market/bitrue`
+}
+
+/**
+ * @summary Get all USDT spot pairs from Bitrue with ticker data
+ */
+export const getMarketBitrue = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+
+  return customFetch<MarketTicker[]>(getGetMarketBitrueUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketBitrueQueryKey = () => {
+    return [
+    `/api/market/bitrue`
+    ] as const;
+    }
+
+
+export const getGetMarketBitrueQueryOptions = <TData = Awaited<ReturnType<typeof getMarketBitrue>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketBitrue>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketBitrueQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketBitrue>>> = ({ signal }) => getMarketBitrue({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketBitrue>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketBitrueQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketBitrue>>>
+export type GetMarketBitrueQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get all USDT spot pairs from Bitrue with ticker data
+ */
+
+export function useGetMarketBitrue<TData = Awaited<ReturnType<typeof getMarketBitrue>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketBitrue>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketBitrueQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getGetSettingsUrl = () => {
 
 
