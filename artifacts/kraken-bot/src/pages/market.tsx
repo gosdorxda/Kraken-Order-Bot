@@ -3,7 +3,6 @@ import {
   useGetMarket, getGetMarketQueryKey,
   useGetMarketGate, getGetMarketGateQueryKey,
   useGetMarketLbank, getGetMarketLbankQueryKey,
-  useGetMarketAscendex, getGetMarketAscendexQueryKey,
   useGetMarketXt, getGetMarketXtQueryKey,
   useGetMarketBitmart, getGetMarketBitmartQueryKey,
   useGetMarketBiconomy, getGetMarketBiconomyQueryKey,
@@ -16,7 +15,7 @@ import {
 
 type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "change24h" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
-type Exchange = "kraken" | "gate" | "lbank" | "ascendex" | "xt" | "bitmart" | "biconomy";
+type Exchange = "kraken" | "gate" | "lbank" | "xt" | "bitmart" | "biconomy";
 
 const PAGE_SIZE = 50;
 
@@ -50,7 +49,6 @@ function tokenName(displayName: string) {
 function tradeUrl(exchange: Exchange, pair: string, displayName: string) {
   if (exchange === "gate")     return `https://www.gate.com/trade/${pair}`;
   if (exchange === "lbank")    return `https://www.lbank.com/trade/${pair.toLowerCase()}`;
-  if (exchange === "ascendex") return `https://ascendex.com/en/cashtrade-spottrading/usdt/${pair.replace("/USDT","").toLowerCase()}`;
   if (exchange === "xt")       return `https://www.xt.com/en/trade/${pair.toLowerCase()}`;
   if (exchange === "bitmart")  return `https://www.bitmart.com/trade/en-US?symbol=${pair}`;
   if (exchange === "biconomy") return `https://www.biconomy.com/exchange/${pair}`;
@@ -384,8 +382,6 @@ export default function Market() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const lbank    = useGetMarketLbank({ query: { ...queryOpts, queryKey: getGetMarketLbankQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ascendex = useGetMarketAscendex({ query: { ...queryOpts, queryKey: getGetMarketAscendexQueryKey() } as any });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const xt       = useGetMarketXt({ query: { ...queryOpts, queryKey: getGetMarketXtQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bitmart  = useGetMarketBitmart({ query: { ...queryOpts, queryKey: getGetMarketBitmartQueryKey() } as any });
@@ -395,7 +391,6 @@ export default function Market() {
   const active = exchange === "kraken"   ? kraken
     : exchange === "gate"     ? gate
     : exchange === "lbank"    ? lbank
-    : exchange === "ascendex" ? ascendex
     : exchange === "xt"       ? xt
     : exchange === "bitmart"  ? bitmart
     : biconomy;
@@ -420,9 +415,6 @@ export default function Market() {
         </ExchangeTab>
         <ExchangeTab active={exchange === "lbank"} onClick={() => setExchange("lbank")}>
           LBank <span className="text-xs opacity-60 ml-1">USDT</span>
-        </ExchangeTab>
-        <ExchangeTab active={exchange === "ascendex"} onClick={() => setExchange("ascendex")}>
-          AscendEX <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
         <ExchangeTab active={exchange === "xt"} onClick={() => setExchange("xt")}>
           XT.com <span className="text-xs opacity-60 ml-1">USDT</span>
