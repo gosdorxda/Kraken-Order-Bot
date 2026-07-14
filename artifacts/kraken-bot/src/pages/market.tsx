@@ -61,7 +61,6 @@ const COL_HEADERS: { key: SortKey; label: string; align: "left" | "right" }[] = 
   { key: "change24h",   label: "24h %",            align: "right" },
   { key: "bid",         label: "Bid",              align: "right" },
   { key: "ask",         label: "Ask",              align: "right" },
-  { key: "spread",      label: "Spread ($)",       align: "right" },
   { key: "spreadPct",   label: "Spread %",         align: "right" },
   { key: "volume24h",   label: "Turnover 24h ($)", align: "right" },
 ];
@@ -218,7 +217,7 @@ function MarketTable({
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground">
                     <th className="px-3 py-2.5 font-medium text-left text-xs w-10">#</th>
                     {COL_HEADERS.map(({ key, label, align }) => {
-                      if (noSpread && (key === "spread" || key === "spreadPct")) return null;
+                      if (noSpread && key === "spreadPct") return null;
                       return (
                         <th
                           key={key}
@@ -255,7 +254,7 @@ function MarketTable({
                       <tr
                         key={row.pair}
                         onClick={() => window.open(tradeUrl(exchange, row.pair, row.displayName), "_blank", "noopener,noreferrer")}
-                        className="border-b border-border/40 hover:bg-muted/30 cursor-pointer transition-colors"
+                        className="border-b border-border/40 hover:bg-primary/10 cursor-pointer transition-colors"
                       >
                         <td className="px-3 py-2.5 text-xs text-muted-foreground/50 font-mono tabular-nums">{rowNum}</td>
                         <td className="px-4 py-2.5">
@@ -278,14 +277,9 @@ function MarketTable({
                           ${fmtPrice(row.ask)}
                         </td>
                         {!noSpread && (
-                          <>
-                            <td className={`px-4 py-2.5 text-right font-mono text-xs ${spreadColor}`}>
-                              ${row.spread}
-                            </td>
-                            <td className={`px-4 py-2.5 text-right font-mono font-semibold text-xs ${spreadColor}`}>
-                              {row.spreadPct.toFixed(4)}%
-                            </td>
-                          </>
+                          <td className={`px-4 py-2.5 text-right font-mono font-semibold text-xs ${spreadColor}`}>
+                            {row.spreadPct.toFixed(4)}%
+                          </td>
                         )}
                         <td className="px-4 py-2.5 text-right font-mono text-muted-foreground text-xs">
                           {fmt(row.volume24h, 2)}
