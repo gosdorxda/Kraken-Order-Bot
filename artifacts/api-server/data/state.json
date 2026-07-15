@@ -16,8 +16,79 @@
       "running": false,
       "fills": [],
       "fillIdCounter": 0,
-      "logs": [],
-      "logIdCounter": 0
+      "logs": [
+        {
+          "id": 10,
+          "timestamp": "2026-07-15T05:45:41.830Z",
+          "level": "info",
+          "message": "Bot stopped",
+          "data": null
+        },
+        {
+          "id": 9,
+          "timestamp": "2026-07-15T05:45:41.830Z",
+          "level": "warn",
+          "message": "Gagal cek open orders saat start: General:Permission denied",
+          "data": null
+        },
+        {
+          "id": 8,
+          "timestamp": "2026-07-15T05:45:41.434Z",
+          "level": "error",
+          "message": "🔌 Circuit breaker: 5 errors in a row. Bot stopped.",
+          "data": null
+        },
+        {
+          "id": 7,
+          "timestamp": "2026-07-15T05:45:41.434Z",
+          "level": "error",
+          "message": "Cycle error: General:Permission denied",
+          "data": null
+        },
+        {
+          "id": 6,
+          "timestamp": "2026-07-15T05:45:28.550Z",
+          "level": "error",
+          "message": "Cycle error: General:Permission denied",
+          "data": null
+        },
+        {
+          "id": 5,
+          "timestamp": "2026-07-15T05:45:15.457Z",
+          "level": "error",
+          "message": "Cycle error: General:Permission denied",
+          "data": null
+        },
+        {
+          "id": 4,
+          "timestamp": "2026-07-15T05:45:02.450Z",
+          "level": "error",
+          "message": "Cycle error: General:Permission denied",
+          "data": null
+        },
+        {
+          "id": 3,
+          "timestamp": "2026-07-15T05:44:49.448Z",
+          "level": "error",
+          "message": "Cycle error: General:Permission denied",
+          "data": null
+        },
+        {
+          "id": 2,
+          "timestamp": "2026-07-15T05:44:41.544Z",
+          "level": "info",
+          "message": "Stagger: menunggu 7351ms sebelum cycle pertama",
+          "data": null
+        },
+        {
+          "id": 1,
+          "timestamp": "2026-07-15T05:44:41.544Z",
+          "level": "info",
+          "message": "Bot started for pair OMNIUSD",
+          "data": "{\"config\":{\"pair\":\"OMNIUSD\",\"orderSize\":\"155\",\"maxBidPrice\":\"0.38100\",\"tickSize\":\"0.00001\",\"checkIntervalMs\":13000,\"oneShotMode\":true,\"holdAtMax\":true,\"maxConsecutiveErrors\":5,\"exchange\":\"kraken\"}}"
+        }
+      ],
+      "logIdCounter": 10
     }
   ],
   "telegramSettings": {

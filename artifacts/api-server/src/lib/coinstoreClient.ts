@@ -127,7 +127,7 @@ export class CoinstoreClient {
 
     const code = json?.code;
     if (!resp.ok || (code !== undefined && code !== 0 && code !== "0")) {
-      const msg = json?.message ?? text.slice(0, 200);
+      const msg = json?.msg ?? json?.message ?? text.slice(0, 200);
       throw new Error(`Coinstore API error (code=${code ?? resp.status}): ${msg}`);
     }
 
