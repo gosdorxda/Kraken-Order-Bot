@@ -3,7 +3,6 @@ import { botManager } from "../lib/botManager";
 import { fetchOrderBook, fetchMarket, emergencyCancelAllKrakenBuyOrders } from "../lib/krakenBot";
 import { fetchXtOrderBook, XtClient } from "../lib/xtClient";
 import { fetchBitmartOrderBook, BitmartClient } from "../lib/bitmartClient";
-import { fetchGateMarket } from "../lib/gateMarket";
 import { fetchAscendexMarket } from "../lib/ascendexMarket";
 import { fetchXtMarket } from "../lib/xtMarket";
 import { fetchBitmartMarket } from "../lib/bitmartMarket";
@@ -253,15 +252,6 @@ router.get("/logs", (req, res): void => {
 router.get("/market", async (_req, res): Promise<void> => {
   try {
     const tickers = await fetchMarket();
-    res.json(tickers);
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
-  }
-});
-
-router.get("/market/gate", async (_req, res): Promise<void> => {
-  try {
-    const tickers = await fetchGateMarket();
     res.json(tickers);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

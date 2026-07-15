@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import {
   useGetMarket, getGetMarketQueryKey,
-  useGetMarketGate, getGetMarketGateQueryKey,
   useGetMarketXt, getGetMarketXtQueryKey,
   useGetMarketBitmart, getGetMarketBitmartQueryKey,
   useGetMarketBiconomy, getGetMarketBiconomyQueryKey,
@@ -15,7 +14,7 @@ import {
 
 type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "change24h" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
-type Exchange = "kraken" | "gate" | "xt" | "bitmart" | "biconomy" | "bitrue";
+type Exchange = "kraken" | "xt" | "bitmart" | "biconomy" | "bitrue";
 
 const PAGE_SIZE = 50;
 
@@ -47,7 +46,6 @@ function tokenName(displayName: string) {
 }
 
 function tradeUrl(exchange: Exchange, pair: string, displayName: string) {
-  if (exchange === "gate")     return `https://www.gate.com/trade/${pair}`;
   if (exchange === "xt")       return `https://www.xt.com/en/trade/${pair.toLowerCase()}`;
   if (exchange === "bitmart")  return `https://www.bitmart.com/trade/en-US?symbol=${pair}`;
   if (exchange === "biconomy") return `https://www.biconomy.com/exchange/${pair}`;
@@ -368,8 +366,6 @@ export default function Market() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const kraken   = useGetMarket({ query: { ...queryOpts, queryKey: getGetMarketQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const gate     = useGetMarketGate({ query: { ...queryOpts, queryKey: getGetMarketGateQueryKey() } as any });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const xt       = useGetMarketXt({ query: { ...queryOpts, queryKey: getGetMarketXtQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bitmart  = useGetMarketBitmart({ query: { ...queryOpts, queryKey: getGetMarketBitmartQueryKey() } as any });
@@ -379,7 +375,6 @@ export default function Market() {
   const bitrue   = useGetMarketBitrue({ query: { ...queryOpts, queryKey: getGetMarketBitrueQueryKey() } as any });
 
   const active = exchange === "kraken"   ? kraken
-    : exchange === "gate"     ? gate
     : exchange === "xt"       ? xt
     : exchange === "bitmart"  ? bitmart
     : exchange === "biconomy" ? biconomy
@@ -399,9 +394,6 @@ export default function Market() {
       <div className="flex items-center gap-2 flex-wrap">
         <ExchangeTab active={exchange === "kraken"} onClick={() => setExchange("kraken")}>
           Kraken <span className="text-xs opacity-60 ml-1">USD</span>
-        </ExchangeTab>
-        <ExchangeTab active={exchange === "gate"} onClick={() => setExchange("gate")}>
-          Gate.io <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
         <ExchangeTab active={exchange === "xt"} onClick={() => setExchange("xt")}>
           XT.com <span className="text-xs opacity-60 ml-1">USDT</span>

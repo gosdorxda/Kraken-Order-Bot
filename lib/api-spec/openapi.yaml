@@ -474,27 +474,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /market/gate:
-    get:
-      operationId: getMarketGate
-      tags: [bots]
-      summary: Get all USDT spot pairs from Gate.io with ticker data
-      responses:
-        "200":
-          description: Gate.io market tickers
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/MarketTicker"
-        "500":
-          description: Gate.io API error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /market/ascendex:
     get:
       operationId: getMarketAscendex
