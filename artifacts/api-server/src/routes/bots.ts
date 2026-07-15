@@ -8,6 +8,7 @@ import { fetchXtMarket } from "../lib/xtMarket";
 import { fetchBitmartMarket } from "../lib/bitmartMarket";
 import { fetchBiconomyMarket } from "../lib/biconomyMarket";
 import { fetchBitrueMarket } from "../lib/bitrueMarket";
+import { fetchCoinstoreMarket } from "../lib/coinstoreMarket";
 import {
   CreateBotBody,
   UpdateBotConfigBody,
@@ -297,6 +298,15 @@ router.get("/market/biconomy", async (_req, res): Promise<void> => {
 router.get("/market/bitrue", async (_req, res): Promise<void> => {
   try {
     const tickers = await fetchBitrueMarket();
+    res.json(tickers);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+router.get("/market/coinstore", async (_req, res): Promise<void> => {
+  try {
+    const tickers = await fetchCoinstoreMarket();
     res.json(tickers);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });

@@ -1915,6 +1915,83 @@ export function useGetMarketBitrue<TData = Awaited<ReturnType<typeof getMarketBi
 
 
 
+export const getGetMarketCoinstoreUrl = () => {
+
+
+
+
+  return `/api/market/coinstore`
+}
+
+/**
+ * @summary Get all USDT spot pairs from Coinstore with ticker data
+ */
+export const getMarketCoinstore = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+
+  return customFetch<MarketTicker[]>(getGetMarketCoinstoreUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMarketCoinstoreQueryKey = () => {
+    return [
+    `/api/market/coinstore`
+    ] as const;
+    }
+
+
+export const getGetMarketCoinstoreQueryOptions = <TData = Awaited<ReturnType<typeof getMarketCoinstore>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketCoinstore>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketCoinstoreQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketCoinstore>>> = ({ signal }) => getMarketCoinstore({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketCoinstore>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMarketCoinstoreQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketCoinstore>>>
+export type GetMarketCoinstoreQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get all USDT spot pairs from Coinstore with ticker data
+ */
+
+export function useGetMarketCoinstore<TData = Awaited<ReturnType<typeof getMarketCoinstore>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketCoinstore>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMarketCoinstoreQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getGetSettingsUrl = () => {
 
 

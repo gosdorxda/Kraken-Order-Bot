@@ -5,6 +5,7 @@ import {
   useGetMarketBitmart, getGetMarketBitmartQueryKey,
   useGetMarketBiconomy, getGetMarketBiconomyQueryKey,
   useGetMarketBitrue, getGetMarketBitrueQueryKey,
+  useGetMarketCoinstore, getGetMarketCoinstoreQueryKey,
 } from "@workspace/api-client-react";
 import type { MarketTicker } from "@workspace/api-client-react";
 import {
@@ -14,7 +15,7 @@ import {
 
 type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "change24h" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
-type Exchange = "kraken" | "xt" | "bitmart" | "biconomy" | "bitrue";
+type Exchange = "kraken" | "xt" | "bitmart" | "biconomy" | "bitrue" | "coinstore";
 
 const PAGE_SIZE = 50;
 
@@ -50,6 +51,7 @@ function tradeUrl(exchange: Exchange, pair: string, displayName: string) {
   if (exchange === "bitmart")  return `https://www.bitmart.com/trade/en-US?symbol=${pair}`;
   if (exchange === "biconomy") return `https://www.biconomy.com/exchange/${pair}`;
   if (exchange === "bitrue")   return `https://www.bitrue.com/trade/${pair.replace(/USDT$/i, "").toLowerCase()}_usdt`;
+  if (exchange === "coinstore") return `https://www.coinstore.com/spot/${pair}`;
   return `https://pro.kraken.com/app/trade/${displayName.toLowerCase().replace("/", "-")}`;
 }
 
@@ -373,12 +375,15 @@ export default function Market() {
   const biconomy = useGetMarketBiconomy({ query: { ...queryOpts, queryKey: getGetMarketBiconomyQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bitrue   = useGetMarketBitrue({ query: { ...queryOpts, queryKey: getGetMarketBitrueQueryKey() } as any });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const coinstore = useGetMarketCoinstore({ query: { ...queryOpts, queryKey: getGetMarketCoinstoreQueryKey() } as any });
 
   const active = exchange === "kraken"   ? kraken
     : exchange === "xt"       ? xt
     : exchange === "bitmart"  ? bitmart
     : exchange === "biconomy" ? biconomy
-    : bitrue;
+    : exchange === "bitrue"   ? bitrue
+    : coinstore;
 
   const isIdle = !active.isFetching && active.dataUpdatedAt === 0;
 
@@ -406,6 +411,9 @@ export default function Market() {
         </ExchangeTab>
         <ExchangeTab active={exchange === "bitrue"} onClick={() => setExchange("bitrue")}>
           Bitrue <span className="text-xs opacity-60 ml-1">USDT</span>
+        </ExchangeTab>
+        <ExchangeTab active={exchange === "coinstore"} onClick={() => setExchange("coinstore")}>
+          Coinstore <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
       </div>
 
