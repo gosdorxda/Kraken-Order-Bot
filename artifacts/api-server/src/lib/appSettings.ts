@@ -1,28 +1,12 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { logger } from "./logger.js";
-import { Storage } from "@google-cloud/storage";
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
-const SETTINGS_OBJECT_NAME = "app-settings.json";
+const DATA_DIR = process.env["DATA_DIR"] ?? join(process.cwd(), "data");
+const SETTINGS_FILE = join(DATA_DIR, "app-settings.json");
 
-const gcs = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: { type: "json", subject_token_field_name: "access_token" },
-    },
-    universe_domain: "googleapis.com",
-  } as any,
-  projectId: "",
-});
-
-function getBucket() {
-  const bucketId = process.env["DEFAULT_OBJECT_STORAGE_BUCKET_ID"];
-  if (!bucketId) throw new Error("DEFAULT_OBJECT_STORAGE_BUCKET_ID is not set");
-  return gcs.bucket(bucketId);
+async function ensureDataDir(filePath: string): Promise<void> {
+  await mkdir(dirname(filePath), { recursive: true });
 }
 
 export interface TelegramNotificationSettings {
@@ -58,11 +42,8 @@ export function updateAppSettings(patch: Partial<AppSettings>): AppSettings {
 
 export async function loadAppSettings(): Promise<void> {
   try {
-    const file = getBucket().file(SETTINGS_OBJECT_NAME);
-    const [exists] = await file.exists();
-    if (!exists) return;
-    const [contents] = await file.download();
-    const parsed = JSON.parse(contents.toString("utf-8")) as Partial<AppSettings>;
+    const contents = await readFile(SETTINGS_FILE, "utf-8");
+    const parsed = JSON.parse(contents) as Partial<AppSettings>;
     if (parsed.telegramNotifications) {
       _settings.telegramNotifications = {
         ...DEFAULT_SETTINGS.telegramNotifications,
@@ -70,15 +51,17 @@ export async function loadAppSettings(): Promise<void> {
       };
     }
   } catch (err) {
-    logger.warn({ err }, "[appSettings] Failed to load settings from GCS, using defaults");
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      logger.warn({ err }, `[appSettings] Failed to load settings from ${SETTINGS_FILE}, using defaults`);
+    }
   }
 }
 
 async function persistSettings(): Promise<void> {
   try {
-    const file = getBucket().file(SETTINGS_OBJECT_NAME);
-    await file.save(JSON.stringify(_settings, null, 2), { contentType: "application/json" });
+    await ensureDataDir(SETTINGS_FILE);
+    await writeFile(SETTINGS_FILE, JSON.stringify(_settings, null, 2), "utf-8");
   } catch (err) {
-    logger.warn({ err }, "[appSettings] Failed to save settings to GCS");
+    logger.warn({ err }, `[appSettings] Failed to save settings to ${SETTINGS_FILE}`);
   }
 }

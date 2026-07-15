@@ -1,0 +1,8 @@
+{
+  "bots": [],
+  "telegramSettings": {
+    "notifyOnFill": true,
+    "notifyOnCircuitBreaker": true,
+    "notifyOnStartStop": false
+  }
+}

@@ -11,6 +11,7 @@ Kraken top-of-book buy bot with real-time web dashboard. Automatically stays at 
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - Required env: `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` — Kraken API credentials
 - Required env (BitMart): `BITMART_API_KEY`, `BITMART_API_SECRET` — wajib untuk menjalankan BitMart bot; `BITMART_MEMO` opsional (kosong jika API key tidak punya memo)
+- Optional env: `DATA_DIR` — folder tempat state bot (`state.json`) dan app settings (`app-settings.json`) disimpan. Default: `<cwd>/data`. Di VPS, set ke path persisten, misalnya `/opt/krkn-bot/data`.
 
 ## Stack
 
@@ -32,6 +33,7 @@ Kraken top-of-book buy bot with real-time web dashboard. Automatically stays at 
 
 ## Architecture decisions
 
+- Bot state and app settings persist to local JSON files (`persistence.ts`, `appSettings.ts`), not a database or cloud storage. Directory is `DATA_DIR` (default `<cwd>/data`), created automatically if missing. This keeps the app portable between Replit and a VPS.
 - Bot state is held in-memory as a singleton (`krakenBot`). Config and logs reset on server restart. No DB needed for the bot itself.
 - Bot polls the order book every `checkIntervalMs` (default 3000ms). On each cycle: checks if our order is still open and still at top bid. If outbid and target price ≤ maxBidPrice, cancel + re-place 1 tick higher.
 - Kraken pair format uses Kraken's internal naming: `XXBTZUSD` (BTC/USD), `XETHZUSD` (ETH/USD), `SOLUSD` (SOL/USD).
