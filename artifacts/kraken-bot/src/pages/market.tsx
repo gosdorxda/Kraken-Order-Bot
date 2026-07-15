@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import {
   useGetMarket, getGetMarketQueryKey,
   useGetMarketGate, getGetMarketGateQueryKey,
-  useGetMarketLbank, getGetMarketLbankQueryKey,
   useGetMarketXt, getGetMarketXtQueryKey,
   useGetMarketBitmart, getGetMarketBitmartQueryKey,
   useGetMarketBiconomy, getGetMarketBiconomyQueryKey,
@@ -16,7 +15,7 @@ import {
 
 type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "change24h" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
-type Exchange = "kraken" | "gate" | "lbank" | "xt" | "bitmart" | "biconomy" | "bitrue";
+type Exchange = "kraken" | "gate" | "xt" | "bitmart" | "biconomy" | "bitrue";
 
 const PAGE_SIZE = 50;
 
@@ -49,7 +48,6 @@ function tokenName(displayName: string) {
 
 function tradeUrl(exchange: Exchange, pair: string, displayName: string) {
   if (exchange === "gate")     return `https://www.gate.com/trade/${pair}`;
-  if (exchange === "lbank")    return `https://www.lbank.com/trade/${pair.toLowerCase()}`;
   if (exchange === "xt")       return `https://www.xt.com/en/trade/${pair.toLowerCase()}`;
   if (exchange === "bitmart")  return `https://www.bitmart.com/trade/en-US?symbol=${pair}`;
   if (exchange === "biconomy") return `https://www.biconomy.com/exchange/${pair}`;
@@ -146,7 +144,6 @@ function MarketTable({
   const safePage    = Math.min(page, totalPages);
   const paged       = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const quoteLabel  = exchange === "kraken" ? "USD" : "USDT";
-  const noSpread    = exchange === "lbank";
 
   return (
     <div className="space-y-3">
@@ -219,7 +216,6 @@ function MarketTable({
                   <tr className="border-b border-border bg-muted/40 text-muted-foreground">
                     <th className="px-3 py-2.5 font-medium text-left text-xs w-10">#</th>
                     {COL_HEADERS.map(({ key, label, align }) => {
-                      if (noSpread && key === "spreadPct") return null;
                       return (
                         <th
                           key={key}
@@ -278,11 +274,9 @@ function MarketTable({
                         <td className="px-4 py-2.5 text-right font-mono text-red-500/80 text-xs">
                           ${fmtPrice(row.ask)}
                         </td>
-                        {!noSpread && (
-                          <td className={`px-4 py-2.5 text-right font-mono font-semibold text-xs ${spreadColor}`}>
-                            {row.spreadPct.toFixed(4)}%
-                          </td>
-                        )}
+                        <td className={`px-4 py-2.5 text-right font-mono font-semibold text-xs ${spreadColor}`}>
+                          {row.spreadPct.toFixed(4)}%
+                        </td>
                         <td className="px-4 py-2.5 text-right font-mono text-muted-foreground text-xs">
                           {fmt(row.volume24h, 2)}
                         </td>
@@ -376,8 +370,6 @@ export default function Market() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const gate     = useGetMarketGate({ query: { ...queryOpts, queryKey: getGetMarketGateQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lbank    = useGetMarketLbank({ query: { ...queryOpts, queryKey: getGetMarketLbankQueryKey() } as any });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const xt       = useGetMarketXt({ query: { ...queryOpts, queryKey: getGetMarketXtQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bitmart  = useGetMarketBitmart({ query: { ...queryOpts, queryKey: getGetMarketBitmartQueryKey() } as any });
@@ -388,7 +380,6 @@ export default function Market() {
 
   const active = exchange === "kraken"   ? kraken
     : exchange === "gate"     ? gate
-    : exchange === "lbank"    ? lbank
     : exchange === "xt"       ? xt
     : exchange === "bitmart"  ? bitmart
     : exchange === "biconomy" ? biconomy
@@ -411,9 +402,6 @@ export default function Market() {
         </ExchangeTab>
         <ExchangeTab active={exchange === "gate"} onClick={() => setExchange("gate")}>
           Gate.io <span className="text-xs opacity-60 ml-1">USDT</span>
-        </ExchangeTab>
-        <ExchangeTab active={exchange === "lbank"} onClick={() => setExchange("lbank")}>
-          LBank <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
         <ExchangeTab active={exchange === "xt"} onClick={() => setExchange("xt")}>
           XT.com <span className="text-xs opacity-60 ml-1">USDT</span>

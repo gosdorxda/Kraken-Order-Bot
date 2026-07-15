@@ -4,7 +4,6 @@ import { fetchOrderBook, fetchMarket, emergencyCancelAllKrakenBuyOrders } from "
 import { fetchXtOrderBook, XtClient } from "../lib/xtClient";
 import { fetchBitmartOrderBook, BitmartClient } from "../lib/bitmartClient";
 import { fetchGateMarket } from "../lib/gateMarket";
-import { fetchLbankMarket } from "../lib/lbankMarket";
 import { fetchAscendexMarket } from "../lib/ascendexMarket";
 import { fetchXtMarket } from "../lib/xtMarket";
 import { fetchBitmartMarket } from "../lib/bitmartMarket";
@@ -263,15 +262,6 @@ router.get("/market", async (_req, res): Promise<void> => {
 router.get("/market/gate", async (_req, res): Promise<void> => {
   try {
     const tickers = await fetchGateMarket();
-    res.json(tickers);
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
-  }
-});
-
-router.get("/market/lbank", async (_req, res): Promise<void> => {
-  try {
-    const tickers = await fetchLbankMarket();
     res.json(tickers);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
