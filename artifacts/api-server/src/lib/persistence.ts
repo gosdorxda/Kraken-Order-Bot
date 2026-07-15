@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdirSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import type { BotConfig, FillRecord, BotLog } from "./krakenBot.js";
 import type { TelegramEventConfig } from "./telegram.js";
@@ -23,8 +24,8 @@ export interface PersistedState {
   telegramSettings?: TelegramEventConfig;
 }
 
-async function ensureDataDir(filePath: string): Promise<void> {
-  await mkdir(dirname(filePath), { recursive: true });
+function ensureDataDir(filePath: string): void {
+  mkdirSync(dirname(filePath), { recursive: true });
 }
 
 export async function loadPersistedState(): Promise<PersistedState> {
@@ -48,7 +49,7 @@ export async function loadPersistedState(): Promise<PersistedState> {
 
 export async function savePersistedState(state: PersistedState): Promise<void> {
   try {
-    await ensureDataDir(STATE_FILE);
+    ensureDataDir(STATE_FILE);
     await writeFile(STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
   } catch (err) {
     process.stderr.write(`[persistence] Failed to save state to ${STATE_FILE}: ${err}\n`);
