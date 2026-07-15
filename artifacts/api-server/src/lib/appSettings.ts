@@ -1,8 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { logger } from "./logger.js";
+import { DATA_DIR } from "./persistence.js";
 
-const DATA_DIR = process.env["DATA_DIR"] ?? join(process.cwd(), "data");
+// Keep app-settings.json alongside state.json in the same data directory
+// (resolved from DATA_PATH, see persistence.ts) so there is a single source
+// of truth for where bot data lives on disk.
 const SETTINGS_FILE = join(DATA_DIR, "app-settings.json");
 
 async function ensureDataDir(filePath: string): Promise<void> {

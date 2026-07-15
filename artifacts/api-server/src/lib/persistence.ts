@@ -1,10 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import type { BotConfig, FillRecord, BotLog } from "./krakenBot.js";
 import type { TelegramEventConfig } from "./telegram.js";
 
-const DATA_DIR = process.env["DATA_DIR"] ?? join(process.cwd(), "data");
-const STATE_FILE = join(DATA_DIR, "state.json");
+// State path: honor DATA_PATH (full path to state.json) if set, otherwise
+// fall back to the standard VPS location. Never hardcode secrets here.
+export const STATE_FILE = process.env["DATA_PATH"] ?? "/var/lib/krkn-bot/data/state.json";
+export const DATA_DIR = dirname(STATE_FILE);
 
 export interface PersistedBot {
   id: string;

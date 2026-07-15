@@ -33,3 +33,8 @@ externalPort = 3000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+DATA_PATH = "/home/runner/workspace/artifacts/api-server/data/state.json"
