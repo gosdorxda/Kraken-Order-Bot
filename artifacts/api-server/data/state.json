@@ -1,5 +1,25 @@
 {
-  "bots": [],
+  "bots": [
+    {
+      "id": "OMNIUSD",
+      "config": {
+        "pair": "OMNIUSD",
+        "orderSize": "155",
+        "maxBidPrice": "0.38100",
+        "tickSize": "0.00001",
+        "checkIntervalMs": 13000,
+        "oneShotMode": true,
+        "holdAtMax": true,
+        "maxConsecutiveErrors": 5,
+        "exchange": "kraken"
+      },
+      "running": false,
+      "fills": [],
+      "fillIdCounter": 0,
+      "logs": [],
+      "logIdCounter": 0
+    }
+  ],
   "telegramSettings": {
     "notifyOnFill": true,
     "notifyOnCircuitBreaker": true,

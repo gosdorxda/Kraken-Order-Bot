@@ -39,6 +39,7 @@ import {
   ShieldAlert, OctagonX, Search, X,
 } from "lucide-react";
 import { useEnabledExchanges } from "@/lib/preferences";
+import { touchBot, getTouchOrder } from "@/lib/botOrder";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -117,6 +118,27 @@ function isPausedAtMax(bot: BotInstance): boolean {
     bot.status.currentOrderId === null
   );
 }
+
+function timeAgo(iso: string | null): string | null {
+  if (!iso) return null;
+  const ms = Date.now() - new Date(iso).getTime();
+  if (isNaN(ms) || ms < 0) return null;
+  const s = Math.floor(ms / 1000);
+  if (s < 5) return "baru saja";
+  if (s < 60) return `${s}d lalu`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m lalu`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}j lalu`;
+  const d = Math.floor(h / 24);
+  return `${d}h lalu`;
+}
+
+const EXCHANGE_STYLE: Record<string, { label: string; bg: string }> = {
+  kraken:  { label: "K",  bg: "color-mix(in srgb, #7c3aed 80%, #4f46e5)" },
+  xt:      { label: "XT", bg: "color-mix(in srgb, #0ea5e9 85%, #0284c7)" },
+  bitmart: { label: "BM", bg: "color-mix(in srgb, #1A6FAF 85%, #1250a0)" },
+};
 
 function isHoldingAtMax(bot: BotInstance): boolean {
   return (
@@ -238,7 +260,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
       updateConfig.mutate(
         { botId: editBot.id, data: payload },
         {
-          onSuccess: () => { toast({ title: "Config updated" }); queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() }); onClose(); },
+          onSuccess: () => { touchBot(editBot.id); toast({ title: "Config updated" }); queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() }); onClose(); },
           onError: (err) => toast({ variant: "destructive", title: "Gagal update", description: err instanceof Error ? err.message : "Error" }),
         }
       );
@@ -246,7 +268,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
       createBot.mutate(
         { data: payload },
         {
-          onSuccess: () => { toast({ title: `Bot ${values.pair} dibuat` }); queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() }); form.reset(DEFAULT_VALUES); onClose(); },
+          onSuccess: () => { touchBot(values.pair); toast({ title: `Bot ${values.pair} dibuat` }); queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() }); form.reset(DEFAULT_VALUES); onClose(); },
           onError: (err) => toast({ variant: "destructive", title: "Gagal buat bot", description: err instanceof Error ? err.message : "Error" }),
         }
       );
@@ -496,6 +518,9 @@ function BotCard({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance)
     ? "border-orange-700/50 bg-orange-950/10"
     : "border-border bg-card";
 
+  const exchangeStyle = EXCHANGE_STYLE[config.exchange ?? "kraken"] ?? EXCHANGE_STYLE["kraken"]!;
+  const lastActivity = timeAgo(status.lastActionAt);
+
   const lockedUsd = (() => {
     if (!status.running || status.currentOrderPrice == null) return null;
     const price = parseFloat(status.currentOrderPrice);
@@ -505,18 +530,25 @@ function BotCard({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance)
   })();
 
   return (
-    <div className={`border rounded-xl overflow-hidden transition-colors flex flex-col ${borderClass}`}>
+    <div className={`group border rounded-xl overflow-hidden transition-all duration-200 flex flex-col hover:shadow-lg hover:shadow-black/5 ${borderClass}`}>
       {/* Card header: pair + exchange + dot + icon actions */}
       <div className="flex items-start justify-between px-4 pt-4 pb-2 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <RunningDot running={status.running} />
-          <span className="font-mono font-extrabold text-base tracking-tight truncate">{id}</span>
-          {config.exchange === "xt"
-            ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 border border-blue-500/40 text-blue-400 shrink-0">XT</span>
-            : config.exchange === "bitmart"
-            ? <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-500/15 border border-cyan-500/40 text-cyan-400 shrink-0">BM</span>
-            : <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-500/15 border border-violet-500/40 text-violet-400 shrink-0">K</span>
-          }
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div
+            className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 font-black text-[11px] text-white"
+            style={{ background: exchangeStyle.bg }}
+          >
+            {exchangeStyle.label}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono font-extrabold text-base tracking-tight truncate">{id}</span>
+              <RunningDot running={status.running} />
+            </div>
+            {lastActivity && (
+              <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Aktivitas {lastActivity}</p>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-0.5 shrink-0">
           <button onClick={() => togglePanel("fills")} className={`h-7 w-7 flex items-center justify-center rounded-md transition-colors ${panel === "fills" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`} title="Fill history">
@@ -540,31 +572,33 @@ function BotCard({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance)
       </div>
 
       {/* Stats grid */}
-      <div className="px-4 pb-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border/40 pt-3">
+      <div className="mx-4 mb-3 grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-lg bg-muted/30 border border-border/40 px-3 py-3">
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Order</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium">Order</p>
           <p className="font-mono text-sm font-bold text-primary leading-tight">{status.currentOrderPrice ?? "—"}</p>
-          <p className="font-mono text-xs text-muted-foreground">× {status.currentOrderVolume ?? config.orderSize}</p>
+          <p className="font-mono text-[11px] text-muted-foreground">× {status.currentOrderVolume ?? config.orderSize}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Top Bid</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium">Top Bid</p>
           <p className="font-mono text-sm font-bold text-emerald-400 leading-tight">{status.topBidPrice ?? "—"}</p>
-          <p className="font-mono text-xs text-muted-foreground">max {config.maxBidPrice}</p>
+          <p className="font-mono text-[11px] text-muted-foreground">max {config.maxBidPrice}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Siklus</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium">Siklus</p>
           <p className="font-mono text-sm font-semibold leading-tight">{status.cycleCount}</p>
         </div>
         <div>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Terkunci</p>
-          <p className="font-mono text-sm font-semibold text-amber-400/80 leading-tight">{lockedUsd != null ? `~$${lockedUsd}` : "—"}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium">Terkunci</p>
+          <p className="font-mono text-sm font-semibold text-amber-400/80 leading-tight">{lockedUsd != null ? `~${lockedUsd}` : "—"}</p>
         </div>
       </div>
 
       {/* Last action */}
       {status.lastAction && (
-        <div className="px-4 pb-3">
-          <p className="text-[10px] text-muted-foreground truncate" title={status.lastAction}>{status.lastAction}</p>
+        <div className="px-4 pb-3 -mt-1">
+          <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1" title={status.lastAction}>
+            <span className="text-muted-foreground/50">→</span>{status.lastAction}
+          </p>
         </div>
       )}
 
@@ -799,7 +833,15 @@ export default function Dashboard() {
 
       {/* Balance cards — Kraken, XT & BitMart collapsible */}
       {(krakenBalances?.length || xtBalances?.length || bitmartBalances?.length) ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className={`grid grid-cols-1 gap-3 ${
+          [
+            isEnabled("kraken") && krakenBalances && krakenBalances.length > 0,
+            isEnabled("xt") && xtBalances && xtBalances.length > 0,
+            isEnabled("bitmart") && bitmartBalances && bitmartBalances.length > 0,
+          ].filter(Boolean).length > 1
+            ? "sm:grid-cols-2"
+            : ""
+        }`}>
 
           {/* ── Kraken ── */}
           {isEnabled("kraken") && krakenBalances && krakenBalances.length > 0 && (() => {
@@ -1066,14 +1108,29 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[...visibleBots].sort((a, b) => {
-            const score = (bot: typeof a) => {
-              if (bot.status.running && !bot.status.circuitBreakerTripped) return 0;
+          {(() => {
+            const touchOrder = getTouchOrder();
+            const statusScore = (bot: BotInstance) => {
               if (bot.status.circuitBreakerTripped) return 2;
+              if (bot.status.running) return 0;
               return 1;
             };
-            return score(a) - score(b);
-          }).map((bot) => <BotCard key={bot.id} bot={bot} onEdit={openEdit} />)}
+            return visibleBots
+              .map((bot, index) => ({ bot, index }))
+              .sort((a, b) => {
+                // 1) Freshly created/edited bots (touched by the user) float to the top.
+                const ta = touchOrder[a.bot.id] ?? 0;
+                const tb = touchOrder[b.bot.id] ?? 0;
+                if (ta !== tb) return tb - ta;
+                // 2) Among untouched bots, running bots rank above stopped/tripped ones.
+                const sa = statusScore(a.bot);
+                const sb = statusScore(b.bot);
+                if (sa !== sb) return sa - sb;
+                // 3) Fall back to most-recently-created first.
+                return b.index - a.index;
+              })
+              .map(({ bot }) => <BotCard key={bot.id} bot={bot} onEdit={openEdit} />);
+          })()}
         </div>
       )}
 
