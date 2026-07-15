@@ -88,7 +88,7 @@ export const ListBotsResponseItem = zod.object({
   "oneShotMode": zod.boolean().default(listBotsResponseConfigOneShotModeDefault),
   "holdAtMax": zod.boolean().default(listBotsResponseConfigHoldAtMaxDefault).describe('Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).'),
   "maxConsecutiveErrors": zod.number().default(listBotsResponseConfigMaxConsecutiveErrorsDefault),
-  "exchange": zod.enum(['kraken', 'xt', 'bitmart']).default(listBotsResponseConfigExchangeDefault)
+  "exchange": zod.enum(['kraken', 'xt', 'bitmart', 'coinstore']).default(listBotsResponseConfigExchangeDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -125,7 +125,7 @@ export const CreateBotBody = zod.object({
   "oneShotMode": zod.boolean().default(createBotBodyOneShotModeDefault),
   "holdAtMax": zod.boolean().default(createBotBodyHoldAtMaxDefault).describe('Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).'),
   "maxConsecutiveErrors": zod.number().default(createBotBodyMaxConsecutiveErrorsDefault),
-  "exchange": zod.enum(['kraken', 'xt', 'bitmart']).default(createBotBodyExchangeDefault)
+  "exchange": zod.enum(['kraken', 'xt', 'bitmart', 'coinstore']).default(createBotBodyExchangeDefault)
 })
 
 
@@ -153,7 +153,7 @@ export const GetBotResponse = zod.object({
   "oneShotMode": zod.boolean().default(getBotResponseConfigOneShotModeDefault),
   "holdAtMax": zod.boolean().default(getBotResponseConfigHoldAtMaxDefault).describe('Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).'),
   "maxConsecutiveErrors": zod.number().default(getBotResponseConfigMaxConsecutiveErrorsDefault),
-  "exchange": zod.enum(['kraken', 'xt', 'bitmart']).default(getBotResponseConfigExchangeDefault)
+  "exchange": zod.enum(['kraken', 'xt', 'bitmart', 'coinstore']).default(getBotResponseConfigExchangeDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -203,7 +203,7 @@ export const StartBotResponse = zod.object({
   "oneShotMode": zod.boolean().default(startBotResponseConfigOneShotModeDefault),
   "holdAtMax": zod.boolean().default(startBotResponseConfigHoldAtMaxDefault).describe('Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).'),
   "maxConsecutiveErrors": zod.number().default(startBotResponseConfigMaxConsecutiveErrorsDefault),
-  "exchange": zod.enum(['kraken', 'xt', 'bitmart']).default(startBotResponseConfigExchangeDefault)
+  "exchange": zod.enum(['kraken', 'xt', 'bitmart', 'coinstore']).default(startBotResponseConfigExchangeDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -245,7 +245,7 @@ export const StopBotResponse = zod.object({
   "oneShotMode": zod.boolean().default(stopBotResponseConfigOneShotModeDefault),
   "holdAtMax": zod.boolean().default(stopBotResponseConfigHoldAtMaxDefault).describe('Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).'),
   "maxConsecutiveErrors": zod.number().default(stopBotResponseConfigMaxConsecutiveErrorsDefault),
-  "exchange": zod.enum(['kraken', 'xt', 'bitmart']).default(stopBotResponseConfigExchangeDefault)
+  "exchange": zod.enum(['kraken', 'xt', 'bitmart', 'coinstore']).default(stopBotResponseConfigExchangeDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -285,7 +285,7 @@ export const UpdateBotConfigBody = zod.object({
   "oneShotMode": zod.boolean().default(updateBotConfigBodyOneShotModeDefault),
   "holdAtMax": zod.boolean().default(updateBotConfigBodyHoldAtMaxDefault).describe('Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).'),
   "maxConsecutiveErrors": zod.number().default(updateBotConfigBodyMaxConsecutiveErrorsDefault),
-  "exchange": zod.enum(['kraken', 'xt', 'bitmart']).default(updateBotConfigBodyExchangeDefault)
+  "exchange": zod.enum(['kraken', 'xt', 'bitmart', 'coinstore']).default(updateBotConfigBodyExchangeDefault)
 })
 
 export const updateBotConfigResponseConfigCheckIntervalMsDefault = 3000;
@@ -305,7 +305,7 @@ export const UpdateBotConfigResponse = zod.object({
   "oneShotMode": zod.boolean().default(updateBotConfigResponseConfigOneShotModeDefault),
   "holdAtMax": zod.boolean().default(updateBotConfigResponseConfigHoldAtMaxDefault).describe('Jika true, bot tetap pasang order di maxBidPrice ketika saingan outbid di atas batas maks (tidak pause).'),
   "maxConsecutiveErrors": zod.number().default(updateBotConfigResponseConfigMaxConsecutiveErrorsDefault),
-  "exchange": zod.enum(['kraken', 'xt', 'bitmart']).default(updateBotConfigResponseConfigExchangeDefault)
+  "exchange": zod.enum(['kraken', 'xt', 'bitmart', 'coinstore']).default(updateBotConfigResponseConfigExchangeDefault)
 }),
   "status": zod.object({
   "running": zod.boolean(),
@@ -440,7 +440,7 @@ export const getOrderBookQueryExchangeDefault = `kraken`;
 
 export const GetOrderBookQueryParams = zod.object({
   "pair": zod.coerce.string(),
-  "exchange": zod.enum(['kraken', 'xt', 'bitmart']).default(getOrderBookQueryExchangeDefault)
+  "exchange": zod.enum(['kraken', 'xt', 'bitmart', 'coinstore']).default(getOrderBookQueryExchangeDefault)
 })
 
 export const GetOrderBookResponse = zod.object({
@@ -677,6 +677,17 @@ export const GetBitmartBalanceResponseItem = zod.object({
   "frozen": zod.string()
 })
 export const GetBitmartBalanceResponse = zod.array(GetBitmartBalanceResponseItem)
+
+
+/**
+ * @summary Get Coinstore account balance
+ */
+export const GetCoinstoreBalanceResponseItem = zod.object({
+  "currency": zod.string(),
+  "available": zod.string(),
+  "frozen": zod.string()
+})
+export const GetCoinstoreBalanceResponse = zod.array(GetCoinstoreBalanceResponseItem)
 
 
 /**

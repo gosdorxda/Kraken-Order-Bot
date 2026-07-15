@@ -12,7 +12,7 @@ export interface BotConfig {
   oneShotMode: boolean;
   holdAtMax?: boolean;
   maxConsecutiveErrors: number;
-  exchange?: "kraken" | "xt" | "bitmart";
+  exchange?: "kraken" | "xt" | "bitmart" | "coinstore";
 }
 
 export interface BotLog {

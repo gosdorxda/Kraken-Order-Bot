@@ -27,6 +27,7 @@ import type {
   BotConfigInput,
   BotInstance,
   BotLog,
+  CoinstoreAssetBalance,
   ErrorResponse,
   FillRecord,
   GetAllFillsParams,
@@ -2430,6 +2431,83 @@ export function useGetBitmartBalance<TData = Awaited<ReturnType<typeof getBitmar
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetBitmartBalanceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetCoinstoreBalanceUrl = () => {
+
+
+
+
+  return `/api/account/coinstore-balance`
+}
+
+/**
+ * @summary Get Coinstore account balance
+ */
+export const getCoinstoreBalance = async ( options?: RequestInit): Promise<CoinstoreAssetBalance[]> => {
+
+  return customFetch<CoinstoreAssetBalance[]>(getGetCoinstoreBalanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCoinstoreBalanceQueryKey = () => {
+    return [
+    `/api/account/coinstore-balance`
+    ] as const;
+    }
+
+
+export const getGetCoinstoreBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getCoinstoreBalance>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCoinstoreBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCoinstoreBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCoinstoreBalance>>> = ({ signal }) => getCoinstoreBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCoinstoreBalance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCoinstoreBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getCoinstoreBalance>>>
+export type GetCoinstoreBalanceQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get Coinstore account balance
+ */
+
+export function useGetCoinstoreBalance<TData = Awaited<ReturnType<typeof getCoinstoreBalance>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCoinstoreBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCoinstoreBalanceQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

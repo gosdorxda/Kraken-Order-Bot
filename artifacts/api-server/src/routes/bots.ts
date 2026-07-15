@@ -3,6 +3,7 @@ import { botManager } from "../lib/botManager";
 import { fetchOrderBook, fetchMarket, emergencyCancelAllKrakenBuyOrders } from "../lib/krakenBot";
 import { fetchXtOrderBook, XtClient } from "../lib/xtClient";
 import { fetchBitmartOrderBook, BitmartClient } from "../lib/bitmartClient";
+import { fetchCoinstoreOrderBook, CoinstoreClient } from "../lib/coinstoreClient";
 import { fetchAscendexMarket } from "../lib/ascendexMarket";
 import { fetchXtMarket } from "../lib/xtMarket";
 import { fetchBitmartMarket } from "../lib/bitmartMarket";
@@ -196,7 +197,9 @@ router.get("/bots/:botId/orderbook", async (req, res): Promise<void> => {
       ? await fetchXtOrderBook(pair)
       : config.exchange === "bitmart"
         ? await fetchBitmartOrderBook(pair)
-        : await fetchOrderBook(pair);
+        : config.exchange === "coinstore"
+          ? await fetchCoinstoreOrderBook(pair)
+          : await fetchOrderBook(pair);
     res.json(
       GetBotOrderBookResponse.parse({
         pair,
@@ -221,7 +224,9 @@ router.get("/orderbook", async (req, res): Promise<void> => {
       ? await fetchXtOrderBook(qp.data.pair)
       : qp.data.exchange === "bitmart"
         ? await fetchBitmartOrderBook(qp.data.pair)
-        : await fetchOrderBook(qp.data.pair);
+        : qp.data.exchange === "coinstore"
+          ? await fetchCoinstoreOrderBook(qp.data.pair)
+          : await fetchOrderBook(qp.data.pair);
     res.json(
       GetOrderBookResponse.parse({
         pair: qp.data.pair,
@@ -319,11 +324,12 @@ router.get("/market/coinstore", async (_req, res): Promise<void> => {
  * Does NOT delete bots — just stops them and wipes open orders.
  */
 router.post("/emergency-stop", async (req, res): Promise<void> => {
-  const results: { botsTopped: number; krakenCancelled: number; xtCancelled: number; bitmartCancelled: number; errors: string[] } = {
+  const results: { botsTopped: number; krakenCancelled: number; xtCancelled: number; bitmartCancelled: number; coinstoreCancelled: number; errors: string[] } = {
     botsTopped: 0,
     krakenCancelled: 0,
     xtCancelled: 0,
     bitmartCancelled: 0,
+    coinstoreCancelled: 0,
     errors: [],
   };
 
@@ -394,6 +400,29 @@ router.post("/emergency-stop", async (req, res): Promise<void> => {
       }
     } catch (err) {
       results.errors.push(`BitMart client init: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  // 5. Cancel all Coinstore buy orders for every configured Coinstore pair
+  const coinstorePairs = allBots
+    .filter((b) => b.config.exchange === "coinstore")
+    .map((b) => b.config.pair);
+  if (coinstorePairs.length > 0) {
+    try {
+      const coinstoreClient = new CoinstoreClient(
+        process.env["COINSTORE_API_KEY"] ?? "",
+        process.env["COINSTORE_API_SECRET"] ?? ""
+      );
+      for (const pair of coinstorePairs) {
+        try {
+          await coinstoreClient.cancelAllOpenBuyOrders(pair);
+          results.coinstoreCancelled++;
+        } catch (err) {
+          results.errors.push(`Coinstore cancel ${pair}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    } catch (err) {
+      results.errors.push(`Coinstore client init: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

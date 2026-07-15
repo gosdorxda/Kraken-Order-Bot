@@ -46,6 +46,7 @@ export const BotConfigExchange = {
   kraken: 'kraken',
   xt: 'xt',
   bitmart: 'bitmart',
+  coinstore: 'coinstore',
 } as const;
 
 export interface BotConfig {
@@ -68,6 +69,7 @@ export const BotConfigInputExchange = {
   kraken: 'kraken',
   xt: 'xt',
   bitmart: 'bitmart',
+  coinstore: 'coinstore',
 } as const;
 
 export interface BotConfigInput {
@@ -243,6 +245,12 @@ export interface BitmartAssetBalance {
   frozen: string;
 }
 
+export interface CoinstoreAssetBalance {
+  currency: string;
+  available: string;
+  frozen: string;
+}
+
 export interface TelegramSettings {
   configured: boolean;
   notifyOnFill: boolean;
@@ -284,5 +292,6 @@ export const GetOrderBookExchange = {
   kraken: 'kraken',
   xt: 'xt',
   bitmart: 'bitmart',
+  coinstore: 'coinstore',
 } as const;
 

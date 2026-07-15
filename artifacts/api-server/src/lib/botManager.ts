@@ -3,11 +3,13 @@ import { XtBot } from "./xtBot";
 import { XtClient } from "./xtClient";
 import { BitmartBot } from "./bitmartBot";
 import { BitmartClient } from "./bitmartClient";
+import { CoinstoreBot } from "./coinstoreBot";
+import { CoinstoreClient } from "./coinstoreClient";
 import { loadPersistedState, savePersistedState } from "./persistence";
 import { getTelegramEventConfig, setTelegramEventConfig, type TelegramEventConfig } from "./telegram";
 import { logger } from "./logger";
 
-export type AnyBot = KrakenBot | XtBot | BitmartBot;
+export type AnyBot = KrakenBot | XtBot | BitmartBot | CoinstoreBot;
 
 export interface BotInstanceData {
   id: string;
@@ -28,6 +30,7 @@ class BotManager {
     const krakenBotsToStart: KrakenBot[] = [];
     const xtBotsToStart: XtBot[] = [];
     const bitmartBotsToStart: BitmartBot[] = [];
+    const coinstoreBotsToStart: CoinstoreBot[] = [];
 
     for (const p of state.bots) {
       try {
@@ -45,6 +48,7 @@ class BotManager {
         if (p.running && !isDev) {
           if (bot instanceof XtBot) xtBotsToStart.push(bot);
           else if (bot instanceof BitmartBot) bitmartBotsToStart.push(bot);
+          else if (bot instanceof CoinstoreBot) coinstoreBotsToStart.push(bot);
           else krakenBotsToStart.push(bot as KrakenBot);
         } else if (p.running && isDev) {
           logger.info({ botId: p.id }, "Dev mode: bot not auto-started (run published app or start manually)");
@@ -88,6 +92,19 @@ class BotManager {
       }
     }
 
+    // Cancel ALL open Coinstore buy orders ONCE before starting any Coinstore bot.
+    if (coinstoreBotsToStart.length > 0) {
+      const coinstoreClient = new CoinstoreClient(
+        process.env["COINSTORE_API_KEY"] ?? "",
+        process.env["COINSTORE_API_SECRET"] ?? ""
+      );
+      const coinstorePairs = coinstoreBotsToStart.map((b) => b.getConfig().pair);
+      logger.info({ pairs: coinstorePairs }, "BotManager: cancelling stale Coinstore open buy orders before autostart");
+      for (const pair of coinstorePairs) {
+        await coinstoreClient.cancelAllOpenBuyOrders(pair);
+      }
+    }
+
     for (const bot of krakenBotsToStart) {
       bot.start().catch((err: unknown) => {
         logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start Kraken bot on restore");
@@ -103,6 +120,12 @@ class BotManager {
     for (const bot of bitmartBotsToStart) {
       bot.start().catch((err: unknown) => {
         logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start BitMart bot on restore");
+      });
+    }
+
+    for (const bot of coinstoreBotsToStart) {
+      bot.start().catch((err: unknown) => {
+        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start Coinstore bot on restore");
       });
     }
 
@@ -157,6 +180,9 @@ class BotManager {
     }
     if (config.exchange === "bitmart") {
       return new BitmartBot(id, config, () => this.persist());
+    }
+    if (config.exchange === "coinstore") {
+      return new CoinstoreBot(id, config, () => this.persist());
     }
     return new KrakenBot(id, config, () => this.persist());
   }

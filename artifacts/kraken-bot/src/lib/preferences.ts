@@ -53,7 +53,7 @@ export function useFont() {
 
 const DISABLED_EXCHANGES_KEY = "krkn-disabled-exchanges";
 
-export type ExchangeId = "kraken" | "xt" | "bitmart";
+export type ExchangeId = "kraken" | "xt" | "bitmart" | "coinstore";
 
 export function useEnabledExchanges() {
   const [disabled, setDisabled] = useState<Set<ExchangeId>>(() => {

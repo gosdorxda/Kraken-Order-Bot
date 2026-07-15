@@ -369,9 +369,10 @@ function SystemStatsPanel() {
 // ─── Exchange Visibility Panel ────────────────────────────────────────────────
 
 const EXCHANGE_DEFS: { id: ExchangeId; label: string; color: string; badge: string }[] = [
-  { id: "kraken",  label: "Kraken",  color: "#7c3aed", badge: "K"  },
-  { id: "xt",      label: "XT.com",  color: "#0ea5e9", badge: "XT" },
-  { id: "bitmart", label: "BitMart", color: "#1A6FAF", badge: "BM" },
+  { id: "kraken",    label: "Kraken",    color: "#7c3aed", badge: "K"  },
+  { id: "xt",        label: "XT.com",    color: "#0ea5e9", badge: "XT" },
+  { id: "bitmart",   label: "BitMart",   color: "#1A6FAF", badge: "BM" },
+  { id: "coinstore", label: "Coinstore", color: "#16a34a", badge: "CS" },
 ];
 
 function ExchangeVisibilityPanel() {
