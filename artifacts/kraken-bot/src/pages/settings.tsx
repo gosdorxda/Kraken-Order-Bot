@@ -4,15 +4,23 @@ import {
   useGetSystemStats,
   useGetTelegramSettings,
   useUpdateTelegramSettings,
+  useGetAccountBalance,
+  useGetXtBalance,
+  useGetBitmartBalance,
+  useGetCoinstoreBalance,
   getGetTelegramSettingsQueryKey,
   getGetServerInfoQueryKey,
   getGetSystemStatsQueryKey,
+  getGetAccountBalanceQueryKey,
+  getGetXtBalanceQueryKey,
+  getGetBitmartBalanceQueryKey,
+  getGetCoinstoreBalanceQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Shield, CheckCircle2, XCircle, Copy, Check, RefreshCw, Loader2, Bell, BellOff, LayoutDashboard, Cpu } from "lucide-react";
+import { Shield, CheckCircle2, XCircle, Copy, Check, RefreshCw, Loader2, Bell, BellOff, LayoutDashboard, Cpu, Wallet } from "lucide-react";
 import { useEnabledExchanges, type ExchangeId } from "@/lib/preferences";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -106,6 +114,23 @@ function ConnectionPanel() {
               )}
               <p className="text-[11px] text-muted-foreground">
                 {info?.bitmartConnected ? "API key valid & terautentikasi" : (info?.bitmartError ?? "Periksa kredensial API key")}
+              </p>
+            </div>
+
+            {/* Coinstore API status */}
+            <div className="rounded-lg border border-border bg-background p-4 space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Coinstore API</p>
+              {info?.coinstoreConnected ? (
+                <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
+                  <CheckCircle2 className="w-4 h-4" /> Terhubung
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-red-400 font-medium text-sm">
+                  <XCircle className="w-4 h-4" /> Gagal
+                </div>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                {info?.coinstoreConnected ? "API key valid & terautentikasi" : (info?.coinstoreError ?? "Periksa kredensial API key")}
               </p>
             </div>
 
@@ -375,8 +400,47 @@ const EXCHANGE_DEFS: { id: ExchangeId; label: string; color: string; badge: stri
   { id: "coinstore", label: "Coinstore", color: "#16a34a", badge: "CS" },
 ];
 
+// USD-equivalent total balance per exchange, mirrors the calculation used
+// for the dashboard's balance cards (Kraken uses ZUSD; others use USDT).
+function useExchangeBalanceTotals(): Record<ExchangeId, { total: number | null; isLoading: boolean }> {
+  const { data: krakenBalances, isLoading: krakenLoading } = useGetAccountBalance({
+    query: { refetchInterval: 30000, queryKey: getGetAccountBalanceQueryKey() },
+  });
+  const { data: xtBalances, isLoading: xtLoading } = useGetXtBalance({
+    query: { refetchInterval: 300000, retry: false, queryKey: getGetXtBalanceQueryKey() },
+  });
+  const { data: bitmartBalances, isLoading: bitmartLoading } = useGetBitmartBalance({
+    query: { refetchInterval: 300000, retry: false, queryKey: getGetBitmartBalanceQueryKey() },
+  });
+  const { data: coinstoreBalances, isLoading: coinstoreLoading } = useGetCoinstoreBalance({
+    query: { refetchInterval: 300000, retry: false, queryKey: getGetCoinstoreBalanceQueryKey() },
+  });
+
+  const krakenUsd = krakenBalances?.find((a) => a.asset === "ZUSD");
+  const xtUsdt = xtBalances?.find((a) => a.currency.toUpperCase() === "USDT");
+  const bitmartUsdt = bitmartBalances?.find((a) => a.currency.toUpperCase() === "USDT");
+  const coinstoreUsdt = coinstoreBalances?.find((a) => a.currency.toUpperCase() === "USDT");
+
+  return {
+    kraken: { total: krakenUsd ? parseFloat(krakenUsd.balance) : null, isLoading: krakenLoading },
+    xt: {
+      total: xtUsdt ? parseFloat(xtUsdt.available) + parseFloat(xtUsdt.frozen) : null,
+      isLoading: xtLoading,
+    },
+    bitmart: {
+      total: bitmartUsdt ? parseFloat(bitmartUsdt.available) + parseFloat(bitmartUsdt.frozen) : null,
+      isLoading: bitmartLoading,
+    },
+    coinstore: {
+      total: coinstoreUsdt ? parseFloat(coinstoreUsdt.available) + parseFloat(coinstoreUsdt.frozen) : null,
+      isLoading: coinstoreLoading,
+    },
+  };
+}
+
 function ExchangeVisibilityPanel() {
   const { isEnabled, toggle } = useEnabledExchanges();
+  const balances = useExchangeBalanceTotals();
 
   return (
     <Card className="bg-card border-border">
@@ -389,32 +453,50 @@ function ExchangeVisibilityPanel() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {EXCHANGE_DEFS.map(({ id, label, color, badge }) => (
-          <div
-            key={id}
-            className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3 gap-4"
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 font-black text-[11px] text-white"
-                style={{ background: `color-mix(in srgb, ${color} 80%, #000)` }}
-              >
-                {badge}
+        {EXCHANGE_DEFS.map(({ id, label, color, badge }) => {
+          const { total, isLoading } = balances[id];
+          return (
+            <div
+              key={id}
+              className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3 gap-4"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 font-black text-[11px] text-white"
+                  style={{ background: `color-mix(in srgb, ${color} 80%, #000)` }}
+                >
+                  {badge}
+                </div>
+                <div>
+                  <Label htmlFor={`ex-${id}`} className="text-sm font-medium cursor-pointer">{label}</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    {isEnabled(id) ? "Tampil di dashboard" : "Disembunyikan dari dashboard"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <Label htmlFor={`ex-${id}`} className="text-sm font-medium cursor-pointer">{label}</Label>
-                <p className="text-[11px] text-muted-foreground">
-                  {isEnabled(id) ? "Tampil di dashboard" : "Disembunyikan dari dashboard"}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 text-right">
+                  <Wallet className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  {isLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
+                  ) : total != null ? (
+                    <span className="font-mono text-sm font-semibold tabular-nums">
+                      <span className="text-[10px] text-muted-foreground mr-0.5">$</span>
+                      {total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">--</span>
+                  )}
+                </div>
+                <Switch
+                  id={`ex-${id}`}
+                  checked={isEnabled(id)}
+                  onCheckedChange={() => toggle(id)}
+                />
               </div>
             </div>
-            <Switch
-              id={`ex-${id}`}
-              checked={isEnabled(id)}
-              onCheckedChange={() => toggle(id)}
-            />
-          </div>
-        ))}
+          );
+        })}
       </CardContent>
     </Card>
   );

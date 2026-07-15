@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { fetchBalance } from "../lib/krakenBot";
 import { XtClient } from "../lib/xtClient";
 import { BitmartClient } from "../lib/bitmartClient";
+import { CoinstoreClient } from "../lib/coinstoreClient";
 import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
@@ -23,6 +24,8 @@ router.get("/info", async (req, res): Promise<void> => {
   let xtError: string | null = null;
   let bitmartConnected = false;
   let bitmartError: string | null = null;
+  let coinstoreConnected = false;
+  let coinstoreError: string | null = null;
 
   const xtClient = new XtClient(
     process.env["XT_API_KEY"] ?? "",
@@ -34,11 +37,16 @@ router.get("/info", async (req, res): Promise<void> => {
   const bitmartMemo = process.env["BITMART_MEMO"] ?? "";
   const bitmartClient = new BitmartClient(bitmartKey, bitmartSecret, bitmartMemo);
 
-  const [ipResult, krakenResult, xtResult, bitmartResult] = await Promise.allSettled([
+  const coinstoreKey = process.env["COINSTORE_API_KEY"] ?? "";
+  const coinstoreSecret = process.env["COINSTORE_API_SECRET"] ?? "";
+  const coinstoreClient = new CoinstoreClient(coinstoreKey, coinstoreSecret);
+
+  const [ipResult, krakenResult, xtResult, bitmartResult, coinstoreResult] = await Promise.allSettled([
     fetchPublicIp(),
     fetchBalance(),
     xtClient.getBalance(),
     bitmartKey && bitmartSecret ? bitmartClient.getBalance() : Promise.reject(new Error("Kredensial BitMart belum dikonfigurasi")),
+    coinstoreKey && coinstoreSecret ? coinstoreClient.getBalance() : Promise.reject(new Error("Kredensial Coinstore belum dikonfigurasi")),
   ]);
 
   if (ipResult.status === "fulfilled") {
@@ -78,7 +86,23 @@ router.get("/info", async (req, res): Promise<void> => {
     req.log.warn({ err: bitmartError }, "BitMart connection test failed");
   }
 
-  res.json({ publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError, bitmartConnected, bitmartError });
+  if (coinstoreResult.status === "fulfilled") {
+    coinstoreConnected = true;
+  } else {
+    coinstoreError =
+      coinstoreResult.reason instanceof Error
+        ? coinstoreResult.reason.message
+        : String(coinstoreResult.reason);
+    req.log.warn({ err: coinstoreError }, "Coinstore connection test failed");
+  }
+
+  res.json({
+    publicIp, ipError,
+    krakenConnected, krakenError,
+    xtConnected, xtError,
+    bitmartConnected, bitmartError,
+    coinstoreConnected, coinstoreError,
+  });
 });
 
 export default router;

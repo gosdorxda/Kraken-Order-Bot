@@ -47,7 +47,9 @@ export const GetServerInfoResponse = zod.object({
   "xtConnected": zod.boolean(),
   "xtError": zod.string().nullable(),
   "bitmartConnected": zod.boolean(),
-  "bitmartError": zod.string().nullable()
+  "bitmartError": zod.string().nullable(),
+  "coinstoreConnected": zod.boolean(),
+  "coinstoreError": zod.string().nullable()
 })
 
 

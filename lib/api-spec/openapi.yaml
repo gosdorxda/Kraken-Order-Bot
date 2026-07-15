@@ -1053,7 +1053,7 @@ components:
 
     ServerInfo:
       type: object
-      required: [publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError, bitmartConnected, bitmartError]
+      required: [publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError, bitmartConnected, bitmartError, coinstoreConnected, coinstoreError]
       properties:
         publicIp:
           type: ["string", "null"]
@@ -1070,6 +1070,10 @@ components:
         bitmartConnected:
           type: boolean
         bitmartError:
+          type: ["string", "null"]
+        coinstoreConnected:
+          type: boolean
+        coinstoreError:
           type: ["string", "null"]
 
     AssetBalance:

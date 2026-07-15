@@ -224,6 +224,9 @@ export interface ServerInfo {
   bitmartConnected: boolean;
   /** @nullable */
   bitmartError: string | null;
+  coinstoreConnected: boolean;
+  /** @nullable */
+  coinstoreError: string | null;
 }
 
 export interface AssetBalance {
