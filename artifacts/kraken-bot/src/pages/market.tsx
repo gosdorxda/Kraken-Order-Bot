@@ -99,6 +99,10 @@ function MarketTable({
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [search, setSearch]   = useState("");
   const [page, setPage]       = useState(1);
+  const [minVolume, setMinVolume] = useState("");
+  const [maxVolume, setMaxVolume] = useState("");
+  const [minSpread, setMinSpread] = useState("");
+  const [maxSpread, setMaxSpread] = useState("");
 
   const lastUpdated = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString("id-ID", { hour12: false })
@@ -115,6 +119,10 @@ function MarketTable({
   };
 
   const handleSearch = (v: string) => { setSearch(v); setPage(1); };
+  const handleFilterChange = (setter: (v: string) => void) => (v: string) => { setter(v); setPage(1); };
+
+  const hasFilter = minVolume !== "" || maxVolume !== "" || minSpread !== "" || maxSpread !== "";
+  const resetFilters = () => { setMinVolume(""); setMaxVolume(""); setMinSpread(""); setMaxSpread(""); setPage(1); };
 
   const sorted = useMemo(() => {
     let rows = [...data];
@@ -122,6 +130,14 @@ function MarketTable({
       const q = search.toLowerCase();
       rows = rows.filter((r) => r.displayName.toLowerCase().includes(q));
     }
+    const minVol = minVolume !== "" ? parseFloat(minVolume) : NaN;
+    const maxVol = maxVolume !== "" ? parseFloat(maxVolume) : NaN;
+    const minSpd = minSpread !== "" ? parseFloat(minSpread) : NaN;
+    const maxSpd = maxSpread !== "" ? parseFloat(maxSpread) : NaN;
+    if (!isNaN(minVol)) rows = rows.filter((r) => parseFloat(String(r.volume24h)) >= minVol);
+    if (!isNaN(maxVol)) rows = rows.filter((r) => parseFloat(String(r.volume24h)) <= maxVol);
+    if (!isNaN(minSpd)) rows = rows.filter((r) => r.spreadPct >= minSpd);
+    if (!isNaN(maxSpd)) rows = rows.filter((r) => r.spreadPct <= maxSpd);
     rows.sort((a, b) => {
       let av: number | string = a[sortKey];
       let bv: number | string = b[sortKey];
@@ -138,7 +154,7 @@ function MarketTable({
         : String(bv).localeCompare(String(av));
     });
     return rows;
-  }, [data, sortKey, sortDir, search]);
+  }, [data, sortKey, sortDir, search, minVolume, maxVolume, minSpread, maxSpread]);
 
   const totalPages  = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const safePage    = Math.min(page, totalPages);
@@ -169,24 +185,86 @@ function MarketTable({
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Filters */}
       {!isIdle && data.length > 0 && (
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            placeholder={`Cari token (contoh: BTC, ETH, SOL...)`}
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="px-3 py-1.5 rounded-md bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground min-w-[240px]"
-          />
-          {search && (
-            <button
-              onClick={() => handleSearch("")}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Reset
-            </button>
-          )}
+        <div className="space-y-2">
+          {/* Search */}
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder={`Cari token (contoh: BTC, ETH, SOL...)`}
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="px-3 py-1.5 rounded-md bg-muted border border-border text-sm text-foreground placeholder:text-muted-foreground min-w-[240px]"
+            />
+            {search && (
+              <button
+                onClick={() => handleSearch("")}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* Range filters */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground font-medium shrink-0">Filter:</span>
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted-foreground shrink-0">Vol Min</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="0"
+                value={minVolume}
+                onChange={(e) => handleFilterChange(setMinVolume)(e.target.value)}
+                className="w-24 px-2 py-1 rounded-md bg-muted border border-border text-xs text-foreground placeholder:text-muted-foreground/50 tabular-nums"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted-foreground shrink-0">Vol Max</label>
+              <input
+                type="number"
+                min="0"
+                placeholder="∞"
+                value={maxVolume}
+                onChange={(e) => handleFilterChange(setMaxVolume)(e.target.value)}
+                className="w-24 px-2 py-1 rounded-md bg-muted border border-border text-xs text-foreground placeholder:text-muted-foreground/50 tabular-nums"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted-foreground shrink-0">Spread % Min</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0"
+                value={minSpread}
+                onChange={(e) => handleFilterChange(setMinSpread)(e.target.value)}
+                className="w-20 px-2 py-1 rounded-md bg-muted border border-border text-xs text-foreground placeholder:text-muted-foreground/50 tabular-nums"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <label className="text-xs text-muted-foreground shrink-0">Spread % Max</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="∞"
+                value={maxSpread}
+                onChange={(e) => handleFilterChange(setMaxSpread)(e.target.value)}
+                className="w-20 px-2 py-1 rounded-md bg-muted border border-border text-xs text-foreground placeholder:text-muted-foreground/50 tabular-nums"
+              />
+            </div>
+            {hasFilter && (
+              <button
+                onClick={resetFilters}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors border border-border/60 rounded px-2 py-1 hover:bg-secondary"
+              >
+                Reset Filter
+              </button>
+            )}
+          </div>
         </div>
       )}
 
