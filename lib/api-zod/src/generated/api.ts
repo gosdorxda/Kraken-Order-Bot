@@ -600,26 +600,6 @@ export const GetMarketCoinstoreResponse = zod.array(GetMarketCoinstoreResponseIt
 
 
 /**
- * @summary Get all USDT spot pairs from LBank with ticker data
- */
-export const GetMarketLbankResponseItem = zod.object({
-  "pair": zod.string(),
-  "displayName": zod.string(),
-  "bid": zod.string(),
-  "ask": zod.string(),
-  "last": zod.string(),
-  "open24h": zod.string(),
-  "change24h": zod.number(),
-  "spread": zod.string(),
-  "spreadPct": zod.number(),
-  "volume24h": zod.string(),
-  "high24h": zod.string(),
-  "low24h": zod.string()
-})
-export const GetMarketLbankResponse = zod.array(GetMarketLbankResponseItem)
-
-
-/**
  * @summary Get app-level settings
  */
 export const GetSettingsResponse = zod.object({

@@ -6,7 +6,6 @@ import {
   useGetMarketBiconomy, getGetMarketBiconomyQueryKey,
   useGetMarketBitrue, getGetMarketBitrueQueryKey,
   useGetMarketCoinstore, getGetMarketCoinstoreQueryKey,
-  useGetMarketLbank, getGetMarketLbankQueryKey,
 } from "@workspace/api-client-react";
 import type { MarketTicker } from "@workspace/api-client-react";
 import {
@@ -16,7 +15,7 @@ import {
 
 type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "change24h" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
-type Exchange = "kraken" | "xt" | "bitmart" | "biconomy" | "bitrue" | "coinstore" | "lbank";
+type Exchange = "kraken" | "xt" | "bitmart" | "biconomy" | "bitrue" | "coinstore";
 
 const PAGE_SIZE = 50;
 
@@ -53,7 +52,6 @@ function tradeUrl(exchange: Exchange, pair: string, displayName: string) {
   if (exchange === "biconomy") return `https://www.biconomy.com/exchange/${pair}`;
   if (exchange === "bitrue")   return `https://www.bitrue.com/trade/${pair.replace(/USDT$/i, "").toLowerCase()}_usdt`;
   if (exchange === "coinstore") return `https://www.coinstore.com/spot/${pair}`;
-  if (exchange === "lbank")    return `https://www.lbank.com/en-US/trade/${pair.toLowerCase()}/`;
   return `https://pro.kraken.com/app/trade/${displayName.toLowerCase().replace("/", "-")}`;
 }
 
@@ -457,15 +455,12 @@ export default function Market() {
   const bitrue   = useGetMarketBitrue({ query: { ...queryOpts, queryKey: getGetMarketBitrueQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const coinstore = useGetMarketCoinstore({ query: { ...queryOpts, queryKey: getGetMarketCoinstoreQueryKey() } as any });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lbank     = useGetMarketLbank({ query: { ...queryOpts, queryKey: getGetMarketLbankQueryKey() } as any });
 
   const active = exchange === "kraken"   ? kraken
     : exchange === "xt"       ? xt
     : exchange === "bitmart"  ? bitmart
     : exchange === "biconomy" ? biconomy
     : exchange === "bitrue"   ? bitrue
-    : exchange === "lbank"    ? lbank
     : coinstore;
 
   const isIdle = !active.isFetching && active.dataUpdatedAt === 0;
@@ -497,9 +492,6 @@ export default function Market() {
         </ExchangeTab>
         <ExchangeTab active={exchange === "coinstore"} onClick={() => setExchange("coinstore")}>
           Coinstore <span className="text-xs opacity-60 ml-1">USDT</span>
-        </ExchangeTab>
-        <ExchangeTab active={exchange === "lbank"} onClick={() => setExchange("lbank")}>
-          LBank <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
       </div>
 
