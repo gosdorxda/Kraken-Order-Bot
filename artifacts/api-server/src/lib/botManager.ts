@@ -43,6 +43,9 @@ class BotManager {
         const bot = this.instantiate(p.id, config);
         bot.loadFills(p.fills ?? [], p.fillIdCounter ?? 0);
         bot.loadLogs(p.logs ?? [], p.logIdCounter ?? 0);
+        if (bot instanceof KrakenBot) {
+          bot.loadSeenTradeIds(p.seenTradeIds ?? []);
+        }
         this.bots.set(p.id, bot);
         const isDev = process.env["NODE_ENV"] !== "production";
         if (p.running && !isDev) {
@@ -141,6 +144,7 @@ class BotManager {
       fillIdCounter: bot.getFillIdCounter(),
       logs: bot.getLogs(500),
       logIdCounter: bot.getLogIdCounter(),
+      seenTradeIds: bot instanceof KrakenBot ? bot.getSeenTradeIds() : [],
     }));
     savePersistedState({ bots, telegramSettings: getTelegramEventConfig() }).catch((err: unknown) => {
       process.stderr.write(`[persistence] savePersistedState error: ${String(err)}\n`);

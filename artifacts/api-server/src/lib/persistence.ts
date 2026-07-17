@@ -17,6 +17,7 @@ export interface PersistedBot {
   fillIdCounter: number;
   logs: BotLog[];
   logIdCounter: number;
+  seenTradeIds?: string[];
 }
 
 export interface PersistedState {

@@ -31,6 +31,7 @@ export interface FillRecord {
   volume: string;
   timestamp: string;
   partial?: boolean;
+  tradeId?: string;
 }
 
 export interface BotStatus {
@@ -294,6 +295,7 @@ export class KrakenBot {
   private logIdCounter = 0;
   private fills: FillRecord[] = [];
   private fillIdCounter = 0;
+  private seenTradeIds = new Set<string>();
   private onPersist?: () => void;
 
   private running = false;
@@ -367,6 +369,14 @@ export class KrakenBot {
   loadFills(fills: FillRecord[], nextId: number): void {
     this.fills = [...fills];
     this.fillIdCounter = nextId;
+  }
+
+  getSeenTradeIds(): string[] {
+    return Array.from(this.seenTradeIds);
+  }
+
+  loadSeenTradeIds(ids: string[]): void {
+    this.seenTradeIds = new Set(ids);
   }
 
   // ─── Lifecycle ──────────────────────────────────────────────────────────────
@@ -473,17 +483,23 @@ export class KrakenBot {
       let myOrderIsAtTop = false;
 
       if (this.currentOrderId) {
-        const orderStatus = await this.checkOrderOpen(this.currentOrderId);
+        const orderId     = this.currentOrderId;
+        const orderStatus = await this.checkOrderOpen(orderId);
         if (!orderStatus.isOpen) {
           if (orderStatus.reason === "filled") {
-            const filledOrderId  = this.currentOrderId;
+            const filledOrderId  = orderId;
             const filledPrice    = this.currentOrderPrice ?? "0";
             const configVolume   = this.currentOrderVolume ?? this.config.orderSize;
             const actualVolume   = orderStatus.executedQty ?? configVolume;
             const isPartial      = parseFloat(actualVolume) < parseFloat(configVolume) * 0.9995;
 
             this.addLog("success", `Order ${filledOrderId} ${isPartial ? "partial fill" : "was filled!"}`, { price: filledPrice, executedQty: actualVolume });
-            this.recordFill(filledOrderId, filledPrice, actualVolume, isPartial);
+            // Record per-trade fills; fall back to single aggregate entry only when
+            // Kraken returned no trade-level data (API failure or empty trades list).
+            const tradeResult = await this.processNewTradesForOrder(filledOrderId);
+            if (!tradeResult.success || tradeResult.totalKnown === 0) {
+              this.recordFill(filledOrderId, filledPrice, actualVolume, isPartial);
+            }
 
             this.currentOrderId = null;
             this.currentOrderPrice = null;
@@ -517,6 +533,11 @@ export class KrakenBot {
           const myPrice = parseFloat(this.currentOrderPrice ?? "0");
           myOrderIsAtTop = myPrice >= topBidPriceNum;
           if (myOrderIsAtTop) this.topBidOwner = "bot";
+          // Detect partial fills while order is still open (e.g. Kraken fills
+          // a limit order in multiple trades before it fully closes).
+          if (orderStatus.executedQty) {
+            await this.processNewTradesForOrder(orderId);
+          }
         }
       }
 
@@ -673,7 +694,7 @@ export class KrakenBot {
 
   // ─── Private helpers ────────────────────────────────────────────────────────
 
-  private recordFill(orderId: string, price: string, volume: string, partial = false): void {
+  private recordFill(orderId: string, price: string, volume: string, partial = false, tradeId?: string): void {
     const fill: FillRecord = {
       id: ++this.fillIdCounter,
       pair: this.config.pair,
@@ -682,6 +703,7 @@ export class KrakenBot {
       volume,
       timestamp: new Date().toISOString(),
       partial: partial || undefined,
+      tradeId,
     };
     this.fills.unshift(fill);
     if (this.fills.length > 500) this.fills = this.fills.slice(0, 500);
@@ -689,13 +711,74 @@ export class KrakenBot {
 
     const nilai      = (parseFloat(price) * parseFloat(volume)).toFixed(2);
     const symbol     = this.config.pair.replace(/^X|ZUSD$|USD$/g, "");
-    const icon       = partial ? "🔶" : "✅";
-    const label      = partial ? "Partial fill" : "Order terisi";
-    const volDisplay = partial ? `${volume}/${this.config.orderSize}` : volume;
+    const isTrade    = tradeId !== undefined;
+    const icon       = isTrade ? "🔔" : (partial ? "🔶" : "✅");
+    const label      = isTrade ? "Trade terisi" : (partial ? "Partial fill" : "Order terisi");
+    const volDisplay = (partial && !isTrade) ? `${volume}/${this.config.orderSize}` : volume;
+    const tradeIdLine = tradeId ? `\n<code>${tradeId}</code>` : "";
     void sendTelegramEvent(
       "fill",
-      `${icon} <b>[${this.id}]</b> ${label} — ${volDisplay} ${symbol} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
+      `${icon} <b>[${this.id}]</b> ${label} — ${volDisplay} ${symbol} @ ${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~${nilai})${tradeIdLine}`
     );
+  }
+
+  /**
+   * Fetch individual trade IDs for an order from Kraken and record any that
+   * haven't been seen yet.
+   *
+   * Returns { success, totalKnown, recorded }:
+   *   success    — false when an API error prevented the lookup entirely
+   *   totalKnown — total trade IDs Kraken returned for this order (0 = none)
+   *   recorded   — how many new individual fills were stored this call
+   *
+   * Callers should use aggregate fallback ONLY when !success || totalKnown === 0,
+   * which means Kraken has no trade-level data. When success && totalKnown > 0,
+   * all fills are already accounted for individually (even if recorded === 0
+   * because they were all seen in prior cycles).
+   */
+  private async processNewTradesForOrder(
+    orderId: string
+  ): Promise<{ success: boolean; totalKnown: number; recorded: number }> {
+    try {
+      const orderResp: any = await krakenRateLimiter.enqueue(
+        () => (sharedClient as any).api("QueryOrders", { txid: orderId, trades: true }),
+        `QueryOrders(${orderId},trades:true)`
+      );
+      const order = orderResp.result?.[orderId];
+      if (!order) return { success: false, totalKnown: 0, recorded: 0 };
+
+      const allTradeIds: string[] = Array.isArray(order.trades) ? order.trades : [];
+      const totalKnown = allTradeIds.length;
+
+      const newTradeIds = allTradeIds.filter((tid) => !this.seenTradeIds.has(tid));
+      if (newTradeIds.length === 0) {
+        // All already seen — success, nothing new to record
+        return { success: true, totalKnown, recorded: 0 };
+      }
+
+      const tradeResp: any = await krakenRateLimiter.enqueue(
+        () => (sharedClient as any).api("QueryTrades", { txid: newTradeIds.join(",") }),
+        `QueryTrades(${newTradeIds.length} trades)`
+      );
+      const tradeDetails: Record<string, any> = tradeResp.result ?? {};
+
+      let recorded = 0;
+      for (const tid of newTradeIds) {
+        // Mark seen regardless so we don't retry a trade Kraken can't return
+        this.seenTradeIds.add(tid);
+        const t = tradeDetails[tid];
+        if (!t) continue;
+        const price = String(t.price ?? "0");
+        const vol   = String(t.vol   ?? "0");
+        this.recordFill(orderId, price, vol, true, tid);
+        recorded++;
+      }
+      return { success: true, totalKnown, recorded };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.addLog("warn", `processNewTradesForOrder(${orderId}): ${msg}`);
+      return { success: false, totalKnown: 0, recorded: 0 };
+    }
   }
 
   private async calculateVolume(_targetPrice: number): Promise<string> {
@@ -764,14 +847,20 @@ export class KrakenBot {
       const actualVolume = finalStatus.executedQty ?? configVolume;
       const isPartial   = parseFloat(actualVolume) < parseFloat(configVolume) * 0.9995;
       this.addLog("success", `Order ${orderId} ${isPartial ? "partial fill" : "terisi"} (terdeteksi saat cancel)`, { price, executedQty: actualVolume });
-      this.recordFill(orderId, price, actualVolume, isPartial);
+      const tradeResult = await this.processNewTradesForOrder(orderId);
+      if (!tradeResult.success || tradeResult.totalKnown === 0) {
+        this.recordFill(orderId, price, actualVolume, isPartial);
+      }
       return !isPartial;
     }
 
     // Cancelled (or unknown) — check for partial fill
     if (finalStatus.executedQty) {
       this.addLog("success", `Order ${orderId} partial fill ${finalStatus.executedQty} sebelum dibatalkan`, { price });
-      this.recordFill(orderId, price, finalStatus.executedQty, true);
+      const tradeResult = await this.processNewTradesForOrder(orderId);
+      if (!tradeResult.success || tradeResult.totalKnown === 0) {
+        this.recordFill(orderId, price, finalStatus.executedQty, true);
+      }
     }
 
     // Suppress unused-variable warning when cancelResult is not checked explicitly
