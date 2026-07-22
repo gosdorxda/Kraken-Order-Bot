@@ -16,6 +16,10 @@ import {
   useGetCoinstoreBalance,
   useGetBotLogs,
   useGetBotFills,
+  useGetMarket,
+  useGetMarketXt,
+  useGetMarketBitmart,
+  useGetMarketCoinstore,
   getListBotsQueryKey,
   getGetOrderBookQueryKey,
   getGetBotLogsQueryKey,
@@ -24,8 +28,12 @@ import {
   getGetXtBalanceQueryKey,
   getGetBitmartBalanceQueryKey,
   getGetCoinstoreBalanceQueryKey,
+  getGetMarketQueryKey,
+  getGetMarketXtQueryKey,
+  getGetMarketBitmartQueryKey,
+  getGetMarketCoinstoreQueryKey,
 } from "@workspace/api-client-react";
-import type { BotInstance } from "@workspace/api-client-react";
+import type { BotInstance, MarketTicker } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -480,6 +488,56 @@ function BotLogList({ botId }: { botId: string }) {
   );
 }
 
+// ─── Bot volume from market ───────────────────────────────────────────────────
+
+const MARKET_QUERY_OPTS = { staleTime: 300_000, refetchOnWindowFocus: false } as const;
+
+function VolumeDisplay({ data, pair }: { data: MarketTicker[] | undefined; pair: string }) {
+  if (!data) return null;
+  const norm = pair.toUpperCase().replace(/[_\-]/g, "");
+  const ticker = data.find((t) => t.pair === norm || t.pair === pair.toUpperCase());
+  if (!ticker) return null;
+  const vol = parseFloat(String(ticker.volume24h));
+  if (isNaN(vol) || vol === 0) return null;
+  const label = vol >= 1_000_000 ? `$${(vol / 1_000_000).toFixed(2)}M`
+    : vol >= 1_000 ? `$${(vol / 1_000).toFixed(1)}K`
+    : `$${vol.toFixed(2)}`;
+  return (
+    <div className="col-span-2 border-t border-border/30 pt-2 mt-0.5">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium">Vol 24h</p>
+      <p className="font-mono text-sm font-semibold text-sky-400/80 leading-tight">{label}</p>
+    </div>
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BotVolumeKraken({ pair }: { pair: string }) {
+  const { data } = useGetMarket({ query: { ...MARKET_QUERY_OPTS, queryKey: getGetMarketQueryKey() } as any });
+  return <VolumeDisplay data={data} pair={pair} />;
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BotVolumeXt({ pair }: { pair: string }) {
+  const { data } = useGetMarketXt({ query: { ...MARKET_QUERY_OPTS, queryKey: getGetMarketXtQueryKey() } as any });
+  return <VolumeDisplay data={data} pair={pair} />;
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BotVolumeBitmart({ pair }: { pair: string }) {
+  const { data } = useGetMarketBitmart({ query: { ...MARKET_QUERY_OPTS, queryKey: getGetMarketBitmartQueryKey() } as any });
+  return <VolumeDisplay data={data} pair={pair} />;
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function BotVolumeCoinstore({ pair }: { pair: string }) {
+  const { data } = useGetMarketCoinstore({ query: { ...MARKET_QUERY_OPTS, queryKey: getGetMarketCoinstoreQueryKey() } as any });
+  return <VolumeDisplay data={data} pair={pair} />;
+}
+
+function BotVolume({ exchange, pair }: { exchange: string; pair: string }) {
+  if (exchange === "xt")        return <BotVolumeXt pair={pair} />;
+  if (exchange === "bitmart")   return <BotVolumeBitmart pair={pair} />;
+  if (exchange === "coinstore") return <BotVolumeCoinstore pair={pair} />;
+  return <BotVolumeKraken pair={pair} />;
+}
+
 // ─── Bot card ─────────────────────────────────────────────────────────────────
 
 type ExpandPanel = "logs" | "fills" | null;
@@ -597,6 +655,7 @@ function BotCard({ bot, onEdit }: { bot: BotInstance; onEdit: (bot: BotInstance)
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5 font-medium">Terkunci</p>
           <p className="font-mono text-sm font-semibold text-amber-400/80 leading-tight">{lockedUsd != null ? `~${lockedUsd}` : "—"}</p>
         </div>
+        <BotVolume exchange={config.exchange ?? "kraken"} pair={config.pair} />
       </div>
 
       {/* Last action */}
