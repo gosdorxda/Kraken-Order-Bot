@@ -498,8 +498,9 @@ function VolumeDisplay({ data, pair }: { data: MarketTicker[] | undefined; pair:
   const ticker = data.find((t) => t.pair === norm || t.pair === pair.toUpperCase());
   if (!ticker) return null;
   const vol = parseFloat(String(ticker.volume24h));
-  if (isNaN(vol) || vol === 0) return null;
-  const label = vol >= 1_000_000 ? `$${(vol / 1_000_000).toFixed(2)}M`
+  if (isNaN(vol)) return null;
+  const label = vol === 0 ? "$0"
+    : vol >= 1_000_000 ? `$${(vol / 1_000_000).toFixed(2)}M`
     : vol >= 1_000 ? `$${(vol / 1_000).toFixed(1)}K`
     : `$${vol.toFixed(2)}`;
   return (
