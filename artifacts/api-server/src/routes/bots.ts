@@ -2,14 +2,12 @@ import { Router, type IRouter } from "express";
 import { botManager } from "../lib/botManager";
 import { fetchOrderBook, fetchMarket, emergencyCancelAllKrakenBuyOrders } from "../lib/krakenBot";
 import { fetchXtOrderBook, XtClient } from "../lib/xtClient";
-import { fetchBitmartOrderBook, BitmartClient } from "../lib/bitmartClient";
-import { fetchCoinstoreOrderBook, CoinstoreClient } from "../lib/coinstoreClient";
+import { fetchMexcOrderBook, MexcClient } from "../lib/mexcClient";
 import { fetchAscendexMarket } from "../lib/ascendexMarket";
 import { fetchXtMarket } from "../lib/xtMarket";
-import { fetchBitmartMarket } from "../lib/bitmartMarket";
 import { fetchBiconomyMarket } from "../lib/biconomyMarket";
 import { fetchBitrueMarket } from "../lib/bitrueMarket";
-import { fetchCoinstoreMarket } from "../lib/coinstoreMarket";
+import { fetchMexcMarket } from "../lib/mexcMarket";
 import {
   CreateBotBody,
   UpdateBotConfigBody,
@@ -195,11 +193,9 @@ router.get("/bots/:botId/orderbook", async (req, res): Promise<void> => {
     const pair = config.pair;
     const book = config.exchange === "xt"
       ? await fetchXtOrderBook(pair)
-      : config.exchange === "bitmart"
-        ? await fetchBitmartOrderBook(pair)
-        : config.exchange === "coinstore"
-          ? await fetchCoinstoreOrderBook(pair)
-          : await fetchOrderBook(pair);
+      : config.exchange === "mexc"
+        ? await fetchMexcOrderBook(pair)
+        : await fetchOrderBook(pair);
     res.json(
       GetBotOrderBookResponse.parse({
         pair,
@@ -222,11 +218,9 @@ router.get("/orderbook", async (req, res): Promise<void> => {
   try {
     const book = qp.data.exchange === "xt"
       ? await fetchXtOrderBook(qp.data.pair)
-      : qp.data.exchange === "bitmart"
-        ? await fetchBitmartOrderBook(qp.data.pair)
-        : qp.data.exchange === "coinstore"
-          ? await fetchCoinstoreOrderBook(qp.data.pair)
-          : await fetchOrderBook(qp.data.pair);
+      : qp.data.exchange === "mexc"
+        ? await fetchMexcOrderBook(qp.data.pair)
+        : await fetchOrderBook(qp.data.pair);
     res.json(
       GetOrderBookResponse.parse({
         pair: qp.data.pair,
@@ -282,15 +276,6 @@ router.get("/market/xt", async (_req, res): Promise<void> => {
   }
 });
 
-router.get("/market/bitmart", async (_req, res): Promise<void> => {
-  try {
-    const tickers = await fetchBitmartMarket();
-    res.json(tickers);
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
-  }
-});
-
 router.get("/market/biconomy", async (_req, res): Promise<void> => {
   try {
     const tickers = await fetchBiconomyMarket();
@@ -309,9 +294,9 @@ router.get("/market/bitrue", async (_req, res): Promise<void> => {
   }
 });
 
-router.get("/market/coinstore", async (_req, res): Promise<void> => {
+router.get("/market/mexc", async (_req, res): Promise<void> => {
   try {
-    const tickers = await fetchCoinstoreMarket();
+    const tickers = await fetchMexcMarket();
     res.json(tickers);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
@@ -324,12 +309,11 @@ router.get("/market/coinstore", async (_req, res): Promise<void> => {
  * Does NOT delete bots — just stops them and wipes open orders.
  */
 router.post("/emergency-stop", async (req, res): Promise<void> => {
-  const results: { botsTopped: number; krakenCancelled: number; xtCancelled: number; bitmartCancelled: number; coinstoreCancelled: number; errors: string[] } = {
+  const results: { botsTopped: number; krakenCancelled: number; xtCancelled: number; mexcCancelled: number; errors: string[] } = {
     botsTopped: 0,
     krakenCancelled: 0,
     xtCancelled: 0,
-    bitmartCancelled: 0,
-    coinstoreCancelled: 0,
+    mexcCancelled: 0,
     errors: [],
   };
 
@@ -379,50 +363,26 @@ router.post("/emergency-stop", async (req, res): Promise<void> => {
     }
   }
 
-  // 4. Cancel all BitMart buy orders for every configured BitMart pair
-  const bitmartPairs = allBots
-    .filter((b) => b.config.exchange === "bitmart")
+  // 4. Cancel all MEXC buy orders for every configured MEXC pair
+  const mexcPairs = allBots
+    .filter((b) => b.config.exchange === "mexc")
     .map((b) => b.config.pair);
-  if (bitmartPairs.length > 0) {
+  if (mexcPairs.length > 0) {
     try {
-      const bitmartClient = new BitmartClient(
-        process.env["BITMART_API_KEY"] ?? "",
-        process.env["BITMART_API_SECRET"] ?? "",
-        process.env["BITMART_MEMO"] ?? ""
+      const mexcClient = new MexcClient(
+        process.env["MEXC_API_KEY"] ?? "",
+        process.env["MEXC_API_SECRET"] ?? ""
       );
-      for (const pair of bitmartPairs) {
+      for (const pair of mexcPairs) {
         try {
-          await bitmartClient.cancelAllOpenBuyOrders(pair);
-          results.bitmartCancelled++;
+          await mexcClient.cancelAllOpenBuyOrders(pair);
+          results.mexcCancelled++;
         } catch (err) {
-          results.errors.push(`BitMart cancel ${pair}: ${err instanceof Error ? err.message : String(err)}`);
+          results.errors.push(`MEXC cancel ${pair}: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
     } catch (err) {
-      results.errors.push(`BitMart client init: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  }
-
-  // 5. Cancel all Coinstore buy orders for every configured Coinstore pair
-  const coinstorePairs = allBots
-    .filter((b) => b.config.exchange === "coinstore")
-    .map((b) => b.config.pair);
-  if (coinstorePairs.length > 0) {
-    try {
-      const coinstoreClient = new CoinstoreClient(
-        process.env["COINSTORE_API_KEY"] ?? "",
-        process.env["COINSTORE_API_SECRET"] ?? ""
-      );
-      for (const pair of coinstorePairs) {
-        try {
-          await coinstoreClient.cancelAllOpenBuyOrders(pair);
-          results.coinstoreCancelled++;
-        } catch (err) {
-          results.errors.push(`Coinstore cancel ${pair}: ${err instanceof Error ? err.message : String(err)}`);
-        }
-      }
-    } catch (err) {
-      results.errors.push(`Coinstore client init: ${err instanceof Error ? err.message : String(err)}`);
+      results.errors.push(`MEXC client init: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 

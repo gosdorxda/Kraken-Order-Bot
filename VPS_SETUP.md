@@ -35,25 +35,34 @@ npm install -g pm2
 sudo apt-get install -y nginx
 ```
 
-## 4. Clone Proyek
+## 4. Salin Proyek ke VPS
 
 ```bash
+# Opsi A: git clone dari remote
 git clone <URL_REPO> /opt/krkn-bot
 cd /opt/krkn-bot
+```
+
+Opsi B — upload folder proyek dari komputer Windows lokal (jalankan di PowerShell lokal, BUKAN di VPS):
+
+```powershell
+# compress dulu tanpa node_modules & .git
+scp -r C:\Users\gosdo\Desktop\AI\Bot root@IP_VPS:/opt/krkn-bot
 ```
 
 ## 5. Install Dependencies
 
 ```bash
+cd /opt/krkn-bot
 pnpm install --frozen-lockfile
 ```
 
 ## 6. Konfigurasi Environment Variables
 
-Buat file `.env` untuk API server:
+File `.env` dibaca dari **root proyek** `/opt/krkn-bot/.env` (lihat `src/index.ts` yang memuat dotenv dari path tersebut — bukan di dalam `artifacts/api-server/`):
 
 ```bash
-cat > /opt/krkn-bot/artifacts/api-server/.env << 'EOF'
+cat > /opt/krkn-bot/.env << 'EOF'
 NODE_ENV=production
 PORT=8080
 
@@ -61,13 +70,17 @@ PORT=8080
 KRAKEN_API_KEY=your_kraken_api_key
 KRAKEN_API_SECRET=your_kraken_api_secret
 
-# Dashboard auth (wajib)
-DASHBOARD_PASSWORD=password_dashboard_kamu
-SESSION_SECRET=random_string_minimal_32_karakter
-
 # XT.com API (opsional, isi jika pakai bot XT)
 XT_API_KEY=
 XT_API_SECRET=
+
+# MEXC API (opsional, isi jika pakai bot MEXC)
+MEXC_API_KEY=
+MEXC_API_SECRET=
+
+# Dashboard auth (wajib)
+DASHBOARD_PASSWORD=password_dashboard_kamu
+SESSION_SECRET=random_string_minimal_32_karakter
 
 # Telegram notifikasi (opsional)
 TELEGRAM_BOT_TOKEN=
@@ -80,8 +93,10 @@ EOF
 
 > **Tips keamanan:** Pastikan file `.env` tidak bisa dibaca publik:
 > ```bash
-> chmod 600 /opt/krkn-bot/artifacts/api-server/.env
+> chmod 600 /opt/krkn-bot/.env
 > ```
+>
+> Generate `SESSION_SECRET` yang kuat: `openssl rand -hex 32`
 
 ## 7. Build API Server
 
@@ -106,15 +121,13 @@ Output: `artifacts/kraken-bot/dist/public/`
 ```bash
 cd /opt/krkn-bot/artifacts/api-server
 
-pm2 start dist/index.mjs \
-  --name krkn-api \
-  --env-file /opt/krkn-bot/artifacts/api-server/.env \
-  --node-args="--enable-source-maps" \
-  -- 
+pm2 start dist/index.mjs --name krkn-api --node-args="--enable-source-maps"
 
 pm2 save
 pm2 startup   # ikuti instruksi yang muncul untuk auto-start saat boot
 ```
+
+> `.env` tidak perlu di-flag karena `src/index.ts` sudah memuatnya otomatis dari `/opt/krkn-bot/.env`.
 
 Cek status:
 
@@ -123,64 +136,50 @@ pm2 status
 pm2 logs krkn-api
 ```
 
-## 10. Konfigurasi Nginx
+## 10. Konfigurasi Nginx (berdampingan dengan proyek lain)
 
-Buat file konfigurasi Nginx:
+File konfigurasi siap pakai sudah ada di repo: `deploy/nginx-krkn-bot.conf`.
 
-```bash
-sudo nano /etc/nginx/sites-available/krkn-bot
-```
+Jika VPS sudah menjalankan proyek lain (mis. `arbit` di `/opt/arbit` dengan domain `arbitin.website`), krkn-bot **tidak mengganggu** selama:
+1. Memakai **subdomain sendiri** (dipakai di panduan ini: `krkn.vooi.lol`)
+2. Memakai **port backend sendiri** (default `8080`)
 
-Isi dengan (ganti `yourdomain.com` dengan IP VPS atau domain kamu):
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;   # atau IP VPS
-
-    # Frontend — static files dari Vite build
-    root /opt/krkn-bot/artifacts/kraken-bot/dist/public;
-    index index.html;
-
-    # API — proxy ke Express server
-    location /api/ {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 60s;
-    }
-
-    # SPA fallback — semua route ke index.html
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-```
-
-Aktifkan dan reload:
+Langkah:
 
 ```bash
+# a. Tambah DNS record A untuk subdomain di panel domain vooi.lol:
+#    krkn  →  IP_VPS  (type A, TTL auto)
+#    Tunggu propagasi (biasanya < 5 menit). Cek dengan:
+dig +short krkn.vooi.lol
+
+# b. Salin config (sudah di-set ke krkn.vooi.lol)
+sudo cp /opt/krkn-bot/deploy/nginx-krkn-bot.conf /etc/nginx/sites-available/krkn-bot
+
+# c. Aktifkan & tes
 sudo ln -s /etc/nginx/sites-available/krkn-bot /etc/nginx/sites-enabled/
-sudo nginx -t       # pastikan konfigurasi valid
+sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Buka browser: `http://yourdomain.com` atau `http://IP_VPS`
+File `sites-enabled/arbit` milik proyek lama **tidak diubah sama sekali**.
+
+Verifikasi cepat:
+```bash
+curl -s http://127.0.0.1:8080/api/healthz        # harus: {"status":"ok"}
+curl -s -H "Host: krkn.vooi.lol" http://127.0.0.1/ | head -5   # harus: HTML dashboard
+```
 
 ---
 
-## 11. HTTPS dengan Certbot (Opsional, Direkomendasikan)
+## 11. HTTPS dengan Certbot
 
 ```bash
 sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d yourdomain.com
+sudo certbot --nginx -d krkn.vooi.lol
 sudo systemctl reload nginx
 ```
 
-Certbot akan otomatis memperbarui sertifikat setiap 90 hari.
+Certbot otomatis menambah blok `listen 443 ssl` + redirect 80→443 di file `krkn-bot`, persis seperti yang sudah terjadi pada `arbit`. Sertifikat diperpanjang otomatis.
 
 ---
 
@@ -221,17 +220,25 @@ sudo systemctl reload nginx
 
 ### Persistensi State Bot
 
-Secara default, proyek ini menggunakan **Replit Object Storage** untuk menyimpan state bot (konfigurasi, fill history, logs). Di VPS, layanan ini tidak tersedia sehingga:
+State bot (konfigurasi, fill history, logs) disimpan ke **file JSON lokal**, bukan cloud storage. Path default:
 
-- State bot **tidak akan tersimpan** antar restart server
-- Setelah restart, bot perlu dikonfigurasi ulang lewat dashboard
-- Fill history dan logs sebelumnya tidak akan muncul kembali
+```
+/var/lib/krkn-bot/data/state.json
+```
 
-Untuk persistensi di VPS, modifikasi `artifacts/api-server/src/lib/persistence.ts` agar menyimpan ke file lokal (JSON) alih-alih Google Cloud Storage.
+Bisa diubah lewat env `DATA_PATH`:
+
+```bash
+DATA_PATH=/opt/krkn-bot/data/state.json
+```
+
+Folder dibuat otomatis jika belum ada. Disarankan set `DATA_PATH` ke folder di dalam `/opt/krkn-bot/data` agar ikut ter-backup bersama proyek.
 
 ### Auto-Start Bot di Production
 
-Bot yang sedang berjalan **tidak akan otomatis start ulang** setelah server restart (karena state tidak tersimpan). Login ke dashboard dan klik Start setelah server restart, atau modifikasi persistensi seperti di atas.
+Bot yang sedang running akan **otomatis start ulang** saat API server restart, karena state-nya dipulihkan dari `state.json` (`BotManager.initialize()`). Sebelum memulai, BotManager juga membatalkan order buy yang masih terbuka di tiap exchange untuk mencegah order ganda.
+
+Catatan: auto-start hanya berlaku saat `NODE_ENV=production`. Di mode development, bot tidak di-autostart (harus diklik Start manual).
 
 ### Firewall
 

@@ -10,7 +10,7 @@ Kraken top-of-book buy bot with real-time web dashboard. Automatically stays at 
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - Required env: `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` — Kraken API credentials
-- Required env (BitMart): `BITMART_API_KEY`, `BITMART_API_SECRET` — wajib untuk menjalankan BitMart bot; `BITMART_MEMO` opsional (kosong jika API key tidak punya memo)
+- Required env (MEXC): `MEXC_API_KEY`, `MEXC_API_SECRET` — wajib untuk menjalankan MEXC bot
 - Optional env: `DATA_DIR` — folder tempat state bot (`state.json`) dan app settings (`app-settings.json`) disimpan. Default: `<cwd>/data`. Di VPS, set ke path persisten, misalnya `/opt/krkn-bot/data`.
 
 ## Stack
@@ -58,6 +58,8 @@ Kraken top-of-book buy bot with real-time web dashboard. Automatically stays at 
 ## Gotchas
 
 - Kraken pair names use their internal format (e.g., `XXBTZUSD` not `XBT/USD`). Common pairs: `XXBTZUSD`, `XETHZUSD`, `SOLUSD`, `ADAUSD`.
+- MEXC pair format: `BTCUSDT` (no separator). Price precision comes from `exchangeInfo` → `quotePrecision` (MEXC does not always expose a PRICE_FILTER).
+- MEXC signs the full query string (including `timestamp`) with HMAC-SHA256 for every verb, including POST/DELETE.
 - Always run `pnpm --filter @workspace/api-spec run codegen` after changing `openapi.yaml`.
 - The `kraken-api` package resolves Promises (not callbacks) when called as `client.api(method, params)`.
 

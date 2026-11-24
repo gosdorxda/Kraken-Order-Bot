@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,26 +12,22 @@ import {
   useGetOrderBook,
   useGetAccountBalance,
   useGetXtBalance,
-  useGetBitmartBalance,
-  useGetCoinstoreBalance,
+  useGetMexcBalance,
   useGetBotLogs,
   useGetBotFills,
   useGetMarket,
   useGetMarketXt,
-  useGetMarketBitmart,
-  useGetMarketCoinstore,
+  useGetMarketMexc,
   getListBotsQueryKey,
   getGetOrderBookQueryKey,
   getGetBotLogsQueryKey,
   getGetBotFillsQueryKey,
   getGetAccountBalanceQueryKey,
   getGetXtBalanceQueryKey,
-  getGetBitmartBalanceQueryKey,
-  getGetCoinstoreBalanceQueryKey,
+  getGetMexcBalanceQueryKey,
   getGetMarketQueryKey,
   getGetMarketXtQueryKey,
-  getGetMarketBitmartQueryKey,
-  getGetMarketCoinstoreQueryKey,
+  getGetMarketMexcQueryKey,
 } from "@workspace/api-client-react";
 import type { BotInstance, MarketTicker } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -67,12 +63,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 const PAIR_RULES: Record<string, { pattern: RegExp; hint: string }> = {
   kraken:    { pattern: /^[A-Z0-9]{4,12}$/, hint: "Huruf besar tanpa pemisah, mis. XXBTZUSD" },
   xt:        { pattern: /^[a-z0-9]+_[a-z0-9]+$/, hint: "Huruf kecil dengan garis bawah, mis. btc_usdt" },
-  bitmart:   { pattern: /^[A-Z0-9]+_[A-Z0-9]+$/, hint: "Huruf besar dengan garis bawah, mis. BTC_USDT" },
-  coinstore: { pattern: /^[A-Z0-9]{4,20}$/, hint: "Huruf besar tanpa pemisah, mis. BTCUSDT" },
+  mexc:      { pattern: /^[A-Z0-9]+USDT$/, hint: "Huruf besar tanpa pemisah, mis. BTCUSDT" },
 };
 
 const configSchema = z.object({
-  exchange: z.enum(["kraken", "xt", "bitmart", "coinstore"]).default("kraken"),
+  exchange: z.enum(["kraken", "xt", "mexc"]).default("kraken"),
   pair: z.string().min(1, "Trading pair wajib diisi"),
   orderSize: z.string().min(1, "Order size is required"),
   maxBidPrice: z.string().min(1, "Max bid price is required"),
@@ -105,8 +100,7 @@ const DEFAULT_VALUES: ConfigForm = {
 const EXCHANGE_HINTS: Record<string, { pairExample: string; pairPlaceholder: string }> = {
   kraken:    { pairExample: "XXBTZUSD, SOLUSD",   pairPlaceholder: "XXBTZUSD" },
   xt:        { pairExample: "btc_usdt, sol_usdt",  pairPlaceholder: "btc_usdt" },
-  bitmart:   { pairExample: "BTC_USDT, SOL_USDT",  pairPlaceholder: "BTC_USDT" },
-  coinstore: { pairExample: "BTCUSDT, SOLUSDT",  pairPlaceholder: "BTCUSDT" },
+  mexc:      { pairExample: "BTCUSDT, SOLUSDT",  pairPlaceholder: "BTCUSDT" },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -149,8 +143,7 @@ function timeAgo(iso: string | null): string | null {
 const EXCHANGE_STYLE: Record<string, { label: string; bg: string }> = {
   kraken:    { label: "K",  bg: "color-mix(in srgb, #7c3aed 80%, #4f46e5)" },
   xt:        { label: "XT", bg: "color-mix(in srgb, #0ea5e9 85%, #0284c7)" },
-  bitmart:   { label: "BM", bg: "color-mix(in srgb, #1A6FAF 85%, #1250a0)" },
-  coinstore: { label: "CS", bg: "color-mix(in srgb, #16a34a 85%, #15803d)" },
+  mexc:      { label: "MX", bg: "color-mix(in srgb, #0f766e 85%, #115e59)" },
 };
 
 function isHoldingAtMax(bot: BotInstance): boolean {
@@ -191,7 +184,7 @@ function RunningDot({ running }: { running: boolean }) {
 
 // ─── Live market reference ────────────────────────────────────────────────────
 
-function MarketRef({ pair, exchange, tickSize, maxBidPrice, holdAtMax }: { pair: string; exchange: "kraken" | "xt" | "bitmart" | "coinstore"; tickSize: string; maxBidPrice: string; holdAtMax?: boolean }) {
+function MarketRef({ pair, exchange, tickSize, maxBidPrice, holdAtMax }: { pair: string; exchange: "kraken" | "xt" | "mexc"; tickSize: string; maxBidPrice: string; holdAtMax?: boolean }) {
   const { data: book, isLoading } = useGetOrderBook(
     { pair, exchange },
     { query: { refetchInterval: 2000, enabled: pair.length > 0, queryKey: getGetOrderBookQueryKey({ pair, exchange }) } }
@@ -246,7 +239,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
     reValidateMode: "onChange",
     values: isEdit
       ? {
-          exchange: (editBot.config.exchange as "kraken" | "xt" | "bitmart" | "coinstore") ?? "kraken",
+          exchange: (editBot.config.exchange as "kraken" | "xt" | "mexc") ?? "kraken",
           pair: editBot.config.pair,
           orderSize: editBot.config.orderSize,
           maxBidPrice: editBot.config.maxBidPrice,
@@ -314,8 +307,7 @@ function BotDialog({ open, onClose, editBot }: { open: boolean; onClose: () => v
                   <SelectContent>
                     <SelectItem value="kraken">Kraken</SelectItem>
                     <SelectItem value="xt">XT.com</SelectItem>
-                    <SelectItem value="bitmart">BitMart</SelectItem>
-                    <SelectItem value="coinstore">Coinstore</SelectItem>
+                    <SelectItem value="mexc">MEXC</SelectItem>
                   </SelectContent>
                 </Select>
                 {isEdit && <FormDescription className="text-[11px]">Exchange tidak bisa diubah setelah bot dibuat.</FormDescription>}
@@ -522,20 +514,14 @@ function BotVolumeXt({ pair }: { pair: string }) {
   return <VolumeDisplay data={data} pair={pair} />;
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function BotVolumeBitmart({ pair }: { pair: string }) {
-  const { data } = useGetMarketBitmart({ query: { ...MARKET_QUERY_OPTS, queryKey: getGetMarketBitmartQueryKey() } as any });
-  return <VolumeDisplay data={data} pair={pair} />;
-}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function BotVolumeCoinstore({ pair }: { pair: string }) {
-  const { data } = useGetMarketCoinstore({ query: { ...MARKET_QUERY_OPTS, queryKey: getGetMarketCoinstoreQueryKey() } as any });
+function BotVolumeMexc({ pair }: { pair: string }) {
+  const { data } = useGetMarketMexc({ query: { ...MARKET_QUERY_OPTS, queryKey: getGetMarketMexcQueryKey() } as any });
   return <VolumeDisplay data={data} pair={pair} />;
 }
 
 function BotVolume({ exchange, pair }: { exchange: string; pair: string }) {
-  if (exchange === "xt")        return <BotVolumeXt pair={pair} />;
-  if (exchange === "bitmart")   return <BotVolumeBitmart pair={pair} />;
-  if (exchange === "coinstore") return <BotVolumeCoinstore pair={pair} />;
+  if (exchange === "xt")   return <BotVolumeXt pair={pair} />;
+  if (exchange === "mexc") return <BotVolumeMexc pair={pair} />;
   return <BotVolumeKraken pair={pair} />;
 }
 
@@ -731,8 +717,7 @@ export default function Dashboard() {
   });
   const { data: krakenBalances } = useGetAccountBalance({ query: { refetchInterval: 30000, queryKey: getGetAccountBalanceQueryKey() } });
   const { data: xtBalances } = useGetXtBalance({ query: { refetchInterval: 300000, retry: false, queryKey: getGetXtBalanceQueryKey() } });
-  const { data: bitmartBalances } = useGetBitmartBalance({ query: { refetchInterval: 300000, retry: false, queryKey: getGetBitmartBalanceQueryKey() } });
-  const { data: coinstoreBalances } = useGetCoinstoreBalance({ query: { refetchInterval: 300000, retry: false, queryKey: getGetCoinstoreBalanceQueryKey() } });
+  const { data: mexcBalances } = useGetMexcBalance({ query: { refetchInterval: 300000, retry: false, queryKey: getGetMexcBalanceQueryKey() } });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -744,12 +729,11 @@ export default function Dashboard() {
   const [emergencyBusy, setEmergencyBusy] = useState(false);
   const [krakenOpen, setKrakenOpen] = useState(false);
   const [xtOpen, setXtOpen] = useState(false);
-  const [bitmartOpen, setBitmartOpen] = useState(false);
-  const [coinstoreOpen, setCoinstoreOpen] = useState(false);
+  const [mexcOpen, setMexcOpen] = useState(false);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "running" | "stopped">("all");
-  const [exchangeFilter, setExchangeFilter] = useState<"all" | "kraken" | "xt" | "bitmart" | "coinstore">("all");
+  const [exchangeFilter, setExchangeFilter] = useState<"all" | "kraken" | "xt" | "mexc">("all");
 
   const openAdd = () => { setEditBot(null); setDialogOpen(true); };
   const openEdit = (bot: BotInstance) => { setEditBot(bot); setDialogOpen(true); };
@@ -762,14 +746,13 @@ export default function Dashboard() {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken() ?? ""}` },
       });
-      const data = await res.json() as { botsTopped: number; krakenCancelled: number; xtCancelled: number; bitmartCancelled: number; coinstoreCancelled: number; errors: string[] };
+      const data = await res.json() as { botsTopped: number; krakenCancelled: number; xtCancelled: number; mexcCancelled?: number; errors: string[] };
       queryClient.invalidateQueries({ queryKey: getListBotsQueryKey() });
       const parts: string[] = [];
       if (data.botsTopped > 0) parts.push(`${data.botsTopped} bot dihentikan`);
       if (data.krakenCancelled > 0) parts.push(`${data.krakenCancelled} order Kraken dibatalkan`);
       if (data.xtCancelled > 0) parts.push(`${data.xtCancelled} pair XT dibersihkan`);
-      if (data.bitmartCancelled > 0) parts.push(`${data.bitmartCancelled} pair BitMart dibersihkan`);
-      if (data.coinstoreCancelled > 0) parts.push(`${data.coinstoreCancelled} pair Coinstore dibersihkan`);
+      if (data.mexcCancelled && data.mexcCancelled > 0) parts.push(`${data.mexcCancelled} pair MEXC dibersihkan`);
       toast({
         title: "Emergency Stop selesai",
         description: parts.length > 0 ? parts.join(" · ") : "Tidak ada order aktif yang ditemukan",
@@ -790,7 +773,7 @@ export default function Dashboard() {
   const cbCount = bots?.filter((b) => b.status.circuitBreakerTripped).length ?? 0;
 
   const visibleBots = (bots ?? []).filter((b) => {
-    const exc = (b.config.exchange ?? "kraken") as "kraken" | "xt" | "bitmart" | "coinstore";
+    const exc = (b.config.exchange ?? "kraken") as "kraken" | "xt" | "mexc";
     if (!isEnabled(exc)) return false;
     if (exchangeFilter !== "all" && exc !== exchangeFilter) return false;
     if (statusFilter === "running" && !b.status.running) return false;
@@ -874,7 +857,7 @@ export default function Dashboard() {
 
           {/* Exchange filter */}
           <div className="w-px h-5 bg-border/60 hidden sm:block" />
-          {(["all", "kraken", "xt", "bitmart", "coinstore"] as const).map((v) => (
+          {(["all", "kraken", "xt", "mexc"] as const).map((v) => (
             <button
               key={v}
               onClick={() => setExchangeFilter(v)}
@@ -884,7 +867,7 @@ export default function Dashboard() {
                   : "border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`}
             >
-              {v === "all" ? "Exchange" : v === "kraken" ? "Kraken" : v === "xt" ? "XT" : v === "bitmart" ? "BitMart" : "Coinstore"}
+              {v === "all" ? "Exchange" : v === "kraken" ? "Kraken" : v === "xt" ? "XT" : "MEXC"}
             </button>
           ))}
 
@@ -900,14 +883,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Balance cards — Kraken, XT, BitMart & Coinstore collapsible */}
-      {(krakenBalances?.length || xtBalances?.length || bitmartBalances?.length || coinstoreBalances?.length) ? (
+      {/* Balance cards — Kraken, XT & MEXC collapsible */}
+      {(krakenBalances?.length || xtBalances?.length || mexcBalances?.length) ? (
         <div className={`grid grid-cols-1 gap-3 ${
           [
             isEnabled("kraken") && krakenBalances && krakenBalances.length > 0,
             isEnabled("xt") && xtBalances && xtBalances.length > 0,
-            isEnabled("bitmart") && bitmartBalances && bitmartBalances.length > 0,
-            isEnabled("coinstore") && coinstoreBalances && coinstoreBalances.length > 0,
+            isEnabled("mexc") && mexcBalances && mexcBalances.length > 0,
           ].filter(Boolean).length > 1
             ? "sm:grid-cols-2"
             : ""
@@ -1069,9 +1051,9 @@ export default function Dashboard() {
             );
           })()}
 
-          {/* ── BitMart ── */}
-          {isEnabled("bitmart") && bitmartBalances && bitmartBalances.length > 0 && (() => {
-            const usdt    = bitmartBalances.find((a) => a.currency.toUpperCase() === "USDT");
+          {/* ── MEXC ── */}
+          {isEnabled("mexc") && mexcBalances && mexcBalances.length > 0 && (() => {
+            const usdt    = mexcBalances.find((a) => a.currency.toUpperCase() === "USDT");
             const avail   = usdt ? parseFloat(usdt.available) : null;
             const frozen  = usdt ? parseFloat(usdt.frozen)    : null;
             const total   = avail != null && frozen != null ? avail + frozen : null;
@@ -1080,13 +1062,13 @@ export default function Dashboard() {
               <div className="bg-card border border-border rounded-xl overflow-hidden">
                 <button
                   type="button"
-                  onClick={() => setBitmartOpen((v) => !v)}
+                  onClick={() => setMexcOpen((v) => !v)}
                   className="w-full text-left"
                 >
-                  <div className="flex items-center gap-3 px-4 py-3" style={{ background: "color-mix(in srgb, #1A6FAF 6%, transparent)" }}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm text-white" style={{ background: "color-mix(in srgb, #1A6FAF 85%, #1250a0)" }}>BM</div>
+                  <div className="flex items-center gap-3 px-4 py-3" style={{ background: "color-mix(in srgb, #0f766e 6%, transparent)" }}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm text-white" style={{ background: "color-mix(in srgb, #0f766e 85%, #115e59)" }}>MX</div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold leading-none">BitMart</p>
+                      <p className="text-sm font-semibold leading-none">MEXC</p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">Saldo akun</p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1097,87 +1079,11 @@ export default function Dashboard() {
                         </span>
                       )}
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_1px_#34d39980]" />
-                      {bitmartOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                      {mexcOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
                     </div>
                   </div>
                   {total != null && (
-                    <div className="px-4 pb-3 pt-1" style={{ background: "color-mix(in srgb, #1A6FAF 6%, transparent)" }}>
-                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${freePct}%` }} />
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-[10px] text-emerald-500 font-medium">bebas {avail != null ? `$${avail.toFixed(2)}` : "—"}</span>
-                        {frozen != null && frozen > 0 && (
-                          <><span className="text-[10px] text-muted-foreground/50">·</span>
-                          <span className="text-[10px] text-amber-500 font-medium">frozen ${frozen.toFixed(2)}</span></>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </button>
-                {bitmartOpen && (
-                  <div className="divide-y divide-border/50 border-t border-border">
-                    {bitmartBalances.map((a) => {
-                      const isUSDT  = a.currency.toUpperCase() === "USDT";
-                      const av      = parseFloat(a.available);
-                      const fr      = parseFloat(a.frozen);
-                      const tot     = av + fr;
-                      const dp      = isUSDT ? 2 : tot < 0.01 ? 6 : 4;
-                      const label   = a.currency.toUpperCase();
-                      return (
-                        <div key={a.currency} className="flex items-center justify-between px-4 py-2.5">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-md bg-muted flex items-center justify-center">
-                              <span className="text-[9px] font-bold text-muted-foreground">{label.slice(0, 3)}</span>
-                            </div>
-                            <span className="text-xs font-medium text-muted-foreground">{label}</span>
-                          </div>
-                          <p className="font-mono text-sm font-semibold tabular-nums">
-                            {isUSDT ? <span className="text-[10px] text-muted-foreground mr-0.5">$</span> : null}
-                            {tot.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp })}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* ── Coinstore ── */}
-          {isEnabled("coinstore") && coinstoreBalances && coinstoreBalances.length > 0 && (() => {
-            const usdt    = coinstoreBalances.find((a) => a.currency.toUpperCase() === "USDT");
-            const avail   = usdt ? parseFloat(usdt.available) : null;
-            const frozen  = usdt ? parseFloat(usdt.frozen)    : null;
-            const total   = avail != null && frozen != null ? avail + frozen : null;
-            const freePct = (total && total > 0 && avail != null) ? (avail / total) * 100 : 100;
-            return (
-              <div className="bg-card border border-border rounded-xl overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setCoinstoreOpen((v) => !v)}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-center gap-3 px-4 py-3" style={{ background: "color-mix(in srgb, #16a34a 6%, transparent)" }}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm text-white" style={{ background: "color-mix(in srgb, #16a34a 85%, #15803d)" }}>CS</div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold leading-none">Coinstore</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">Saldo akun</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {total != null && (
-                        <span className="font-mono text-sm font-semibold tabular-nums">
-                          <span className="text-[10px] text-muted-foreground">$</span>
-                          {total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      )}
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_5px_1px_#34d39980]" />
-                      {coinstoreOpen ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
-                    </div>
-                  </div>
-                  {total != null && (
-                    <div className="px-4 pb-3 pt-1" style={{ background: "color-mix(in srgb, #16a34a 6%, transparent)" }}>
+                    <div className="px-4 pb-3 pt-1" style={{ background: "color-mix(in srgb, #0f766e 6%, transparent)" }}>
                       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                         <div className="h-full rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${freePct}%` }} />
                       </div>
@@ -1191,9 +1097,9 @@ export default function Dashboard() {
                     </div>
                   )}
                 </button>
-                {coinstoreOpen && (
+                {mexcOpen && (
                   <div className="divide-y divide-border/50 border-t border-border">
-                    {coinstoreBalances.map((a) => {
+                    {mexcBalances.map((a) => {
                       const isUSDT  = a.currency.toUpperCase() === "USDT";
                       const av      = parseFloat(a.available);
                       const fr      = parseFloat(a.frozen);
@@ -1293,7 +1199,7 @@ export default function Dashboard() {
                 <p>Ini akan melakukan <span className="font-semibold text-foreground">dua hal sekaligus</span>:</p>
                 <div className="pl-3 border-l-2 border-border space-y-1">
                   <p>— Menghentikan semua bot yang sedang berjalan</p>
-                  <p>— Membatalkan semua order beli terbuka di semua exchange (Kraken, XT &amp; BitMart)</p>
+                  <p>— Membatalkan semua order beli terbuka di semua exchange (Kraken, XT &amp; MEXC)</p>
                 </div>
                 <p className="text-amber-400 font-medium">Bot tidak dihapus — kamu bisa start ulang kapan saja.</p>
               </div>

@@ -6,15 +6,13 @@ import {
   useUpdateTelegramSettings,
   useGetAccountBalance,
   useGetXtBalance,
-  useGetBitmartBalance,
-  useGetCoinstoreBalance,
+  useGetMexcBalance,
   getGetTelegramSettingsQueryKey,
   getGetServerInfoQueryKey,
   getGetSystemStatsQueryKey,
   getGetAccountBalanceQueryKey,
   getGetXtBalanceQueryKey,
-  getGetBitmartBalanceQueryKey,
-  getGetCoinstoreBalanceQueryKey,
+  getGetMexcBalanceQueryKey,
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -100,10 +98,10 @@ function ConnectionPanel() {
               </p>
             </div>
 
-            {/* BitMart API status */}
+            {/* MEXC API status */}
             <div className="rounded-lg border border-border bg-background p-4 space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">BitMart API</p>
-              {info?.bitmartConnected ? (
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">MEXC API</p>
+              {info?.mexcConnected ? (
                 <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
                   <CheckCircle2 className="w-4 h-4" /> Terhubung
                 </div>
@@ -113,24 +111,7 @@ function ConnectionPanel() {
                 </div>
               )}
               <p className="text-[11px] text-muted-foreground">
-                {info?.bitmartConnected ? "API key valid & terautentikasi" : (info?.bitmartError ?? "Periksa kredensial API key")}
-              </p>
-            </div>
-
-            {/* Coinstore API status */}
-            <div className="rounded-lg border border-border bg-background p-4 space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Coinstore API</p>
-              {info?.coinstoreConnected ? (
-                <div className="flex items-center gap-2 text-emerald-400 font-medium text-sm">
-                  <CheckCircle2 className="w-4 h-4" /> Terhubung
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-red-400 font-medium text-sm">
-                  <XCircle className="w-4 h-4" /> Gagal
-                </div>
-              )}
-              <p className="text-[11px] text-muted-foreground">
-                {info?.coinstoreConnected ? "API key valid & terautentikasi" : (info?.coinstoreError ?? "Periksa kredensial API key")}
+                {info?.mexcConnected ? "API key valid & terautentikasi" : (info?.mexcError ?? "Periksa kredensial API key")}
               </p>
             </div>
 
@@ -396,8 +377,7 @@ function SystemStatsPanel() {
 const EXCHANGE_DEFS: { id: ExchangeId; label: string; color: string; badge: string }[] = [
   { id: "kraken",    label: "Kraken",    color: "#7c3aed", badge: "K"  },
   { id: "xt",        label: "XT.com",    color: "#0ea5e9", badge: "XT" },
-  { id: "bitmart",   label: "BitMart",   color: "#1A6FAF", badge: "BM" },
-  { id: "coinstore", label: "Coinstore", color: "#16a34a", badge: "CS" },
+  { id: "mexc",      label: "MEXC",      color: "#0f766e", badge: "MX" },
 ];
 
 // USD-equivalent total balance per exchange, mirrors the calculation used
@@ -409,17 +389,13 @@ function useExchangeBalanceTotals(): Record<ExchangeId, { total: number | null; 
   const { data: xtBalances, isLoading: xtLoading } = useGetXtBalance({
     query: { refetchInterval: 300000, retry: false, queryKey: getGetXtBalanceQueryKey() },
   });
-  const { data: bitmartBalances, isLoading: bitmartLoading } = useGetBitmartBalance({
-    query: { refetchInterval: 300000, retry: false, queryKey: getGetBitmartBalanceQueryKey() },
-  });
-  const { data: coinstoreBalances, isLoading: coinstoreLoading } = useGetCoinstoreBalance({
-    query: { refetchInterval: 300000, retry: false, queryKey: getGetCoinstoreBalanceQueryKey() },
+  const { data: mexcBalances, isLoading: mexcLoading } = useGetMexcBalance({
+    query: { refetchInterval: 300000, retry: false, queryKey: getGetMexcBalanceQueryKey() },
   });
 
   const krakenUsd = krakenBalances?.find((a) => a.asset === "ZUSD");
   const xtUsdt = xtBalances?.find((a) => a.currency.toUpperCase() === "USDT");
-  const bitmartUsdt = bitmartBalances?.find((a) => a.currency.toUpperCase() === "USDT");
-  const coinstoreUsdt = coinstoreBalances?.find((a) => a.currency.toUpperCase() === "USDT");
+  const mexcUsdt = mexcBalances?.find((a) => a.currency.toUpperCase() === "USDT");
 
   return {
     kraken: { total: krakenUsd ? parseFloat(krakenUsd.balance) : null, isLoading: krakenLoading },
@@ -427,13 +403,9 @@ function useExchangeBalanceTotals(): Record<ExchangeId, { total: number | null; 
       total: xtUsdt ? parseFloat(xtUsdt.available) + parseFloat(xtUsdt.frozen) : null,
       isLoading: xtLoading,
     },
-    bitmart: {
-      total: bitmartUsdt ? parseFloat(bitmartUsdt.available) + parseFloat(bitmartUsdt.frozen) : null,
-      isLoading: bitmartLoading,
-    },
-    coinstore: {
-      total: coinstoreUsdt ? parseFloat(coinstoreUsdt.available) + parseFloat(coinstoreUsdt.frozen) : null,
-      isLoading: coinstoreLoading,
+    mexc: {
+      total: mexcUsdt ? parseFloat(mexcUsdt.available) + parseFloat(mexcUsdt.frozen) : null,
+      isLoading: mexcLoading,
     },
   };
 }

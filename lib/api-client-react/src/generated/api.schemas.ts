@@ -45,8 +45,7 @@ export type BotConfigExchange = typeof BotConfigExchange[keyof typeof BotConfigE
 export const BotConfigExchange = {
   kraken: 'kraken',
   xt: 'xt',
-  bitmart: 'bitmart',
-  coinstore: 'coinstore',
+  mexc: 'mexc',
 } as const;
 
 export interface BotConfig {
@@ -68,8 +67,7 @@ export type BotConfigInputExchange = typeof BotConfigInputExchange[keyof typeof 
 export const BotConfigInputExchange = {
   kraken: 'kraken',
   xt: 'xt',
-  bitmart: 'bitmart',
-  coinstore: 'coinstore',
+  mexc: 'mexc',
 } as const;
 
 export interface BotConfigInput {
@@ -221,12 +219,9 @@ export interface ServerInfo {
   xtConnected: boolean;
   /** @nullable */
   xtError: string | null;
-  bitmartConnected: boolean;
+  mexcConnected: boolean;
   /** @nullable */
-  bitmartError: string | null;
-  coinstoreConnected: boolean;
-  /** @nullable */
-  coinstoreError: string | null;
+  mexcError: string | null;
 }
 
 export interface AssetBalance {
@@ -242,13 +237,7 @@ export interface XtAssetBalance {
   frozen: string;
 }
 
-export interface BitmartAssetBalance {
-  currency: string;
-  available: string;
-  frozen: string;
-}
-
-export interface CoinstoreAssetBalance {
+export interface MexcAssetBalance {
   currency: string;
   available: string;
   frozen: string;
@@ -294,7 +283,6 @@ export type GetOrderBookExchange = typeof GetOrderBookExchange[keyof typeof GetO
 export const GetOrderBookExchange = {
   kraken: 'kraken',
   xt: 'xt',
-  bitmart: 'bitmart',
-  coinstore: 'coinstore',
+  mexc: 'mexc',
 } as const;
 

@@ -431,7 +431,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [kraken, xt, bitmart, coinstore]
+            enum: [kraken, xt, mexc]
             default: kraken
       responses:
         "200":
@@ -516,27 +516,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /market/bitmart:
-    get:
-      operationId: getMarketBitmart
-      tags: [bots]
-      summary: Get all USDT spot pairs from BitMart with ticker data
-      responses:
-        "200":
-          description: BitMart market tickers
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/MarketTicker"
-        "500":
-          description: BitMart API error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
   /market/biconomy:
     get:
       operationId: getMarketBiconomy
@@ -579,14 +558,14 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /market/coinstore:
+  /market/mexc:
     get:
-      operationId: getMarketCoinstore
+      operationId: getMarketMexc
       tags: [bots]
-      summary: Get all USDT spot pairs from Coinstore with ticker data
+      summary: Get all USDT spot pairs from MEXC with ticker data
       responses:
         "200":
-          description: Coinstore market tickers
+          description: MEXC market tickers
           content:
             application/json:
               schema:
@@ -594,7 +573,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/MarketTicker"
         "500":
-          description: Coinstore API error
+          description: MEXC API error
           content:
             application/json:
               schema:
@@ -694,43 +673,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /account/bitmart-balance:
+  /account/mexc-balance:
     get:
-      operationId: getBitmartBalance
+      operationId: getMexcBalance
       tags: [account]
-      summary: Get BitMart account balance
+      summary: Get MEXC account balance
       responses:
         "200":
-          description: BitMart account balances
+          description: MEXC account balances
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/BitmartAssetBalance"
+                  $ref: "#/components/schemas/MexcAssetBalance"
         "500":
-          description: BitMart API error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
-  /account/coinstore-balance:
-    get:
-      operationId: getCoinstoreBalance
-      tags: [account]
-      summary: Get Coinstore account balance
-      responses:
-        "200":
-          description: Coinstore account balances
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CoinstoreAssetBalance"
-        "500":
-          description: Coinstore API error
+          description: MEXC API error
           content:
             application/json:
               schema:
@@ -845,7 +803,7 @@ components:
           default: 5
         exchange:
           type: string
-          enum: [kraken, xt, bitmart, coinstore]
+          enum: [kraken, xt, mexc]
           default: kraken
 
     BotConfigInput:
@@ -875,7 +833,7 @@ components:
           default: 5
         exchange:
           type: string
-          enum: [kraken, xt, bitmart, coinstore]
+          enum: [kraken, xt, mexc]
           default: kraken
 
     BotStatus:
@@ -1053,7 +1011,7 @@ components:
 
     ServerInfo:
       type: object
-      required: [publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError, bitmartConnected, bitmartError, coinstoreConnected, coinstoreError]
+      required: [publicIp, ipError, krakenConnected, krakenError, xtConnected, xtError, mexcConnected, mexcError]
       properties:
         publicIp:
           type: ["string", "null"]
@@ -1067,13 +1025,9 @@ components:
           type: boolean
         xtError:
           type: ["string", "null"]
-        bitmartConnected:
+        mexcConnected:
           type: boolean
-        bitmartError:
-          type: ["string", "null"]
-        coinstoreConnected:
-          type: boolean
-        coinstoreError:
+        mexcError:
           type: ["string", "null"]
 
     AssetBalance:
@@ -1100,18 +1054,7 @@ components:
         frozen:
           type: string
 
-    BitmartAssetBalance:
-      type: object
-      required: [currency, available, frozen]
-      properties:
-        currency:
-          type: string
-        available:
-          type: string
-        frozen:
-          type: string
-
-    CoinstoreAssetBalance:
+    MexcAssetBalance:
       type: object
       required: [currency, available, frozen]
       properties:

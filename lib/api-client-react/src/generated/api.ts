@@ -23,11 +23,9 @@ import type {
   AppSettings,
   AppSettingsPatch,
   AssetBalance,
-  BitmartAssetBalance,
   BotConfigInput,
   BotInstance,
   BotLog,
-  CoinstoreAssetBalance,
   ErrorResponse,
   FillRecord,
   GetAllFillsParams,
@@ -40,6 +38,7 @@ import type {
   LoginRequest,
   LoginResponse,
   MarketTicker,
+  MexcAssetBalance,
   OrderBook,
   ServerInfo,
   SystemStats,
@@ -1685,83 +1684,6 @@ export function useGetMarketXt<TData = Awaited<ReturnType<typeof getMarketXt>>, 
 
 
 
-export const getGetMarketBitmartUrl = () => {
-
-
-
-
-  return `/api/market/bitmart`
-}
-
-/**
- * @summary Get all USDT spot pairs from BitMart with ticker data
- */
-export const getMarketBitmart = async ( options?: RequestInit): Promise<MarketTicker[]> => {
-
-  return customFetch<MarketTicker[]>(getGetMarketBitmartUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetMarketBitmartQueryKey = () => {
-    return [
-    `/api/market/bitmart`
-    ] as const;
-    }
-
-
-export const getGetMarketBitmartQueryOptions = <TData = Awaited<ReturnType<typeof getMarketBitmart>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketBitmart>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetMarketBitmartQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketBitmart>>> = ({ signal }) => getMarketBitmart({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketBitmart>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetMarketBitmartQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketBitmart>>>
-export type GetMarketBitmartQueryError = ErrorType<ErrorResponse>
-
-
-/**
- * @summary Get all USDT spot pairs from BitMart with ticker data
- */
-
-export function useGetMarketBitmart<TData = Awaited<ReturnType<typeof getMarketBitmart>>, TError = ErrorType<ErrorResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketBitmart>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetMarketBitmartQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-
 export const getGetMarketBiconomyUrl = () => {
 
 
@@ -1916,20 +1838,20 @@ export function useGetMarketBitrue<TData = Awaited<ReturnType<typeof getMarketBi
 
 
 
-export const getGetMarketCoinstoreUrl = () => {
+export const getGetMarketMexcUrl = () => {
 
 
 
 
-  return `/api/market/coinstore`
+  return `/api/market/mexc`
 }
 
 /**
- * @summary Get all USDT spot pairs from Coinstore with ticker data
+ * @summary Get all USDT spot pairs from MEXC with ticker data
  */
-export const getMarketCoinstore = async ( options?: RequestInit): Promise<MarketTicker[]> => {
+export const getMarketMexc = async ( options?: RequestInit): Promise<MarketTicker[]> => {
 
-  return customFetch<MarketTicker[]>(getGetMarketCoinstoreUrl(),
+  return customFetch<MarketTicker[]>(getGetMarketMexcUrl(),
   {
     ...options,
     method: 'GET'
@@ -1942,45 +1864,45 @@ export const getMarketCoinstore = async ( options?: RequestInit): Promise<Market
 
 
 
-export const getGetMarketCoinstoreQueryKey = () => {
+export const getGetMarketMexcQueryKey = () => {
     return [
-    `/api/market/coinstore`
+    `/api/market/mexc`
     ] as const;
     }
 
 
-export const getGetMarketCoinstoreQueryOptions = <TData = Awaited<ReturnType<typeof getMarketCoinstore>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketCoinstore>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetMarketMexcQueryOptions = <TData = Awaited<ReturnType<typeof getMarketMexc>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketMexc>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetMarketCoinstoreQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetMarketMexcQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketCoinstore>>> = ({ signal }) => getMarketCoinstore({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMarketMexc>>> = ({ signal }) => getMarketMexc({ signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketCoinstore>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMarketMexc>>, TError, TData> & { queryKey: QueryKey }
 }
 
-export type GetMarketCoinstoreQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketCoinstore>>>
-export type GetMarketCoinstoreQueryError = ErrorType<ErrorResponse>
+export type GetMarketMexcQueryResult = NonNullable<Awaited<ReturnType<typeof getMarketMexc>>>
+export type GetMarketMexcQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Get all USDT spot pairs from Coinstore with ticker data
+ * @summary Get all USDT spot pairs from MEXC with ticker data
  */
 
-export function useGetMarketCoinstore<TData = Awaited<ReturnType<typeof getMarketCoinstore>>, TError = ErrorType<ErrorResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketCoinstore>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetMarketMexc<TData = Awaited<ReturnType<typeof getMarketMexc>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMarketMexc>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetMarketCoinstoreQueryOptions(options)
+  const queryOptions = getGetMarketMexcQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -2366,20 +2288,20 @@ export function useGetXtBalance<TData = Awaited<ReturnType<typeof getXtBalance>>
 
 
 
-export const getGetBitmartBalanceUrl = () => {
+export const getGetMexcBalanceUrl = () => {
 
 
 
 
-  return `/api/account/bitmart-balance`
+  return `/api/account/mexc-balance`
 }
 
 /**
- * @summary Get BitMart account balance
+ * @summary Get MEXC account balance
  */
-export const getBitmartBalance = async ( options?: RequestInit): Promise<BitmartAssetBalance[]> => {
+export const getMexcBalance = async ( options?: RequestInit): Promise<MexcAssetBalance[]> => {
 
-  return customFetch<BitmartAssetBalance[]>(getGetBitmartBalanceUrl(),
+  return customFetch<MexcAssetBalance[]>(getGetMexcBalanceUrl(),
   {
     ...options,
     method: 'GET'
@@ -2392,122 +2314,45 @@ export const getBitmartBalance = async ( options?: RequestInit): Promise<Bitmart
 
 
 
-export const getGetBitmartBalanceQueryKey = () => {
+export const getGetMexcBalanceQueryKey = () => {
     return [
-    `/api/account/bitmart-balance`
+    `/api/account/mexc-balance`
     ] as const;
     }
 
 
-export const getGetBitmartBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getBitmartBalance>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBitmartBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetMexcBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getMexcBalance>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMexcBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetBitmartBalanceQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetMexcBalanceQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBitmartBalance>>> = ({ signal }) => getBitmartBalance({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMexcBalance>>> = ({ signal }) => getMexcBalance({ signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBitmartBalance>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMexcBalance>>, TError, TData> & { queryKey: QueryKey }
 }
 
-export type GetBitmartBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getBitmartBalance>>>
-export type GetBitmartBalanceQueryError = ErrorType<ErrorResponse>
+export type GetMexcBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getMexcBalance>>>
+export type GetMexcBalanceQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Get BitMart account balance
+ * @summary Get MEXC account balance
  */
 
-export function useGetBitmartBalance<TData = Awaited<ReturnType<typeof getBitmartBalance>>, TError = ErrorType<ErrorResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBitmartBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetMexcBalance<TData = Awaited<ReturnType<typeof getMexcBalance>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMexcBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetBitmartBalanceQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return { ...query, queryKey: queryOptions.queryKey };
-}
-
-
-
-
-
-
-
-export const getGetCoinstoreBalanceUrl = () => {
-
-
-
-
-  return `/api/account/coinstore-balance`
-}
-
-/**
- * @summary Get Coinstore account balance
- */
-export const getCoinstoreBalance = async ( options?: RequestInit): Promise<CoinstoreAssetBalance[]> => {
-
-  return customFetch<CoinstoreAssetBalance[]>(getGetCoinstoreBalanceUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetCoinstoreBalanceQueryKey = () => {
-    return [
-    `/api/account/coinstore-balance`
-    ] as const;
-    }
-
-
-export const getGetCoinstoreBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getCoinstoreBalance>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCoinstoreBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetCoinstoreBalanceQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCoinstoreBalance>>> = ({ signal }) => getCoinstoreBalance({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCoinstoreBalance>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetCoinstoreBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getCoinstoreBalance>>>
-export type GetCoinstoreBalanceQueryError = ErrorType<ErrorResponse>
-
-
-/**
- * @summary Get Coinstore account balance
- */
-
-export function useGetCoinstoreBalance<TData = Awaited<ReturnType<typeof getCoinstoreBalance>>, TError = ErrorType<ErrorResponse>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCoinstoreBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetCoinstoreBalanceQueryOptions(options)
+  const queryOptions = getGetMexcBalanceQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

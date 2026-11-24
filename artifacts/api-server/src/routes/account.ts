@@ -1,8 +1,7 @@
 import { Router, type IRouter } from "express";
 import { fetchBalance, fetchLockedZusd } from "../lib/krakenBot";
 import { XtClient } from "../lib/xtClient";
-import { BitmartClient } from "../lib/bitmartClient";
-import { CoinstoreClient } from "../lib/coinstoreClient";
+import { MexcClient } from "../lib/mexcClient";
 import { GetAccountBalanceResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -51,33 +50,17 @@ router.get("/account/xt-balance", async (req, res): Promise<void> => {
   }
 });
 
-router.get("/account/bitmart-balance", async (req, res): Promise<void> => {
+router.get("/account/mexc-balance", async (req, res): Promise<void> => {
   try {
-    const bitmartClient = new BitmartClient(
-      process.env["BITMART_API_KEY"] ?? "",
-      process.env["BITMART_API_SECRET"] ?? "",
-      process.env["BITMART_MEMO"] ?? ""
+    const mexcClient = new MexcClient(
+      process.env["MEXC_API_KEY"] ?? "",
+      process.env["MEXC_API_SECRET"] ?? ""
     );
-    const balances = await bitmartClient.getBalance();
+    const balances = await mexcClient.getBalance();
     res.json(balances);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    req.log.warn({ err: msg }, "BitMart balance fetch failed (returning empty)");
-    res.json([]);
-  }
-});
-
-router.get("/account/coinstore-balance", async (req, res): Promise<void> => {
-  try {
-    const coinstoreClient = new CoinstoreClient(
-      process.env["COINSTORE_API_KEY"] ?? "",
-      process.env["COINSTORE_API_SECRET"] ?? ""
-    );
-    const balances = await coinstoreClient.getBalance();
-    res.json(balances);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    req.log.warn({ err: msg }, "Coinstore balance fetch failed (returning empty)");
+    req.log.warn({ err: msg }, "MEXC balance fetch failed (returning empty)");
     res.json([]);
   }
 });

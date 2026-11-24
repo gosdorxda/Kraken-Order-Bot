@@ -1,11 +1,11 @@
-import { fetchBitmartOrderBook, fetchBitmartSymbolPrecision, BitmartClient } from "./bitmartClient.js";
+import { fetchMexcOrderBook, fetchMexcSymbolPrecision, MexcClient } from "./mexcClient.js";
 import { sendTelegramEvent } from "./telegram.js";
 import type { BotConfig, BotLog, BotStatus, FillRecord } from "./krakenBot.js";
 
-export class BitmartBot {
+export class MexcBot {
   readonly id: string;
   private config: BotConfig;
-  private client: BitmartClient;
+  private client: MexcClient;
   private logs: BotLog[] = [];
   private logIdCounter = 0;
   private fills: FillRecord[] = [];
@@ -33,10 +33,9 @@ export class BitmartBot {
     this.id = id;
     this.config = { ...config };
     this.onPersist = onPersist;
-    const apiKey    = process.env["BITMART_API_KEY"]    ?? "";
-    const apiSecret = process.env["BITMART_API_SECRET"] ?? "";
-    const memo      = process.env["BITMART_MEMO"]       ?? "";
-    this.client = new BitmartClient(apiKey, apiSecret, memo);
+    const apiKey    = process.env["MEXC_API_KEY"]    ?? "";
+    const apiSecret = process.env["MEXC_API_SECRET"] ?? "";
+    this.client = new MexcClient(apiKey, apiSecret);
   }
 
   // ─── Public accessors ───────────────────────────────────────────────────────
@@ -98,8 +97,8 @@ export class BitmartBot {
     if (this.running) return;
 
     // Guard: credentials required
-    if (!process.env["BITMART_API_KEY"] || !process.env["BITMART_API_SECRET"]) {
-      this.addLog("error", "BITMART_API_KEY dan BITMART_API_SECRET wajib diisi. Tambahkan di Replit Secrets lalu restart server.");
+    if (!process.env["MEXC_API_KEY"] || !process.env["MEXC_API_SECRET"]) {
+      this.addLog("error", "MEXC_API_KEY dan MEXC_API_SECRET wajib diisi. Tambahkan di environment/secrets lalu restart server.");
       return;
     }
 
@@ -111,8 +110,8 @@ export class BitmartBot {
     this.currentOrderPrice = null;
     this.currentOrderVolume = null;
 
-    this.addLog("info", `BitMart Bot started for pair ${this.config.pair}`, { config: this.config });
-    void sendTelegramEvent("startStop", `▶️ <b>[BM:${this.id}]</b> Bot dimulai untuk pair <b>${this.config.pair}</b>`);
+    this.addLog("info", `MEXC Bot started for pair ${this.config.pair}`, { config: this.config });
+    void sendTelegramEvent("startStop", `▶️ <b>[MX:${this.id}]</b> Bot dimulai untuk pair <b>${this.config.pair}</b>`);
 
     const jitter = Math.floor(Math.random() * this.config.checkIntervalMs);
     if (jitter > 0) {
@@ -124,7 +123,7 @@ export class BitmartBot {
       this.runCycle().catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
         this.addLog("error", "Cycle error (fatal)", msg);
-        void sendTelegramEvent("circuitBreaker", `⚠️ <b>[BM:${this.id}]</b> Bot berhenti karena error tak terduga:\n${msg}`);
+        void sendTelegramEvent("circuitBreaker", `⚠️ <b>[MX:${this.id}]</b> Bot berhenti karena error tak terduga:\n${msg}`);
         this.stop();
       });
     }, this.config.checkIntervalMs);
@@ -159,7 +158,7 @@ export class BitmartBot {
       this.currentOrderPrice = null;
       this.currentOrderVolume = null;
     }
-    // Safety net: cancel ALL open buy orders for this pair on BitMart.
+    // Safety net: cancel ALL open buy orders for this pair on MEXC.
     // Guards against race condition where currentOrderId was null when stop() ran
     // but an order was placed by the in-flight cycle just before it was cleared.
     try {
@@ -169,8 +168,8 @@ export class BitmartBot {
     }
     this.topBidOwner = "none";
     this.topBidPrice = null;
-    this.addLog("info", "BitMart Bot stopped");
-    void sendTelegramEvent("startStop", `⏹️ <b>[BM:${this.id}]</b> Bot dihentikan untuk pair <b>${this.config.pair}</b>`);
+    this.addLog("info", "MEXC Bot stopped");
+    void sendTelegramEvent("startStop", `⏹️ <b>[MX:${this.id}]</b> Bot dihentikan untuk pair <b>${this.config.pair}</b>`);
     this.onPersist?.();
   }
 
@@ -185,12 +184,12 @@ export class BitmartBot {
     try {
       // Bootstrap: fetch exchange-driven precision on the first cycle
       if (this.pricePrecision === null) {
-        const prec = await fetchBitmartSymbolPrecision(this.config.pair);
+        const prec = await fetchMexcSymbolPrecision(this.config.pair);
         this.pricePrecision = prec.pricePrecision;
         this.addLog("info", `Symbol precision loaded: price=${this.pricePrecision}`);
       }
 
-      const book = await fetchBitmartOrderBook(this.config.pair);
+      const book = await fetchMexcOrderBook(this.config.pair);
       const topBid = book.bids[0];
       if (!topBid) {
         this.addLog("warn", "Empty order book, skipping cycle");
@@ -205,7 +204,7 @@ export class BitmartBot {
       let myOrderIsAtTop = false;
 
       if (this.currentOrderId) {
-        const orderStatus = await this.client.getOrder(this.currentOrderId);
+        const orderStatus = await this.client.getOrder(this.currentOrderId, this.config.pair);
         if (!orderStatus.isOpen) {
           if (orderStatus.reason === "filled") {
             const filledOrderId  = this.currentOrderId;
@@ -230,7 +229,7 @@ export class BitmartBot {
           } else {
             const staleId = this.currentOrderId;
             if (orderStatus.reason === "unknown") {
-              this.addLog("warn", `Order ${staleId} tidak ditemukan di BitMart — mencoba cancel sebelum re-place`);
+              this.addLog("warn", `Order ${staleId} tidak ditemukan di MEXC — mencoba cancel sebelum re-place`);
               await this.client.cancelOrder(this.config.pair, staleId);
             } else {
               this.addLog("warn", `Order ${staleId} dibatalkan/expired — akan re-place di siklus berikutnya`);
@@ -359,14 +358,14 @@ export class BitmartBot {
       this.consecutiveErrors = 0;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (/insufficient|balance|saldo/i.test(msg)) {
-        this.addLog("warn", `Saldo tidak cukup — siklus dilewati. Cek saldo akun BitMart.`);
+      if (/insufficient|balance|saldo|-2010/i.test(msg)) {
+        this.addLog("warn", `Saldo tidak cukup — siklus dilewati. Cek saldo akun MEXC.`);
         return;
       }
-      // 51011: size * price < minimum order value ($5 at BitMart).
-      // Transient market condition — skip silently, do not count toward circuit breaker.
-      if (/51011/i.test(msg)) {
-        this.addLog("warn", `Order terlalu kecil (nilai minimum $5) — harga terlalu rendah untuk ukuran order ini. Naikkan orderSize atau tunggu harga naik.`);
+      if (/-1013|filter|LOT_SIZE|MIN_NOTIONAL|PRICE_FILTER/i.test(msg)) {
+        // Order violates an exchange filter (too small value, bad precision) —
+        // transient market condition — skip silently, do not count toward circuit breaker.
+        this.addLog("warn", `Order ditolak filter exchange (nilai terlalu kecil / presisi). Naikkan orderSize atau sesuaikan tickSize.`);
         return;
       }
       this.addLog("error", `Cycle error: ${msg}`);
@@ -378,7 +377,7 @@ export class BitmartBot {
         this.setLastAction(`Circuit breaker tripped after ${maxErrors} errors`);
         void sendTelegramEvent(
           "circuitBreaker",
-          `🚨 <b>[BM:${this.id}]</b> Circuit breaker aktif — ${maxErrors} error berturut-turut. Bot berhenti.\n\nError terakhir: ${msg}`
+          `🚨 <b>[MX:${this.id}]</b> Circuit breaker aktif — ${maxErrors} error berturut-turut. Bot berhenti.\n\nError terakhir: ${msg}`
         );
         this.stop();
       }
@@ -402,7 +401,7 @@ export class BitmartBot {
     const configVolume = this.currentOrderVolume ?? this.config.orderSize;
 
     // Check status first
-    const status = await this.client.getOrder(orderId);
+    const status = await this.client.getOrder(orderId, this.config.pair);
 
     if (!status.isOpen && status.reason === "filled") {
       const actualVolume = status.executedQty ?? configVolume;
@@ -454,7 +453,7 @@ export class BitmartBot {
     const volDisplay = partial ? `${volume}/${this.config.orderSize}` : volume;
     void sendTelegramEvent(
       "fill",
-      `${icon} <b>[BM:${this.id}]</b> ${label} — ${volDisplay} ${this.config.pair.toUpperCase()} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
+      `${icon} <b>[MX:${this.id}]</b> ${label} — ${volDisplay} ${this.config.pair.toUpperCase()} @ $${parseFloat(price).toLocaleString("en-US", { minimumFractionDigits: 2 })} (~$${nilai})`
     );
   }
 

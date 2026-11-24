@@ -2,10 +2,9 @@ import { useState, useMemo } from "react";
 import {
   useGetMarket, getGetMarketQueryKey,
   useGetMarketXt, getGetMarketXtQueryKey,
-  useGetMarketBitmart, getGetMarketBitmartQueryKey,
   useGetMarketBiconomy, getGetMarketBiconomyQueryKey,
   useGetMarketBitrue, getGetMarketBitrueQueryKey,
-  useGetMarketCoinstore, getGetMarketCoinstoreQueryKey,
+  useGetMarketMexc, getGetMarketMexcQueryKey,
 } from "@workspace/api-client-react";
 import type { MarketTicker } from "@workspace/api-client-react";
 import {
@@ -15,7 +14,7 @@ import {
 
 type SortKey = keyof Pick<MarketTicker, "displayName" | "last" | "change24h" | "bid" | "ask" | "spread" | "spreadPct" | "volume24h">;
 type SortDir = "asc" | "desc";
-type Exchange = "kraken" | "xt" | "bitmart" | "biconomy" | "bitrue" | "coinstore";
+type Exchange = "kraken" | "xt" | "biconomy" | "bitrue" | "mexc";
 
 const PAGE_SIZE = 50;
 
@@ -48,10 +47,9 @@ function tokenName(displayName: string) {
 
 function tradeUrl(exchange: Exchange, pair: string, displayName: string) {
   if (exchange === "xt")       return `https://www.xt.com/en/trade/${pair.toLowerCase()}`;
-  if (exchange === "bitmart")  return `https://www.bitmart.com/trade/en-US?symbol=${pair}`;
   if (exchange === "biconomy") return `https://www.biconomy.com/exchange/${pair}`;
   if (exchange === "bitrue")   return `https://www.bitrue.com/trade/${pair.replace(/USDT$/i, "").toLowerCase()}_usdt`;
-  if (exchange === "coinstore") return `https://www.coinstore.com/spot/${pair}`;
+  if (exchange === "mexc")     return `https://www.mexc.com/exchange/${pair.replace(/USDT$/i, "")}_USDT`;
   return `https://pro.kraken.com/app/trade/${displayName.toLowerCase().replace("/", "-")}`;
 }
 
@@ -448,20 +446,17 @@ export default function Market() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const xt       = useGetMarketXt({ query: { ...queryOpts, queryKey: getGetMarketXtQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const bitmart  = useGetMarketBitmart({ query: { ...queryOpts, queryKey: getGetMarketBitmartQueryKey() } as any });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const biconomy = useGetMarketBiconomy({ query: { ...queryOpts, queryKey: getGetMarketBiconomyQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const bitrue   = useGetMarketBitrue({ query: { ...queryOpts, queryKey: getGetMarketBitrueQueryKey() } as any });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const coinstore = useGetMarketCoinstore({ query: { ...queryOpts, queryKey: getGetMarketCoinstoreQueryKey() } as any });
+  const mexc     = useGetMarketMexc({ query: { ...queryOpts, queryKey: getGetMarketMexcQueryKey() } as any });
 
   const active = exchange === "kraken"   ? kraken
     : exchange === "xt"       ? xt
-    : exchange === "bitmart"  ? bitmart
     : exchange === "biconomy" ? biconomy
     : exchange === "bitrue"   ? bitrue
-    : coinstore;
+    : mexc;
 
   const isIdle = !active.isFetching && active.dataUpdatedAt === 0;
 
@@ -481,17 +476,14 @@ export default function Market() {
         <ExchangeTab active={exchange === "xt"} onClick={() => setExchange("xt")}>
           XT.com <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
-        <ExchangeTab active={exchange === "bitmart"} onClick={() => setExchange("bitmart")}>
-          BitMart <span className="text-xs opacity-60 ml-1">USDT</span>
-        </ExchangeTab>
         <ExchangeTab active={exchange === "biconomy"} onClick={() => setExchange("biconomy")}>
           Biconomy <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
         <ExchangeTab active={exchange === "bitrue"} onClick={() => setExchange("bitrue")}>
           Bitrue <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
-        <ExchangeTab active={exchange === "coinstore"} onClick={() => setExchange("coinstore")}>
-          Coinstore <span className="text-xs opacity-60 ml-1">USDT</span>
+        <ExchangeTab active={exchange === "mexc"} onClick={() => setExchange("mexc")}>
+          MEXC <span className="text-xs opacity-60 ml-1">USDT</span>
         </ExchangeTab>
       </div>
 

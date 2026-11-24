@@ -1,15 +1,13 @@
 import { KrakenBot, type BotConfig, cancelAllOpenBuyOrders } from "./krakenBot";
 import { XtBot } from "./xtBot";
 import { XtClient } from "./xtClient";
-import { BitmartBot } from "./bitmartBot";
-import { BitmartClient } from "./bitmartClient";
-import { CoinstoreBot } from "./coinstoreBot";
-import { CoinstoreClient } from "./coinstoreClient";
+import { MexcBot } from "./mexcBot";
+import { MexcClient } from "./mexcClient";
 import { loadPersistedState, savePersistedState } from "./persistence";
 import { getTelegramEventConfig, setTelegramEventConfig, type TelegramEventConfig } from "./telegram";
 import { logger } from "./logger";
 
-export type AnyBot = KrakenBot | XtBot | BitmartBot | CoinstoreBot;
+export type AnyBot = KrakenBot | XtBot | MexcBot;
 
 export interface BotInstanceData {
   id: string;
@@ -29,8 +27,7 @@ class BotManager {
 
     const krakenBotsToStart: KrakenBot[] = [];
     const xtBotsToStart: XtBot[] = [];
-    const bitmartBotsToStart: BitmartBot[] = [];
-    const coinstoreBotsToStart: CoinstoreBot[] = [];
+    const mexcBotsToStart: MexcBot[] = [];
 
     for (const p of state.bots) {
       try {
@@ -50,8 +47,7 @@ class BotManager {
         const isDev = process.env["NODE_ENV"] !== "production";
         if (p.running && !isDev) {
           if (bot instanceof XtBot) xtBotsToStart.push(bot);
-          else if (bot instanceof BitmartBot) bitmartBotsToStart.push(bot);
-          else if (bot instanceof CoinstoreBot) coinstoreBotsToStart.push(bot);
+          else if (bot instanceof MexcBot) mexcBotsToStart.push(bot);
           else krakenBotsToStart.push(bot as KrakenBot);
         } else if (p.running && isDev) {
           logger.info({ botId: p.id }, "Dev mode: bot not auto-started (run published app or start manually)");
@@ -81,30 +77,16 @@ class BotManager {
       }
     }
 
-    // Cancel ALL open BitMart buy orders ONCE before starting any BitMart bot.
-    if (bitmartBotsToStart.length > 0) {
-      const bitmartClient = new BitmartClient(
-        process.env["BITMART_API_KEY"] ?? "",
-        process.env["BITMART_API_SECRET"] ?? "",
-        process.env["BITMART_MEMO"] ?? ""
+    // Cancel ALL open MEXC buy orders ONCE before starting any MEXC bot.
+    if (mexcBotsToStart.length > 0) {
+      const mexcClient = new MexcClient(
+        process.env["MEXC_API_KEY"] ?? "",
+        process.env["MEXC_API_SECRET"] ?? ""
       );
-      const bitmartPairs = bitmartBotsToStart.map((b) => b.getConfig().pair);
-      logger.info({ pairs: bitmartPairs }, "BotManager: cancelling stale BitMart open buy orders before autostart");
-      for (const pair of bitmartPairs) {
-        await bitmartClient.cancelAllOpenBuyOrders(pair);
-      }
-    }
-
-    // Cancel ALL open Coinstore buy orders ONCE before starting any Coinstore bot.
-    if (coinstoreBotsToStart.length > 0) {
-      const coinstoreClient = new CoinstoreClient(
-        process.env["COINSTORE_API_KEY"] ?? "",
-        process.env["COINSTORE_API_SECRET"] ?? ""
-      );
-      const coinstorePairs = coinstoreBotsToStart.map((b) => b.getConfig().pair);
-      logger.info({ pairs: coinstorePairs }, "BotManager: cancelling stale Coinstore open buy orders before autostart");
-      for (const pair of coinstorePairs) {
-        await coinstoreClient.cancelAllOpenBuyOrders(pair);
+      const mexcPairs = mexcBotsToStart.map((b) => b.getConfig().pair);
+      logger.info({ pairs: mexcPairs }, "BotManager: cancelling stale MEXC open buy orders before autostart");
+      for (const pair of mexcPairs) {
+        await mexcClient.cancelAllOpenBuyOrders(pair);
       }
     }
 
@@ -120,15 +102,9 @@ class BotManager {
       });
     }
 
-    for (const bot of bitmartBotsToStart) {
+    for (const bot of mexcBotsToStart) {
       bot.start().catch((err: unknown) => {
-        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start BitMart bot on restore");
-      });
-    }
-
-    for (const bot of coinstoreBotsToStart) {
-      bot.start().catch((err: unknown) => {
-        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start Coinstore bot on restore");
+        logger.error({ err, botId: bot.getConfig().pair }, "Failed to auto-start MEXC bot on restore");
       });
     }
 
@@ -182,11 +158,8 @@ class BotManager {
     if (config.exchange === "xt") {
       return new XtBot(id, config, () => this.persist());
     }
-    if (config.exchange === "bitmart") {
-      return new BitmartBot(id, config, () => this.persist());
-    }
-    if (config.exchange === "coinstore") {
-      return new CoinstoreBot(id, config, () => this.persist());
+    if (config.exchange === "mexc") {
+      return new MexcBot(id, config, () => this.persist());
     }
     return new KrakenBot(id, config, () => this.persist());
   }
