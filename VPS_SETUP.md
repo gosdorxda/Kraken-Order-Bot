@@ -141,18 +141,19 @@ pm2 logs krkn-api
 File konfigurasi siap pakai sudah ada di repo: `deploy/nginx-krkn-bot.conf`.
 
 Jika VPS sudah menjalankan proyek lain (mis. `arbit` di `/opt/arbit` dengan domain `arbitin.website`), krkn-bot **tidak mengganggu** selama:
-1. Memakai **subdomain sendiri** (dipakai di panduan ini: `krkn.vooi.lol`)
+1. Memakai **domain sendiri** (dipakai di panduan ini: `vooi.lol`)
 2. Memakai **port backend sendiri** (default `8080`)
 
 Langkah:
 
 ```bash
-# a. Tambah DNS record A untuk subdomain di panel domain vooi.lol:
-#    krkn  →  IP_VPS  (type A, TTL auto)
+# a. Tambah DNS record A di panel domain vooi.lol:
+#    @    →  IP_VPS  (type A, TTL auto)   [root domain]
+#    www  →  IP_VPS  (type A, TTL auto)   [opsional]
 #    Tunggu propagasi (biasanya < 5 menit). Cek dengan:
-dig +short krkn.vooi.lol
+dig +short vooi.lol
 
-# b. Salin config (sudah di-set ke krkn.vooi.lol)
+# b. Salin config (sudah di-set ke vooi.lol)
 sudo cp /opt/krkn-bot/deploy/nginx-krkn-bot.conf /etc/nginx/sites-available/krkn-bot
 
 # c. Aktifkan & tes
@@ -166,7 +167,7 @@ File `sites-enabled/arbit` milik proyek lama **tidak diubah sama sekali**.
 Verifikasi cepat:
 ```bash
 curl -s http://127.0.0.1:8080/api/healthz        # harus: {"status":"ok"}
-curl -s -H "Host: krkn.vooi.lol" http://127.0.0.1/ | head -5   # harus: HTML dashboard
+curl -s -H "Host: vooi.lol" http://127.0.0.1/ | head -5   # harus: HTML dashboard
 ```
 
 ---
@@ -175,7 +176,7 @@ curl -s -H "Host: krkn.vooi.lol" http://127.0.0.1/ | head -5   # harus: HTML das
 
 ```bash
 sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d krkn.vooi.lol
+sudo certbot --nginx -d vooi.lol -d www.vooi.lol
 sudo systemctl reload nginx
 ```
 
